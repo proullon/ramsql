@@ -385,7 +385,7 @@ func (p *parser) parseWhere(selectDecl *Decl) error {
 			break
 		}
 
-		if p.cur().Token == OrderToken {
+		if p.is(OrderToken, LimitToken, ForToken) {
 			break
 		}
 

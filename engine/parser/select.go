@@ -113,7 +113,11 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 				return nil, err
 			}
 			limitDecl.Add(numDecl)
-
+		case ForToken:
+			err := p.parseForUpdate(selectDecl)
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return i, nil
 		}
@@ -132,4 +136,25 @@ func addImplicitWhereAll(decl *Decl) {
 	})
 
 	decl.Add(whereDecl)
+}
+
+func (p *parser) parseForUpdate(decl *Decl) error {
+	// Optionnal
+	if !p.is(ForToken) {
+		return nil
+	}
+
+	d, err := p.consumeToken(ForToken)
+	if err != nil {
+		return err
+	}
+
+	u, err := p.consumeToken(UpdateToken)
+	if err != nil {
+		return err
+	}
+
+	d.Add(u)
+	decl.Add(d)
+	return nil
 }

@@ -160,6 +160,12 @@ func TestParseMultipleOrderBy(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestSelectForUpdate(t *testing.T) {
+	query := `SELECT * FROM user WHERE user.id = 1 FOR UPDATE`
+
+	parse(query, 1, t)
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)
 

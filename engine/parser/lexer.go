@@ -67,6 +67,7 @@ const (
 	DescToken
 	LimitToken
 	IsToken
+	ForToken
 
 	// Type Token
 
@@ -152,6 +153,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchDescToken)
 	matchers = append(matchers, l.MatchLimitToken)
 	matchers = append(matchers, l.MatchIsToken)
+	matchers = append(matchers, l.MatchForToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -247,6 +249,10 @@ func (l *lexer) MatchZoneToken() bool {
 
 func (l *lexer) MatchIsToken() bool {
 	return l.Match([]byte("is"), IsToken)
+}
+
+func (l *lexer) MatchForToken() bool {
+	return l.Match([]byte("for"), ForToken)
 }
 
 func (l *lexer) MatchLimitToken() bool {
