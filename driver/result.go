@@ -1,6 +1,13 @@
 package ramsql
 
 type Result struct {
+	lastInsertId int64
+	rowsAffected int64
+}
+
+// computeResult unmarshal raw data and create a Result
+func computeResult(data []byte) *Result {
+	return &Result{}
 }
 
 // LastInsertId returns the database's auto-generated ID
