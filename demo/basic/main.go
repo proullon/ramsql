@@ -14,8 +14,15 @@ func main() {
 		fmt.Printf("sql.Open : Error : %s\n", err)
 		return
 	}
+	defer db.Close()
 
-	res, err := db.Exec("SELECT * FROM account WHERE email = '?", "foo@bar.com")
+	res, err := db.Exec("CREATE TABLE account")
+	if err != nil {
+		fmt.Printf("sql.Exec: Error: %s\n", err)
+		return
+	}
+
+	res, err = db.Exec("SELECT * FROM account WHERE email = '?", "foo@bar.com")
 	if err != nil {
 		fmt.Printf("sql.Exec : Error : %s\n", err)
 		return
