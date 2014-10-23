@@ -1,12 +1,13 @@
 package engine
 
 import (
-	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
+
+	"github.com/proullon/ramsql/engine/parser"
+	"github.com/proullon/ramsql/engine/protocol"
 )
 
 type Engine struct {
@@ -69,11 +70,47 @@ func (e *Engine) handleConnection(conn net.Conn) {
 			conn.Close()
 		}
 
-		log.Printf("Engine.handleConnection: GOT <%s>", buffer)
+		log.Printf("Engine.handleConnection: GOT <%s>", m.Value)
 
-		answer := parse(string(buffer))
-		fmt.Fprint(conn, "%s\n", answer)
+		instructions, err := parser.ParseInstruction(m.Value)
+		if err != nil {
+			protocol.Send(conn, protocol.Error, err.Error())
+			continue
+		}
+
+		answer, err := e.executeQueries(instructions)
+		if err != nil {
+			protocol.Send(conn, protocol.Error, err.Error())
+			continue
+		}
 
 		protocol.Send(conn, protocol.Result, answer)
 	}
+}
+
+func (e *Engine) executeQueries(instructions []parser.Instruction) (string, error) {
+	var completeAnswerString string
+
+	for _, i := range instructions {
+		answer, err := e.executeQuery(i)
+		if err != nil {
+			return "", err
+		}
+		completeAnswerString += answer
+	}
+
+	return completeAnswerString, nil
+}
+
+func (e *Engine) executeQuery(i parser.Instruction) (string, error) {
+
+	switch i.Decls[0].Token {
+	case parser.CreateToken:
+		break
+	default:
+		return "", errors.New("Not Implemented")
+		break
+	}
+
+	return "", errors.New("Not Implemented")
 }
