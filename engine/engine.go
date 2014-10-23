@@ -62,8 +62,7 @@ func (e *Engine) handleConnection(conn net.Conn) {
 
 	for {
 		log.Printf("Engine.handleConnection: Reading")
-		buffer, err := bufio.NewReader(conn).ReadBytes('\n')
-		buffer = buffer[:len(buffer)-1]
+		m, err := protocol.Read(conn)
 
 		if err != nil && err != io.EOF {
 			log.Printf("Enginge.handleConnection: cannot read : %s", err)
@@ -74,5 +73,7 @@ func (e *Engine) handleConnection(conn net.Conn) {
 
 		answer := parse(string(buffer))
 		fmt.Fprint(conn, "%s\n", answer)
+
+		protocol.Send(conn, protocol.Result, answer)
 	}
 }

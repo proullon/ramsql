@@ -1,12 +1,11 @@
 package ramsql
 
 import (
-	"bufio"
 	"database/sql/driver"
 	"fmt"
 	"log"
-	"net"
-	"time"
+
+	"github.com/proullon/ramsql/engine/protocol"
 )
 
 type Stmt struct {
@@ -66,38 +65,25 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 
 	// Send query to server
 	log.Printf("Stmt.Exec: Writing to server <%s>", finalQuery)
-	n, err := fmt.Fprintf(s.conn.socket, "%s\n", finalQuery)
+	err := protocol.Send(s.conn.socket, protocol.Query, finalQuery)
 	if err != nil {
 		log.Printf("Stmt.Exec: %s", err)
 		return nil, fmt.Errorf("Cannot send query to server: %s", err)
 	}
 
-	if n != len(finalQuery)+1 {
-		log.Printf("Stmt.Exec: Cannot send entire query to server: %d bytes over %d", n, len(finalQuery)+1)
-		return nil, fmt.Errorf("Cannot send entire query to server")
-	}
-
-	// Set query deadline
-	s.conn.socket.SetReadDeadline(time.Now().Add(10 * time.Second))
-
-	// Wait for engine answer
-	answer, err := bufio.NewReader(s.conn.socket).ReadBytes('\n')
-
+	// Get answer from server
+	m, err := protocol.Read(s.conn.socket)
 	if err != nil {
-		// Check if error is Timeout
-		if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
-			log.Printf("Stmt.Exec: socket timeout: %s", err)
-			return nil, fmt.Errorf("Request timeout")
-		}
-
 		log.Printf("Stmt.Exec: Cannot read from socket: %s", err)
 		return nil, fmt.Errorf("Cannot read server answer")
 	}
 
-	answer = answer[:len(answer)-1]
+	if m.Token == protocol.Error {
+		return nil, fmt.Errorf("%s", m.Value)
+	}
 
 	// Create a driver.Result
-	return computeResult(answer), nil
+	return computeResult(m), nil
 }
 
 // Query executes a query that may return rows, such as a

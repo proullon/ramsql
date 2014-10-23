@@ -1,12 +1,16 @@
 package ramsql
 
+import (
+	"github.com/proullon/ramsql/engine/protocol"
+)
+
 type Result struct {
 	lastInsertId int64
 	rowsAffected int64
 }
 
 // computeResult unmarshal raw data and create a Result
-func computeResult(data []byte) *Result {
+func computeResult(m *protocol.Message) *Result {
 	return &Result{}
 }
 
