@@ -10,8 +10,15 @@ import (
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
+type executor func(*Engine, parser.Instruction) (string, error)
+
+var opsExecutors = map[int]executor{
+	parser.CreateToken: createExecutor,
+}
+
 type Engine struct {
-	ln net.Listener
+	ln     net.Listener
+	tables map[string]Table
 }
 
 func New() (e *Engine, err error) {
@@ -103,14 +110,24 @@ func (e *Engine) executeQueries(instructions []parser.Instruction) (string, erro
 }
 
 func (e *Engine) executeQuery(i parser.Instruction) (string, error) {
+	log.Printf("Engine.executeQuery: %v", i)
+
+	if opsExecutors[i.Decls[0].Token] != nil {
+		opsExecutors[i.Decls[0].Token](e, i)
+	}
 
 	switch i.Decls[0].Token {
-	case parser.CreateToken:
-		break
+	// case parser.CreateToken:
+	// 	break
 	default:
 		return "", errors.New("Not Implemented")
 		break
 	}
 
 	return "", errors.New("Not Implemented")
+}
+
+func createExecutor(e *Engine, i parser.Instruction) (string, error) {
+	log.Printf("createExecutor")
+	return "", nil
 }
