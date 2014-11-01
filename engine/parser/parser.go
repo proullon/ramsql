@@ -31,5 +31,7 @@ func (p *parser) parse(tokens []Decl) ([]Instruction, error) {
 
 		i.Decls = append(i.Decls, t)
 	}
+
+	p.i = append(p.i, i)
 	return p.i, nil
 }
