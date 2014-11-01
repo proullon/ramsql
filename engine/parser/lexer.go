@@ -39,6 +39,7 @@ func (l *lexer) lex(instruction []byte) ([]Decl, error) {
 	securityPos := 0
 
 	for l.pos < l.instructionLen {
+		l.MatchSemicolonToken()
 		l.MatchSpaceToken()
 		l.MatchCreateToken()
 		l.MatchTableToken()
@@ -124,6 +125,21 @@ func (l *lexer) MatchStringToken() bool {
 		}
 		l.tokens = append(l.tokens, t)
 		l.pos = i
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchSemicolonToken() bool {
+
+	if l.instruction[l.pos] == ';' {
+		t := Decl{
+			Token:  SemicolonToken,
+			Lexeme: ";",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 1
 		return true
 	}
 
