@@ -12,19 +12,30 @@ import (
 
 type executor func(*Engine, parser.Instruction) (string, error)
 
-var opsExecutors = map[int]executor{
-	parser.CreateToken: createExecutor,
-}
-
 type Engine struct {
-	ln     net.Listener
-	tables map[string]Table
+	ln           net.Listener
+	tables       map[string]Table
+	opsExecutors map[int]executor
+
+	// Any value send to this channel (through Engine.stop)
+	// Will stop the listening loop
+	stop chan bool
 }
 
 func New() (e *Engine, err error) {
 	initLog()
 
 	e = &Engine{}
+
+	e.stop = make(chan bool)
+
+	e.opsExecutors = map[int]executor{
+		parser.CreateToken: createExecutor,
+		parser.TableToken:  createTableExecutor,
+	}
+
+	e.tables = make(map[string]Table)
+
 	err = e.start()
 	if err != nil {
 		return nil, err
@@ -49,18 +60,39 @@ func (e *Engine) start() (err error) {
 	return nil
 }
 
+func (e *Engine) Stop() {
+	e.stop <- true
+}
+
 func (e *Engine) listen() {
+	newConnectionChannel := make(chan net.Conn)
+
+	go func() {
+		for {
+			conn, err := e.ln.Accept()
+
+			log.Printf("Engine.listen: accept")
+			if err != nil {
+				log.Printf("Engine.listen: Cannot accept new connection : %s", err)
+				break
+			}
+
+			newConnectionChannel <- conn
+		}
+	}()
 
 	for {
-		log.Printf("Engine.listen: accept")
-		conn, err := e.ln.Accept()
-		if err != nil {
-			log.Printf("Engine.listen: Cannot accept new connection : %s", err)
-			continue
-		}
+		select {
+		case conn := <-newConnectionChannel:
+			log.Printf("Engine.listen: new connection")
+			go e.handleConnection(conn)
+			break
 
-		log.Printf("Engine.listen: new connection")
-		go e.handleConnection(conn)
+		case <-e.stop:
+			e.ln.Close()
+			return
+			break
+		}
 	}
 
 }
@@ -112,22 +144,31 @@ func (e *Engine) executeQueries(instructions []parser.Instruction) (string, erro
 func (e *Engine) executeQuery(i parser.Instruction) (string, error) {
 	log.Printf("Engine.executeQuery: %v", i)
 
-	if opsExecutors[i.Decls[0].Token] != nil {
-		opsExecutors[i.Decls[0].Token](e, i)
+	if e.opsExecutors[i.Decls[0].Token] != nil {
+		return e.opsExecutors[i.Decls[0].Token](e, i)
 	}
 
-	switch i.Decls[0].Token {
-	// case parser.CreateToken:
+	// switch i.Decls[0].Token {
+	// // case parser.CreateToken:
+	// // 	break
+	// default:
+	// 	return "", errors.New("Not Implemented")
 	// 	break
-	default:
-		return "", errors.New("Not Implemented")
-		break
-	}
+	// }
 
 	return "", errors.New("Not Implemented")
 }
 
 func createExecutor(e *Engine, i parser.Instruction) (string, error) {
 	log.Printf("createExecutor")
-	return "", nil
+
+	if len(i.Decls) <= 1 {
+		return "", errors.New("Parsing failed, no declaration after CREATE")
+	}
+
+	if e.opsExecutors[i.Decls[1].Token] != nil {
+		return e.opsExecutors[i.Decls[1].Token](e, i)
+	}
+
+	return "", errors.New("Parsing failed, unkown token " + i.Decls[1].Lexeme)
 }
