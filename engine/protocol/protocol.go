@@ -3,6 +3,7 @@ package protocol
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -29,7 +30,7 @@ type Message struct {
 	Value string
 }
 
-func Send(conn net.Conn, t token, m string) error {
+func Send(conn io.Writer, t token, m string) error {
 	log.Printf("protocol.Send: Sending %v <%s>", t, m)
 
 	n, err := fmt.Fprintf(conn, "%s%s\n", string(t), m)
