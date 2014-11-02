@@ -113,7 +113,7 @@ func TestParserComplete(t *testing.T) {
 		t.Fatalf("Should have parsed 1 instructions, got %d", len(instructions))
 	}
 
-	// t.Logf("Instruction: %s\n", instructions[0])
+	instructions[0].PrettyPrint()
 	// t.Fail()
 }
 

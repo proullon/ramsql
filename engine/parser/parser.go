@@ -20,32 +20,26 @@ type Decl struct {
 	Decl []*Decl
 }
 
-func (d Decl) Stringy(depth int) string {
-	stringy := ""
+func (d Decl) Stringy(depth int) {
 	indent := ""
 	for i := 0; i < depth; i++ {
 		indent = fmt.Sprintf("%s    ", indent)
 	}
 
-	stringy = fmt.Sprintf("%s%s|-> %s\n", stringy, indent, d.Lexeme)
+	fmt.Printf("%s|-> %s\n", indent, d.Lexeme)
 	for _, subD := range d.Decl {
-		stringy += subD.Stringy(depth + 1)
+		subD.Stringy(depth + 1)
 	}
-
-	return stringy
 }
 
 type Instruction struct {
 	Decls []*Decl
 }
 
-func (i Instruction) String() string {
-	stringy := ""
+func (i Instruction) PrettyPrint() {
 	for _, d := range i.Decls {
-		stringy = fmt.Sprintf("\n%s\n", d.Stringy(1))
+		d.Stringy(0)
 	}
-
-	return stringy
 }
 
 func NewDecl(t Token) *Decl {
