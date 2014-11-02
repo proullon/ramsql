@@ -16,8 +16,9 @@ type parser struct {
 }
 
 type Decl struct {
-	Token
-	Decl []*Decl
+	Token  int
+	Lexeme string
+	Decl   []*Decl
 }
 
 func (d Decl) Stringy(depth int) {
@@ -44,10 +45,8 @@ func (i Instruction) PrettyPrint() {
 
 func NewDecl(t Token) *Decl {
 	return &Decl{
-		Token: Token{
-			Token:  t.Token,
-			Lexeme: t.Lexeme,
-		},
+		Token:  t.Token,
+		Lexeme: t.Lexeme,
 	}
 }
 

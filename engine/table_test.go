@@ -9,14 +9,14 @@ import (
 func TestCreateTable(t *testing.T) {
 	query := `CREATE TABLE user
 	(
-        id INT PRIMARY KEY NOT NULL,
-	    last_name VARCHAR(100),
-	    first_name VARCHAR(100),
-	    email VARCHAR(255),
+        id INT PRIMARY KEY,
+	    last_name TEXT,
+	    first_name TEXT,
+	    email TEXT,
 	    birth_date DATE,
-	    country VARCHAR(255),
-	    town VARCHAR(255),
-	    zip_code VARCHAR(5)
+	    country TEXT,
+	    town TEXT,
+	    zip_code TEXT
 	)`
 
 	e, err := New()
@@ -34,7 +34,8 @@ func TestCreateTable(t *testing.T) {
 		t.Fatalf("Cannot execute query: %s", err)
 	}
 
-	if r != "table test created" {
-		t.Fatalf("Query failed, expected TITIT, got %s", r)
+	expected := "table user created"
+	if r != expected {
+		t.Fatalf("Query failed, expected %s, got %s", expected, r)
 	}
 }

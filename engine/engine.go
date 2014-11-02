@@ -10,7 +10,7 @@ import (
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
-type executor func(*Engine, parser.Instruction) (string, error)
+type executor func(*Engine, *parser.Decl) (string, error)
 
 type Engine struct {
 	ln           net.Listener
@@ -142,10 +142,11 @@ func (e *Engine) executeQueries(instructions []parser.Instruction) (string, erro
 }
 
 func (e *Engine) executeQuery(i parser.Instruction) (string, error) {
-	log.Printf("Engine.executeQuery: %v", i)
+	log.Printf("Engine.executeQuery")
+	i.PrettyPrint()
 
 	if e.opsExecutors[i.Decls[0].Token] != nil {
-		return e.opsExecutors[i.Decls[0].Token](e, i)
+		return e.opsExecutors[i.Decls[0].Token](e, i.Decls[0])
 	}
 
 	// switch i.Decls[0].Token {
@@ -159,16 +160,16 @@ func (e *Engine) executeQuery(i parser.Instruction) (string, error) {
 	return "", errors.New("Not Implemented")
 }
 
-func createExecutor(e *Engine, i parser.Instruction) (string, error) {
+func createExecutor(e *Engine, createDecl *parser.Decl) (string, error) {
 	log.Printf("createExecutor")
 
-	if len(i.Decls) <= 1 {
+	if len(createDecl.Decl) == 0 {
 		return "", errors.New("Parsing failed, no declaration after CREATE")
 	}
 
-	if e.opsExecutors[i.Decls[1].Token] != nil {
-		return e.opsExecutors[i.Decls[1].Token](e, i)
+	if e.opsExecutors[createDecl.Decl[0].Token] != nil {
+		return e.opsExecutors[createDecl.Decl[0].Token](e, createDecl.Decl[0])
 	}
 
-	return "", errors.New("Parsing failed, unkown token " + i.Decls[1].Lexeme)
+	return "", errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
 }
