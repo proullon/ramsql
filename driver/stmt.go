@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/proullon/ramsql/engine/protocol"
 )
@@ -11,15 +12,23 @@ import (
 type Stmt struct {
 	conn  *Conn
 	query string
+	numInput int
 }
 
 func prepareStatement(c *Conn, query string) *Stmt {
 	log.Printf("prepareStatement: query <%v>", query)
 
+	// Parse number of arguments here
+	// Should handler either Postgres ($*) or ODBC (?) parameter markers
+	numInput := strings.Count(query, "?")
+
+	// Create statement
 	stmt := &Stmt{
 		conn:  c,
 		query: query,
+		numInput: numInput,
 	}
+
 
 	stmt.conn.mutex.Lock()
 	return stmt
@@ -47,7 +56,7 @@ func (s *Stmt) Close() error {
 func (s *Stmt) NumInput() int {
 	log.Printf("Stmt.NumInput")
 
-	return 0
+	return s.numInput
 }
 
 // Exec executes a query that doesn't return rows, such
@@ -89,7 +98,7 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 // Query executes a query that may return rows, such as a
 // SELECT.
 func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
-	log.Printf("Stmt.Query")
+	log.Printf("Stmt.Query with %d args", len(args))
 	defer s.conn.mutex.Unlock()
 
 	return nil, newError(NotImplemented)

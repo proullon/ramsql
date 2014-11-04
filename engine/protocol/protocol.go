@@ -53,8 +53,6 @@ func Read(conn net.Conn) (*Message, error) {
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
 
 	buffer, err := bufio.NewReader(conn).ReadBytes('\n')
-	buffer = buffer[:len(buffer)-1]
-
 	if err != nil {
 		// Check if error is Timeout
 		if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
@@ -64,6 +62,9 @@ func Read(conn net.Conn) (*Message, error) {
 
 		return nil, err
 	}
+
+	// Remove '\n'
+	buffer = buffer[:len(buffer)-1]
 
 	m := &Message{}
 
