@@ -13,6 +13,11 @@ type User struct {
 	Name string `orm:"size(100)"`
 }
 
+// OH LOL
+//
+// Query OK, 1 row affected (0.03 sec)
+//
+
 func init() {
 	// register model
 	orm.RegisterModel(new(User))
