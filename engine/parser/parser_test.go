@@ -5,83 +5,23 @@ import (
 )
 
 func TestParserCreateTableSimple(t *testing.T) {
-	parser := parser{}
-	lexer := lexer{}
 	query := `CREATE TABLE account (id INT, email TEXT)`
-
-	decls, err := lexer.lex([]byte(query))
-	if err != nil {
-		t.Fatalf("Cannot lex query <%s>", query)
-	}
-
-	instructions, err := parser.parse(decls)
-	if err != nil {
-		t.Fatalf("Cannot parse tokens : %s", err)
-	}
-
-	if len(instructions) != 1 {
-		t.Fatalf("Should have parsed 1 instructions, got %d", len(instructions))
-	}
+	parse(query, 1, t)
 }
 
 func TestParserCreateTableSimpleWithPrimaryKey(t *testing.T) {
-	parser := parser{}
-	lexer := lexer{}
 	query := `CREATE TABLE account (id INT PRIMARY KEY, email TEXT)`
-
-	decls, err := lexer.lex([]byte(query))
-	if err != nil {
-		t.Fatalf("Cannot lex query <%s>", query)
-	}
-
-	instructions, err := parser.parse(decls)
-	if err != nil {
-		t.Fatalf("Cannot parse tokens : %s", err)
-	}
-
-	if len(instructions) != 1 {
-		t.Fatalf("Should have parsed 1 instructions, got %d", len(instructions))
-	}
+	parse(query, 1, t)
 }
 
 func TestParserMultipleInstructions(t *testing.T) {
-	parser := parser{}
-	lexer := lexer{}
 	query := `CREATE TABLE account (id INT, email TEXT);CREATE TABLE user (id INT, email TEXT)`
-
-	decls, err := lexer.lex([]byte(query))
-	if err != nil {
-		t.Fatalf("Cannot lex query <%s>", query)
-	}
-
-	instructions, err := parser.parse(decls)
-	if err != nil {
-		t.Fatalf("Cannot parse tokens : %s", err)
-	}
-
-	if len(instructions) != 2 {
-		t.Fatalf("Should have parsed 2 instructions, got %d", len(instructions))
-	}
+	parse(query, 2, t)
 }
 
 // func TestParserLowerCase(t *testing.T) {
-// 	parser := parser{}
-// 	lexer := lexer{}
 // 	query := `create table account (id INT PRIMARY KEY NOT NULL)`
-
-// 	decls, err := lexer.lex([]byte(query))
-// 	if err != nil {
-// 		t.Fatalf("Cannot lex query <%s>", query)
-// 	}
-
-// 	instructions, err := parser.parse(decls)
-// 	if err != nil {
-// 		t.Fatalf("Cannot parse tokens : %s", err)
-// 	}
-
-// 	if len(instructions) != 1 {
-// 		t.Fatalf("Should have parsed 1 instructions, got %d", len(instructions))
-// 	}
+// parse(query, 1, t)
 // }
 
 func TestParserComplete(t *testing.T) {
@@ -97,24 +37,7 @@ func TestParserComplete(t *testing.T) {
 	    zip_code TEXT
 	)`
 
-	parser := parser{}
-	lexer := lexer{}
-	decls, err := lexer.lex([]byte(query))
-	if err != nil {
-		t.Fatalf("Cannot lex <%s> string", query)
-	}
-
-	instructions, err := parser.parse(decls)
-	if err != nil {
-		t.Fatalf("Cannot parse tokens : %s", err)
-	}
-
-	if len(instructions) != 1 {
-		t.Fatalf("Should have parsed 1 instructions, got %d", len(instructions))
-	}
-
-	instructions[0].PrettyPrint()
-	// t.Fail()
+	parse(query, 1, t)
 }
 
 // func TestParserCreateTableWithVarchar(t *testing.T) {
@@ -123,20 +46,57 @@ func TestParserComplete(t *testing.T) {
 //     	id INT PRIMARY KEY,
 // 	    last_name VARCHAR(100)
 // 	)`
+// parse(query, 1, t)
+//  }
 
-// 	parser := parser{}
-// 	lexer := lexer{}
-// 	decls, err := lexer.lex([]byte(query))
-// 	if err != nil {
-// 		t.Fatalf("Cannot lex <%s> string", query)
-// 	}
+func TestSelectStar(t *testing.T) {
+	query := `SELECT * FROM account WHERE email = 'foo@bar.com'`
+	parse(query, 1, t)
+}
 
-// 	instructions, err := parser.parse(decls)
-// 	if err != nil {
-// 		t.Fatalf("Cannot parse tokens : %s", err)
-// 	}
-
-// 	if len(instructions) != 1 {
-// 		t.Fatalf("Should have parsed 1 instructions, got %d", len(instructions))
-// 	}
+// func TestSelectMultipleAttribute(t *testing.T) {
+// 	query := `SELECT id, email FROM account WHERE email = 'foo@bar.com'`
+// 	parse(query, 1, t)
 // }
+
+// func TestSelectOneAttribute(t *testing.T) {
+// 	query := `SELECT id FROM account WHERE email = 'foo@bar.com'`
+// 	parse(query, 1, t)
+// }
+
+// func TestSelectAttributeWithTable(t *testing.T) {
+// 	query := `SELECT account.id FROM account WHERE email = 'foo@bar.com'`
+// 	parse(query, 1, t)
+// }
+
+// func TestSelectAttributeWithQuotedTable(t *testing.T) {
+// 	query := `SELECT "account".id FROM account WHERE email = 'foo@bar.com'`
+// 	parse(query, 1, t)
+// }
+
+// func TestSelectAllFromTable(t *testing.T) {
+// 	query := `SELECT "account".* FROM account WHERE email = 'foo@bar.com'`
+// 	parse(query, 1, t)
+// }
+
+func parse(query string, instructionNumber int, t *testing.T) []Instruction {
+	t.Log("\n\n\n")
+
+	parser := parser{}
+	lexer := lexer{}
+	decls, err := lexer.lex([]byte(query))
+	if err != nil {
+		t.Fatalf("Cannot lex <%s> string: %s", query, err)
+	}
+
+	instructions, err := parser.parse(decls)
+	if err != nil {
+		t.Fatalf("Cannot parse tokens : %s", err)
+	}
+
+	if len(instructions) != instructionNumber {
+		t.Fatalf("Should have parsed %d instructions, got %d", instructionNumber, len(instructions))
+	}
+
+	return instructions
+}
