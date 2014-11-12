@@ -10,9 +10,21 @@ import (
 )
 
 type Stmt struct {
-	conn  *Conn
-	query string
+	conn     *Conn
+	query    string
 	numInput int
+}
+
+func countArguments(query string) int {
+	for id := 1; ; id++ {
+		sep := fmt.Sprintf("$%d", id)
+		if strings.Count(query, sep) == 0 {
+			return id - 1
+		}
+
+	}
+
+	return -1
 }
 
 func prepareStatement(c *Conn, query string) *Stmt {
@@ -21,14 +33,17 @@ func prepareStatement(c *Conn, query string) *Stmt {
 	// Parse number of arguments here
 	// Should handler either Postgres ($*) or ODBC (?) parameter markers
 	numInput := strings.Count(query, "?")
+	// if numInput == 0, maybe it's Postgres format
+	if numInput == 0 {
+		numInput = countArguments(query)
+	}
 
 	// Create statement
 	stmt := &Stmt{
-		conn:  c,
-		query: query,
+		conn:     c,
+		query:    query,
 		numInput: numInput,
 	}
-
 
 	stmt.conn.mutex.Lock()
 	return stmt
