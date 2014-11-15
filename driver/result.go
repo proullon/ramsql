@@ -1,6 +1,8 @@
 package ramsql
 
 import (
+	"fmt"
+
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
@@ -10,8 +12,10 @@ type Result struct {
 }
 
 // computeResult unmarshal raw data and create a Result
-func computeResult(m *protocol.Message) *Result {
-	return &Result{}
+func computeResult(m *protocol.Message) (*Result, error) {
+	r := &Result{}
+	_, err := fmt.Sscanf(m.Value, "%d %d", &r.lastInsertId, &r.rowsAffected)
+	return r, err
 }
 
 // LastInsertId returns the database's auto-generated ID

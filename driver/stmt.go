@@ -107,7 +107,7 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	}
 
 	// Create a driver.Result
-	return computeResult(m), nil
+	return computeResult(m)
 }
 
 // Query executes a query that may return rows, such as a
