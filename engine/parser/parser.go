@@ -58,7 +58,7 @@ func (d *Decl) Add(subDecl *Decl) {
 func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 	tokens = stripSpaces(tokens)
 	p.tokens = tokens
-	log.Printf("parser.parse : %v", tokens)
+	debug("parser.parse : %v", tokens)
 
 	p.tokenLen = len(tokens)
 	p.index = 0
@@ -500,7 +500,7 @@ func (p *parser) parseValue() (*Decl, error) {
 	}
 
 	if p.is(QuoteToken) {
-		log.Printf("value is quoted")
+		debug("value is quoted")
 		quoted = true
 	}
 
@@ -520,12 +520,12 @@ func (p *parser) parseValue() (*Decl, error) {
 }
 
 func (p *parser) parseListElement() (*Decl, error) {
-	log.Printf("parseListElement")
-	defer log.Printf("~parseListElement")
+	debug("parseListElement")
+	defer debug("~parseListElement")
 	quoted := false
 
 	if p.is(QuoteToken) {
-		log.Printf("value is quoted")
+		debug("value is quoted")
 		quoted = true
 		if _, err := p.consumeToken(QuoteToken); err != nil {
 			return nil, err
@@ -551,7 +551,7 @@ func (p *parser) next() error {
 		return fmt.Errorf("Unexpected end")
 	}
 	p.index += 1
-	log.Printf("parser.next: %v -> %v", p.tokens[p.index-1], p.tokens[p.index])
+	debug("parser.next: %v -> %v", p.tokens[p.index-1], p.tokens[p.index])
 	return nil
 }
 
@@ -577,23 +577,23 @@ func (p *parser) is(tokenTypes ...int) bool {
 func (p *parser) mustHaveNext(tokenTypes ...int) (t Token, err error) {
 
 	if !p.hasNext() {
-		log.Printf("parser.mustHaveNext: has no next")
+		debug("parser.mustHaveNext: has no next")
 		return t, syntaxError(t)
 	}
 
 	if err = p.next(); err != nil {
-		log.Printf("parser.mustHaveNext: error getting next")
+		debug("parser.mustHaveNext: error getting next")
 		return t, err
 	}
 
-	log.Printf("parser.mustHaveNext %v", tokenTypes)
+	debug("parser.mustHaveNext %v", tokenTypes)
 	for _, tokenType := range tokenTypes {
 		if p.is(tokenType) {
 			return p.tokens[p.index], nil
 		}
 	}
 
-	log.Printf("parser.mustHaveNext: Next is not among %v", tokenTypes)
+	debug("parser.mustHaveNext: Next is not among %v", tokenTypes)
 	return t, syntaxError(p.tokens[p.index])
 }
 
