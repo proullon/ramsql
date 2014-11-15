@@ -18,6 +18,7 @@ const (
 	SimpleQuoteToken
 	StarToken
 	EqualityToken
+	PeriodToken
 
 	// First order Token
 	CreateToken
@@ -74,6 +75,8 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchQuoteToken)
 	matchers = append(matchers, l.MatchEqualityToken)
 	matchers = append(matchers, l.MatchSimpleQuoteToken)
+	matchers = append(matchers, l.MatchPeriodToken)
+	matchers = append(matchers, l.MatchDoubleQuoteToken)
 	// First order Matcher
 	matchers = append(matchers, l.MatchCreateToken)
 	matchers = append(matchers, l.MatchSelectToken)
@@ -317,6 +320,36 @@ func (l *lexer) MatchSemicolonToken() bool {
 		t := Token{
 			Token:  SemicolonToken,
 			Lexeme: ";",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 1
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchDoubleQuoteToken() bool {
+
+	if l.instruction[l.pos] == '"' {
+		t := Token{
+			Token:  DoubleQuoteToken,
+			Lexeme: "\"",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 1
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchPeriodToken() bool {
+
+	if l.instruction[l.pos] == '.' {
+		t := Token{
+			Token:  PeriodToken,
+			Lexeme: ".",
 		}
 		l.tokens = append(l.tokens, t)
 		l.pos += 1

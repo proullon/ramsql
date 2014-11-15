@@ -54,30 +54,31 @@ func TestSelectStar(t *testing.T) {
 	parse(query, 1, t)
 }
 
-// func TestSelectMultipleAttribute(t *testing.T) {
-// 	query := `SELECT id, email FROM account WHERE email = 'foo@bar.com'`
-// 	parse(query, 1, t)
-// }
+func TestSelectMultipleAttribute(t *testing.T) {
+	query := `SELECT id, email FROM account WHERE email = 'foo@bar.com'`
+	parse(query, 1, t)
+}
 
-// func TestSelectOneAttribute(t *testing.T) {
-// 	query := `SELECT id FROM account WHERE email = 'foo@bar.com'`
-// 	parse(query, 1, t)
-// }
+func TestSelectOneAttribute(t *testing.T) {
+	query := `SELECT id FROM account WHERE email = 'foo@bar.com'`
+	parse(query, 1, t)
+}
 
-// func TestSelectAttributeWithTable(t *testing.T) {
-// 	query := `SELECT account.id FROM account WHERE email = 'foo@bar.com'`
-// 	parse(query, 1, t)
-// }
+func TestSelectAttributeWithTable(t *testing.T) {
+	query := `SELECT account.id FROM account WHERE email = 'foo@bar.com'`
+	parse(query, 1, t)
+}
 
-// func TestSelectAttributeWithQuotedTable(t *testing.T) {
-// 	query := `SELECT "account".id FROM account WHERE email = 'foo@bar.com'`
-// 	parse(query, 1, t)
-// }
+func TestSelectAttributeWithQuotedTable(t *testing.T) {
+	query := `SELECT "account".id FROM account WHERE email = 'foo@bar.com'`
+	parse(query, 1, t)
+}
 
-// func TestSelectAllFromTable(t *testing.T) {
-// 	query := `SELECT "account".* FROM account WHERE email = 'foo@bar.com'`
-// 	parse(query, 1, t)
-// }
+func TestSelectAllFromTable(t *testing.T) {
+	query := `SELECT "account".* FROM account WHERE email = 'foo@bar.com'`
+	parse(query, 1, t)
+}
+
 
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	t.Log("\n\n\n")

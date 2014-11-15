@@ -232,21 +232,26 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	if err = p.next(); err != nil {
 		return nil, fmt.Errorf("SELECT token must be followed by attributes to select")
 	}
-	if tokens[p.index].Token == StarToken {
-		starDecl := NewDecl(tokens[p.index])
-		selectDecl.Add(starDecl)
-	}
+	// if tokens[p.index].Token == StarToken {
+	// 	starDecl := NewDecl(tokens[p.index])
+	// 	selectDecl.Add(starDecl)
+	// }
 	for {
-		if err = p.next(); err != nil {
-			return nil, fmt.Errorf("Unexpected end. Syntax error near %v\n", tokens[p.index])
+		attrDecl, err := p.parseAttribute()
+		if err != nil {
+			return nil, err
 		}
-		if !p.is(StringToken) {
-			break // No more selected thing
+
+		selectDecl.Add(attrDecl)
+
+		// If comma, loop again.
+		if p.is(CommaToken) {
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+			continue
 		}
-		// Add declaration
-		// Next must be a point or a comma
-		// If point, must be String or Star
-		// If comma, loop again
+		break
 	}
 
 	// Must be from now
@@ -303,6 +308,68 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	}
 
 	return i, nil
+}
+
+// parseAttribute parse an attribute of the form
+// table.foo
+// table.*
+// "table".foo
+// foo
+func (p *parser) parseAttribute() (*Decl, error) {
+	log.Printf("parseAttribute")
+	quoted := false
+
+	log.Printf("parseAttribute: Checkout quote")
+	if p.is(DoubleQuoteToken) {
+		log.Printf("parseAttribute: Got a quote !")
+		quoted = true
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+	}
+
+	// shoud be a StringToken here
+	// If there is a point after, it's a table name,
+	// if not, it's the attribute
+	log.Printf("parseAttribute: Checkout String or Star")
+	if !p.is(StringToken, StarToken) {
+		log.Printf("parseAttribute: current token %s is not a string or a star", p.cur())
+		return nil, syntaxError(p.cur())
+	}
+	decl := NewDecl(p.cur())
+
+	if quoted {
+		log.Printf("parseAttribute: Checking ending quote")
+
+		// Check there is a closing quote
+		if _, err := p.mustHaveNext(DoubleQuoteToken); err != nil {
+			log.Printf("parseAttribute: Missing closing quote")
+			return nil, err
+		}
+	}
+	if err := p.next(); err != nil {
+		log.Printf("parseAttribute: undexpected end")
+		return nil, err
+	}
+
+	log.Printf("parseAttribute: Checking period")
+
+	// Now, is it a point ?
+	if p.is(PeriodToken) {
+		log.Printf("Got a period token")
+		// if so, next must be the attribute name or a star
+		t, err := p.mustHaveNext(StringToken, StarToken)
+		if err != nil {
+			log.Printf("parseAttribute: error")
+			return nil, err
+		}
+		attributeDecl := NewDecl(t)
+		attributeDecl.Add(decl)
+		return attributeDecl, p.next()
+	} else {
+		// Then the first string token was the naked attribute name
+		return decl, nil
+	}
 }
 
 func (p *parser) parseCondition() (*Decl, error) {
@@ -364,34 +431,34 @@ func (p *parser) parseValue() (*Decl, error) {
 }
 
 func (p *parser) next() error {
-	log.Printf("parser.next: current is %v", p.tokens[p.index])
 	if !p.hasNext() {
 		return fmt.Errorf("Unexpected end")
 	}
 	p.index += 1
-	log.Printf("parser.next: next is %v", p.tokens[p.index])
+	log.Printf("parser.next: %v -> %v", p.tokens[p.index-1], p.tokens[p.index])
 	return nil
 }
 
 func (p *parser) hasNext() bool {
-	log.Printf("parser.hasNext : Len is %d, current index is %d", len(p.tokens), p.index)
+	// log.Printf("parser.hasNext : Len is %d, current index is %d", len(p.tokens), p.index)
 	if p.index+1 < len(p.tokens) {
 		return true
 	}
 	return false
 }
 
-func (p *parser) is(tokenType int) bool {
-	if p.tokens[p.index].Token == tokenType {
-		return true
+func (p *parser) is(tokenTypes ...int) bool {
+
+	for _, tokenType := range tokenTypes {
+		if p.cur().Token == tokenType {
+			return true
+		}
 	}
 
 	return false
 }
 
 func (p *parser) mustHaveNext(tokenTypes ...int) (t Token, err error) {
-	log.Printf("parser.mustHaveNext")
-	defer log.Printf("~parser.mustHaveNext")
 
 	if !p.hasNext() {
 		log.Printf("parser.mustHaveNext: has no next")
@@ -403,6 +470,7 @@ func (p *parser) mustHaveNext(tokenTypes ...int) (t Token, err error) {
 		return t, err
 	}
 
+	log.Printf("parser.mustHaveNext %v", tokenTypes)
 	for _, tokenType := range tokenTypes {
 		if p.is(tokenType) {
 			return p.tokens[p.index], nil
@@ -411,6 +479,10 @@ func (p *parser) mustHaveNext(tokenTypes ...int) (t Token, err error) {
 
 	log.Printf("parser.mustHaveNext: Next is not among %v", tokenTypes)
 	return t, syntaxError(p.tokens[p.index])
+}
+
+func (p *parser) cur() Token {
+	return p.tokens[p.index]
 }
 
 // func hasNext(t []Token, index int) bool {
