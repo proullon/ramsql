@@ -32,6 +32,8 @@ func New() (e *Engine, err error) {
 	e.opsExecutors = map[int]executor{
 		parser.CreateToken: createExecutor,
 		parser.TableToken:  createTableExecutor,
+		parser.SelectToken: selectExecutor,
+		parser.InsertToken: insertIntoTableExecutor,
 	}
 
 	e.tables = make(map[string]Table)
@@ -107,6 +109,10 @@ func (e *Engine) handleConnection(conn net.Conn) {
 		if err != nil && err != io.EOF {
 			log.Printf("Enginge.handleConnection: cannot read : %s", err)
 			conn.Close()
+			return
+		} else if err != nil {
+			conn.Close()
+			return
 		}
 
 		log.Printf("Engine.handleConnection: GOT <%s>", m.Value)
@@ -171,5 +177,17 @@ func createExecutor(e *Engine, createDecl *parser.Decl) (string, error) {
 		return e.opsExecutors[createDecl.Decl[0].Token](e, createDecl.Decl[0])
 	}
 
+	return "", errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
+}
+
+func selectExecutor(e *Engine, createDecl *parser.Decl) (string, error) {
+	log.Printf("selectExecutor")
+
+	// For decl != FROM
+	// get attribute to select
+
+	// get FROM declaration
+
+	// get WHERE declaration
 	return "", errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
 }

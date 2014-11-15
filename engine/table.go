@@ -3,6 +3,7 @@ package engine
 import (
 	// "errors"
 	"fmt"
+	"log"
 
 	"github.com/proullon/ramsql/engine/parser"
 )
@@ -13,9 +14,14 @@ type Attribute struct {
 	Type     interface{}
 }
 
+type Row struct {
+	Values []interface{}
+}
+
 type Table struct {
 	Name       string
 	Attributes []Attribute
+	Rows       []Row
 }
 
 func (t Table) String() string {
@@ -28,6 +34,10 @@ func (t Table) String() string {
 	}
 	stringy += ")"
 	return stringy
+}
+
+func (t *Table) Insert(values []interface{}) error {
+	return nil
 }
 
 func createTableExecutor(e *Engine, tableDecl *parser.Decl) (string, error) {
@@ -52,5 +62,11 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl) (string, error) {
 
 	e.tables[t.Name] = t
 	fmt.Println(t)
-	return fmt.Sprintf("table %s created", t.Name), nil
+	return fmt.Sprintf("0 1"), nil
+}
+
+func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl) (string, error) {
+	log.Printf("insertIntoTableSelector")
+
+	return " ", nil
 }

@@ -30,6 +30,10 @@ type Message struct {
 	Value string
 }
 
+func SendResult(conn io.Writer, t token, lastInsertedId int, rowsAffected int) error {
+	return Send(conn, t, fmt.Sprintf("%d %d", lastInsertedId, rowsAffected))
+}
+
 func Send(conn io.Writer, t token, m string) error {
 	log.Printf("protocol.Send: Sending %v <%s>", t, m)
 
