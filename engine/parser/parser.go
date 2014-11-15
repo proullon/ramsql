@@ -97,6 +97,11 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 			p.i = append(p.i, *i)
 			break
 		case InsertToken:
+			i, err := p.parseInsert()
+			if err != nil {
+				return nil, err
+			}
+			p.i = append(p.i, *i)
 			break
 		case UpdateToken:
 			break
@@ -110,6 +115,90 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 	}
 
 	return p.i, nil
+}
+
+func (p *parser) parseInsert() (*Instruction, error) {
+	i := &Instruction{}
+
+	// Set INSERT decl
+	insertDecl, err := p.consumeToken(InsertToken)
+	if err != nil {
+		return nil, err
+	}
+	i.Decls = append(i.Decls, insertDecl)
+
+	// should be INTO
+	intoDecl, err := p.consumeToken(IntoToken)
+	if err != nil {
+		return nil, err
+	}
+	insertDecl.Add(intoDecl)
+
+	// should be table Name
+	tableDecl, err := p.consumeToken(StringToken)
+	if err != nil {
+		return nil, err
+	}
+	intoDecl.Add(tableDecl)
+
+	_, err = p.consumeToken(BracketOpeningToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// concerned attribute
+	for {
+		decl, err := p.parseListElement()
+		if err != nil {
+			return nil, err
+		}
+		tableDecl.Add(decl)
+
+		if p.is(BracketClosingToken) {
+			if _, err = p.consumeToken(BracketClosingToken); err != nil {
+				return nil, err
+			}
+
+			break
+		}
+
+		_, err = p.consumeToken(CommaToken)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// should be VALUES
+	valuesDecl, err := p.consumeToken(ValuesToken)
+	if err != nil {
+		return nil, err
+	}
+	insertDecl.Add(valuesDecl)
+
+	_, err = p.consumeToken(BracketOpeningToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// should be a list of values for specified attributes
+	for {
+		decl, err := p.parseListElement()
+		if err != nil {
+			return nil, err
+		}
+		valuesDecl.Add(decl)
+
+		if p.is(BracketClosingToken) {
+			break
+		}
+
+		_, err = p.consumeToken(CommaToken)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return i, nil
 }
 
 func (p *parser) parseCreate(tokens []Token) (*Instruction, error) {
@@ -430,6 +519,33 @@ func (p *parser) parseValue() (*Decl, error) {
 	return valueDecl, nil
 }
 
+func (p *parser) parseListElement() (*Decl, error) {
+	log.Printf("parseListElement")
+	defer log.Printf("~parseListElement")
+	quoted := false
+
+	if p.is(QuoteToken) {
+		log.Printf("value is quoted")
+		quoted = true
+		if _, err := p.consumeToken(QuoteToken); err != nil {
+			return nil, err
+		}
+	}
+
+	valueDecl, err := p.consumeToken(StringToken, NumberToken)
+	if err != nil {
+		return nil, err
+	}
+
+	if quoted {
+		if _, err := p.consumeToken(QuoteToken); err != nil {
+			return nil, err
+		}
+	}
+
+	return valueDecl, nil
+}
+
 func (p *parser) next() error {
 	if !p.hasNext() {
 		return fmt.Errorf("Unexpected end")
@@ -483,6 +599,17 @@ func (p *parser) mustHaveNext(tokenTypes ...int) (t Token, err error) {
 
 func (p *parser) cur() Token {
 	return p.tokens[p.index]
+}
+
+func (p *parser) consumeToken(tokenTypes ...int) (*Decl, error) {
+
+	if !p.is(tokenTypes...) {
+		return nil, syntaxError(p.tokens[p.index])
+	}
+
+	decl := NewDecl(p.tokens[p.index])
+	err := p.next()
+	return decl, err
 }
 
 // func hasNext(t []Token, index int) bool {

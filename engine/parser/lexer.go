@@ -32,6 +32,8 @@ const (
 	FromToken
 	WhereToken
 	TableToken
+	IntoToken
+	ValuesToken
 
 	// Type Token
 	TextToken
@@ -80,10 +82,13 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	// First order Matcher
 	matchers = append(matchers, l.MatchCreateToken)
 	matchers = append(matchers, l.MatchSelectToken)
+	matchers = append(matchers, l.MatchInsertToken)
 	// Second order Matcher
 	matchers = append(matchers, l.MatchTableToken)
 	matchers = append(matchers, l.MatchFromToken)
 	matchers = append(matchers, l.MatchWhereToken)
+	matchers = append(matchers, l.MatchIntoToken)
+	matchers = append(matchers, l.MatchValuesToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -164,6 +169,27 @@ func (l *lexer) MatchSelectToken() bool {
 		t := Token{
 			Token:  SelectToken,
 			Lexeme: "SELECT",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 6
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchInsertToken() bool {
+
+	if l.instruction[l.pos] == 'I' &&
+		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'N' &&
+		l.pos+2 < l.instructionLen && l.instruction[l.pos+2] == 'S' &&
+		l.pos+3 < l.instructionLen && l.instruction[l.pos+3] == 'E' &&
+		l.pos+4 < l.instructionLen && l.instruction[l.pos+4] == 'R' &&
+		l.pos+5 < l.instructionLen && l.instruction[l.pos+5] == 'T' {
+
+		t := Token{
+			Token:  InsertToken,
+			Lexeme: "INSERT",
 		}
 		l.tokens = append(l.tokens, t)
 		l.pos += 6
@@ -266,6 +292,46 @@ func (l *lexer) MatchKeyToken() bool {
 		}
 		l.tokens = append(l.tokens, t)
 		l.pos += 3
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchIntoToken() bool {
+
+	if l.instruction[l.pos] == 'I' &&
+		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'N' &&
+		l.pos+2 < l.instructionLen && l.instruction[l.pos+2] == 'T' &&
+		l.pos+3 < l.instructionLen && l.instruction[l.pos+3] == 'O' {
+
+		t := Token{
+			Token:  IntoToken,
+			Lexeme: "INTO",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 4
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchValuesToken() bool {
+
+	if l.instruction[l.pos] == 'V' &&
+		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'A' &&
+		l.pos+2 < l.instructionLen && l.instruction[l.pos+2] == 'L' &&
+		l.pos+3 < l.instructionLen && l.instruction[l.pos+3] == 'U' &&
+		l.pos+4 < l.instructionLen && l.instruction[l.pos+4] == 'E' &&
+		l.pos+5 < l.instructionLen && l.instruction[l.pos+5] == 'S' {
+
+		t := Token{
+			Token:  ValuesToken,
+			Lexeme: "VALUES",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 6
 		return true
 	}
 
