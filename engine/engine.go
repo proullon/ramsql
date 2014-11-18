@@ -14,7 +14,7 @@ type executor func(*Engine, *parser.Decl) (string, error)
 
 type Engine struct {
 	ln           net.Listener
-	tables       map[string]Table
+	relations    map[string]*Relation
 	opsExecutors map[int]executor
 
 	// Any value send to this channel (through Engine.stop)
@@ -36,7 +36,7 @@ func New() (e *Engine, err error) {
 		parser.InsertToken: insertIntoTableExecutor,
 	}
 
-	e.tables = make(map[string]Table)
+	e.relations = make(map[string]*Relation)
 
 	err = e.start()
 	if err != nil {
