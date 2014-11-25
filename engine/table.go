@@ -3,7 +3,6 @@ package engine
 import (
 	// "errors"
 	"fmt"
-	"log"
 
 	"github.com/proullon/ramsql/engine/parser"
 )
@@ -85,7 +84,7 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl) (string, error) {
         |-> pierre.roullon@gmail.com
 */
 func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl) (string, error) {
-	log.Printf("insertIntoTableSelector")
+	Info("insertIntoTableSelector")
 	insertDecl.Stringy(0)
 
 	// Get table and concerned attributes
