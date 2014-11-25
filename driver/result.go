@@ -7,6 +7,7 @@ import (
 )
 
 type Result struct {
+	err          error
 	lastInsertId int64
 	rowsAffected int64
 }
@@ -22,11 +23,17 @@ func computeResult(m *protocol.Message) (*Result, error) {
 // after, for example, an INSERT into a table with primary
 // key.
 func (r *Result) LastInsertId() (int64, error) {
-	return 0, newError(NotImplemented)
+	if r.err != nil {
+		return 0, r.err
+	}
+	return r.lastInsertId, nil
 }
 
 // RowsAffected returns the number of rows affected by the
 // query.
 func (r *Result) RowsAffected() (int64, error) {
-	return 0, newError(NotImplemented)
+	if r.err != nil {
+		return 0, r.err
+	}
+	return r.rowsAffected, nil
 }
