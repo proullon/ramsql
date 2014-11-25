@@ -14,6 +14,7 @@ type token string
 const (
 	Error  token = "E"
 	Query  token = "Q"
+	Exec   token = "X"
 	Result token = "R"
 )
 

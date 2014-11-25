@@ -89,7 +89,7 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 
 	// Send query to server
 	log.Printf("Stmt.Exec: Writing to server <%s>", finalQuery)
-	err := protocol.Send(s.conn.socket, protocol.Query, finalQuery)
+	err := protocol.Send(s.conn.socket, protocol.Exec, finalQuery)
 	if err != nil {
 		log.Printf("Stmt.Exec: %s", err)
 		return nil, fmt.Errorf("Cannot send query to server: %s", err)
