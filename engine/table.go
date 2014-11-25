@@ -1,7 +1,7 @@
 package engine
 
 import (
-	// "errors"
+	"errors"
 	"fmt"
 
 	"github.com/proullon/ramsql/engine/parser"
@@ -88,7 +88,65 @@ func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl) (string, error)
 	insertDecl.Stringy(0)
 
 	// Get table and concerned attributes
+	r, attributes, err := getRelation(e, insertDecl.Decl[0])
+	if err != nil {
+		return "", err
+	}
 
 	// Create a new tuple with values
-	return "", NotImplemented
+	err = insert(r, attributes, insertDecl.Decl[1].Decl)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("0 1"), nil
+}
+
+/*
+|-> INTO
+    |-> user
+        |-> last_name
+        |-> first_name
+        |-> email
+*/
+func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, error) {
+
+	// Decl[0] is the table name
+	r := e.relation(intoDecl.Decl[0].Lexeme)
+	if r == nil {
+		return nil, nil, errors.New("table " + intoDecl.Decl[0].Lexeme + " does not exists")
+	}
+
+	return r, intoDecl.Decl[0].Decl, nil
+}
+
+func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) error {
+	var assigned bool = false
+
+	// Create tuple
+	t := NewTuple()
+	for _, attr := range r.table.attributes {
+		assigned = false
+		for x, decl := range attributes {
+			if attr.name == decl.Lexeme {
+				t.Append(values[x].Lexeme)
+				assigned = true
+			}
+		}
+
+		// If values was not explictly given, set default value
+		if assigned == false {
+			t.Append(attr.defaultValue)
+		}
+	}
+
+	Critical("New tuple : %v", t)
+
+	// Insert tuple
+	err := r.Insert(t)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

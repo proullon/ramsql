@@ -65,6 +65,14 @@ func (e *Engine) Stop() {
 	e.stop <- true
 }
 
+func (e *Engine) relation(name string) *Relation {
+	// Lock ?
+	r := e.relations[name]
+	// Unlock ?
+
+	return r
+}
+
 func (e *Engine) listen() {
 	newConnectionChannel := make(chan net.Conn)
 

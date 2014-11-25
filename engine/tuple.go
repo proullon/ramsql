@@ -14,3 +14,7 @@ func NewTuple(values ...interface{}) *Tuple {
 	}
 	return t
 }
+
+func (t *Tuple) Append(value interface{}) {
+	t.Values = append(t.Values, value)
+}
