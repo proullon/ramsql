@@ -166,6 +166,9 @@ func (cdc *ChannelDriverConn) ReadResult() (lastInsertedId int, rowsAffected int
 
 	m := <-cdc.conn
 	if m.Type != resultMessage {
+		if m.Type == errMessage {
+			return 0, 0, errors.New(m.Value[0])
+		}
 		return 0, 0, errors.New("not a result")
 	}
 

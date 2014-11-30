@@ -131,3 +131,39 @@ func TestExecAndResult(t *testing.T) {
 		t.Fatalf("Expected rowsAffected at 4, got %d", rowsAffected)
 	}
 }
+
+func TestError(t *testing.T) {
+	errMessage := "oh shoot !"
+	driverE, engineE := NewChannelEndpoints()
+
+	go func() {
+		for {
+			engineConn, err := engineE.Accept()
+			if err != nil {
+				t.Fatal(err)
+			}
+			st, err := engineConn.ReadStatement()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			t.Log(st)
+			engineConn.WriteError(errMessage)
+		}
+	}()
+
+	driverConn, err := driverE.New("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = driverConn.WriteExec("toto")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, err = driverConn.ReadResult()
+	if err.Error() != errMessage {
+		t.Fatalf("Expected error <%s>, got <%s>", errMessage, err)
+	}
+}
