@@ -3,8 +3,9 @@ package ramsql
 import (
 	"database/sql/driver"
 	"log"
-	"net"
 	"sync"
+
+	"github.com/proullon/ramsql/engine/protocol"
 )
 
 type Conn struct {
@@ -13,18 +14,12 @@ type Conn struct {
 	mutex sync.Mutex
 
 	// Socket is the network connection to RamSQL engine
-	socket net.Conn
+	conn protocol.DriverConn
+	// socket net.Conn
 }
 
-func connectToRamSQLServer(protocol string, endpoint string) (c *Conn, err error) {
-	log.Printf("connectToRamSQLServer")
-	c = &Conn{}
-	c.socket, err = net.Dial(protocol, endpoint)
-	if err != nil {
-		log.Printf("connectToRanSQLServer: ")
-	}
-
-	return
+func NewConn(conn protocol.DriverConn) driver.Conn {
+	return &Conn{conn: conn}
 }
 
 // Prepare returns a prepared statement, bound to this connection.
@@ -46,7 +41,8 @@ func (c *Conn) Prepare(query string) (driver.Stmt, error) {
 // do their own connection caching.
 func (c *Conn) Close() error {
 	log.Printf("Conn.Close")
-	return c.socket.Close()
+	c.conn.Close()
+	return nil
 }
 
 // Begin starts and returns a new transaction.

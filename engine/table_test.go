@@ -19,10 +19,7 @@ func TestCreateTable(t *testing.T) {
 	    zip_code TEXT
 	)`
 
-	e, err := New()
-	if err != nil {
-		t.Fatalf("Cannot create new engine: %s", err)
-	}
+	e := testEngine(t)
 	defer e.Stop()
 
 	i, err := parser.ParseInstruction(query)
@@ -30,7 +27,7 @@ func TestCreateTable(t *testing.T) {
 		t.Fatalf("Cannot parse query %s : %s", query, err)
 	}
 
-	_, err = e.executeQuery(i[0])
+	err = e.executeQuery(i[0], &TestEngineConn{})
 	if err != nil {
 		t.Fatalf("Cannot execute query: %s", err)
 	}
@@ -39,10 +36,7 @@ func TestCreateTable(t *testing.T) {
 func TestInsertTable(t *testing.T) {
 	query := `INSERT INTO user ('last_name', 'first_name', 'email') VALUES ('Roullon', 'Pierre', 'pierre.roullon@gmail.com')`
 
-	e, err := New()
-	if err != nil {
-		t.Fatalf("Cannot create new engine: %s", err)
-	}
+	e := testEngine(t)
 	defer e.Stop()
 
 	createTable(e, t)
@@ -52,7 +46,7 @@ func TestInsertTable(t *testing.T) {
 		t.Fatalf("Cannot parse query %s : %s", query, err)
 	}
 
-	_, err = e.executeQuery(i[0])
+	err = e.executeQuery(i[0], &TestEngineConn{})
 	if err != nil {
 		t.Fatalf("Cannot execute query: %s", err)
 	}
@@ -76,7 +70,7 @@ func createTable(e *Engine, t *testing.T) {
 		t.Fatalf("Cannot parse query %s : %s", query, err)
 	}
 
-	_, err = e.executeQuery(i[0])
+	err = e.executeQuery(i[0], &TestEngineConn{})
 	if err != nil {
 		t.Fatalf("Cannot execute query: %s", err)
 	}

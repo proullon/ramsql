@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-
-	"github.com/proullon/ramsql/engine/protocol"
 )
 
 type Stmt struct {
@@ -88,26 +86,19 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	}
 
 	// Send query to server
-	log.Printf("Stmt.Exec: Writing to server <%s>", finalQuery)
-	err := protocol.Send(s.conn.socket, protocol.Exec, finalQuery)
+	err := s.conn.conn.WriteExec(finalQuery)
 	if err != nil {
-		log.Printf("Stmt.Exec: %s", err)
 		return nil, fmt.Errorf("Cannot send query to server: %s", err)
 	}
 
 	// Get answer from server
-	m, err := protocol.Read(s.conn.socket)
+	lastInsertedId, rowsAffected, err := s.conn.conn.ReadResult()
 	if err != nil {
-		log.Printf("Stmt.Exec: Cannot read from socket: %s", err)
-		return nil, fmt.Errorf("Cannot read server answer")
-	}
-
-	if m.Token == protocol.Error {
-		return nil, fmt.Errorf("%s", m.Value)
+		return nil, err
 	}
 
 	// Create a driver.Result
-	return computeResult(m)
+	return newResult(lastInsertedId, rowsAffected), nil
 }
 
 // Query executes a query that may return rows, such as a

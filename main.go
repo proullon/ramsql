@@ -2,14 +2,15 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
 	"io"
 	"os"
 
-	"github.com/proullon/ramsql/engine"
+	_ "github.com/proullon/ramsql/driver"
 )
 
-func loop(e *engine.Engine) {
+func loop(db *sql.DB) {
 	// Readline
 	reader := bufio.NewReader(os.Stdin)
 
@@ -37,9 +38,9 @@ func loop(e *engine.Engine) {
 
 func main() {
 
-	e, err := engine.New()
+	db, err := sql.Open("ramsql", "")
 	if err != nil {
 		fmt.Printf("Error : %s\n")
 	}
-	loop(e)
+	loop(db)
 }

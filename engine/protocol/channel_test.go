@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -133,7 +134,7 @@ func TestExecAndResult(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
-	errMessage := "oh shoot !"
+	errMessage := errors.New("oh shoot !")
 	driverE, engineE := NewChannelEndpoints()
 
 	go func() {
@@ -163,7 +164,7 @@ func TestError(t *testing.T) {
 	}
 
 	_, _, err = driverConn.ReadResult()
-	if err.Error() != errMessage {
+	if err.Error() != errMessage.Error() {
 		t.Fatalf("Expected error <%s>, got <%s>", errMessage, err)
 	}
 }

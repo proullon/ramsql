@@ -2,9 +2,9 @@ package engine
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/proullon/ramsql/engine/parser"
+	"github.com/proullon/ramsql/engine/protocol"
 )
 
 type Table struct {
@@ -47,7 +47,7 @@ func (t Table) String() string {
 	return stringy
 }
 
-func createTableExecutor(e *Engine, tableDecl *parser.Decl) (string, error) {
+func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.EngineConn) error {
 
 	// Fetch table name
 	// if len(tableDecl.Decl) < 1 && tableDecl.Decl[0].Token != parser.StringToken {
@@ -59,16 +59,17 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl) (string, error) {
 	for i := 1; i < len(tableDecl.Decl); i++ {
 		attr, err := parseAttribute(tableDecl.Decl[i])
 		if err != nil {
-			return "", err
+			return err
 		}
 		err = t.AddAttribute(attr)
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 
 	e.relations[t.name] = NewRelation(t)
-	return fmt.Sprintf("0 1"), nil
+	conn.WriteResult(0, 1)
+	return nil
 }
 
 /*
@@ -83,23 +84,24 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl) (string, error) {
         |-> Pierre
         |-> pierre.roullon@gmail.com
 */
-func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl) (string, error) {
+func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.EngineConn) error {
 	Info("insertIntoTableSelector")
 	insertDecl.Stringy(0)
 
 	// Get table and concerned attributes
 	r, attributes, err := getRelation(e, insertDecl.Decl[0])
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	// Create a new tuple with values
 	err = insert(r, attributes, insertDecl.Decl[1].Decl)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return fmt.Sprintf("0 1"), nil
+	conn.WriteResult(0, 1)
+	return nil
 }
 
 /*

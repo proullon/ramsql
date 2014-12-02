@@ -28,10 +28,8 @@ type ChannelDriverEndpoint struct {
 	newConnChannel chan<- chan message
 }
 
-func NewChannelEndpoints() (DriverEndpoint, EngineEndpoint) {
-	channel := make(chan chan message)
+func (cdc *ChannelDriverConn) Close() {
 
-	return NewChannelDriverEndpoint(channel), NewChannelEngineEndpoint(channel)
 }
 
 func (cde *ChannelDriverEndpoint) New(uri string) (DriverConn, error) {
@@ -72,6 +70,9 @@ func (cee *ChannelEngineEndpoint) Accept() (EngineConn, error) {
 	return NewChannelEngineConn(newConn), nil
 }
 
+func (cee *ChannelEngineEndpoint) Close() {
+}
+
 type ChannelEngineConn struct {
 	conn chan message
 }
@@ -103,10 +104,10 @@ func (cec *ChannelEngineConn) WriteResult(lastInsertedId int, rowsAffected int) 
 	return nil
 }
 
-func (cec *ChannelEngineConn) WriteError(err string) error {
+func (cec *ChannelEngineConn) WriteError(err error) error {
 	m := message{
 		Type:  errMessage,
-		Value: []string{err},
+		Value: []string{err.Error()},
 	}
 
 	cec.conn <- m
@@ -162,7 +163,7 @@ func (cdc *ChannelDriverConn) WriteExec(statement string) error {
 	return nil
 }
 
-func (cdc *ChannelDriverConn) ReadResult() (lastInsertedId int, rowsAffected int, err error) {
+func (cdc *ChannelDriverConn) ReadResult() (lastInsertedId int64, rowsAffected int64, err error) {
 
 	m := <-cdc.conn
 	if m.Type != resultMessage {

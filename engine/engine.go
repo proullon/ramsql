@@ -2,17 +2,15 @@ package engine
 
 import (
 	"errors"
-	"io"
-	"net"
 
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
-type executor func(*Engine, *parser.Decl) (string, error)
+type executor func(*Engine, *parser.Decl, protocol.EngineConn) error
 
 type Engine struct {
-	ln           net.Listener
+	endpoint     protocol.EngineEndpoint
 	relations    map[string]*Relation
 	opsExecutors map[int]executor
 
@@ -21,10 +19,12 @@ type Engine struct {
 	stop chan bool
 }
 
-func New() (e *Engine, err error) {
+func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 	initLog()
 
-	e = &Engine{}
+	e = &Engine{
+		endpoint: endpoint,
+	}
 
 	e.stop = make(chan bool)
 
@@ -45,18 +45,7 @@ func New() (e *Engine, err error) {
 	return
 }
 
-func (e *Engine) Endpoint() net.Addr {
-	return e.ln.Addr()
-}
-
 func (e *Engine) start() (err error) {
-	e.ln, err = net.Listen("tcp", ":8080")
-
-	if err != nil {
-		Warning("Engine.listen: Cannot start listening: %s\n", err)
-		return errors.New("Cannot start RamSQL server")
-	}
-
 	go e.listen()
 	return nil
 }
@@ -74,11 +63,12 @@ func (e *Engine) relation(name string) *Relation {
 }
 
 func (e *Engine) listen() {
-	newConnectionChannel := make(chan net.Conn)
+	newConnectionChannel := make(chan protocol.EngineConn)
 
 	go func() {
 		for {
-			conn, err := e.ln.Accept()
+			// conn, err := e.ln.Accept()
+			conn, err := e.endpoint.Accept()
 
 			Info("Engine.listen: accept")
 			if err != nil {
@@ -98,88 +88,87 @@ func (e *Engine) listen() {
 			break
 
 		case <-e.stop:
-			e.ln.Close()
+			e.endpoint.Close()
 			return
-			break
 		}
 	}
 
 }
 
-func (e *Engine) handleConnection(conn net.Conn) {
+func (e *Engine) handleConnection(conn protocol.EngineConn) {
 	Info("Engine.handleConnection")
 
 	for {
 		Info("Engine.handleConnection: Reading")
-		m, err := protocol.Read(conn)
-
-		if err != nil && err != io.EOF {
+		// m, err := protocol.Read(conn)
+		stmt, err := conn.ReadStatement()
+		if err != nil {
 			Warning("Enginge.handleConnection: cannot read : %s", err)
-			conn.Close()
-			return
-		} else if err != nil {
-			conn.Close()
 			return
 		}
 
-		Notice("Engine.handleConnection: GOT <%s>", m.Value)
+		// if err != nil && err != io.EOF {
+		// 	Warning("Enginge.handleConnection: cannot read : %s", err)
+		// 	// conn.Close()
+		// 	return
+		// } else if err != nil {
+		// 	// conn.Close()
+		// 	return
+		// }
 
-		instructions, err := parser.ParseInstruction(m.Value)
+		Notice("Engine.handleConnection: GOT <%s>", stmt)
+
+		instructions, err := parser.ParseInstruction(stmt)
 		if err != nil {
-			protocol.Send(conn, protocol.Error, err.Error())
+			conn.WriteError(err)
 			continue
 		}
 
-		answer, err := e.executeQueries(instructions)
+		err = e.executeQueries(instructions, conn)
 		if err != nil {
-			protocol.Send(conn, protocol.Error, err.Error())
+			conn.WriteError(err)
 			continue
 		}
-
-		protocol.Send(conn, protocol.Result, answer)
 	}
 }
 
-func (e *Engine) executeQueries(instructions []parser.Instruction) (string, error) {
-	var completeAnswerString string
-
+func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol.EngineConn) error {
 	for _, i := range instructions {
-		answer, err := e.executeQuery(i)
+		err := e.executeQuery(i, conn)
 		if err != nil {
-			return "", err
+			return err
 		}
-		completeAnswerString += answer
 	}
 
-	return completeAnswerString, nil
+	return nil
 }
 
-func (e *Engine) executeQuery(i parser.Instruction) (string, error) {
+func (e *Engine) executeQuery(i parser.Instruction, conn protocol.EngineConn) error {
 	Info("Engine.executeQuery")
 	i.PrettyPrint()
 
 	if e.opsExecutors[i.Decls[0].Token] != nil {
-		return e.opsExecutors[i.Decls[0].Token](e, i.Decls[0])
+		return e.opsExecutors[i.Decls[0].Token](e, i.Decls[0], conn)
 	}
 
-	return "", errors.New("Not Implemented")
+	return errors.New("Not Implemented")
 }
 
-func createExecutor(e *Engine, createDecl *parser.Decl) (string, error) {
+func createExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn) error {
 	Info("createExecutor")
 
 	if len(createDecl.Decl) == 0 {
-		return "", errors.New("Parsing failed, no declaration after CREATE")
+		return errors.New("Parsing failed, no declaration after CREATE")
 	}
 
 	if e.opsExecutors[createDecl.Decl[0].Token] != nil {
-		return e.opsExecutors[createDecl.Decl[0].Token](e, createDecl.Decl[0])
+		return e.opsExecutors[createDecl.Decl[0].Token](e, createDecl.Decl[0], conn)
 	}
 
-	return "", errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
+	return errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
 }
 
-func selectExecutor(e *Engine, createDecl *parser.Decl) (string, error) {
+func selectExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn) error {
 	Info("selectExecutor")
 
 	// For decl != FROM
@@ -188,5 +177,5 @@ func selectExecutor(e *Engine, createDecl *parser.Decl) (string, error) {
 	// get FROM declaration
 
 	// get WHERE declaration
-	return "", errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
+	return errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
 }
