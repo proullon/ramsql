@@ -6,9 +6,75 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	_ "github.com/proullon/ramsql/driver"
 )
+
+func exec(db *sql.DB, stmt string) {
+
+	res, err := db.Exec(stmt)
+	if err != nil {
+		fmt.Printf("ERROR : %s\n", err)
+		return
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		fmt.Printf("ERROR : %s\n", err)
+		return
+	}
+
+	fmt.Printf("Query OK. %d rows affected\n", rowsAffected)
+}
+
+func query(db *sql.DB, query string) {
+
+	rows, err := db.Query(query)
+	if err != nil {
+		fmt.Printf("ERROR : %s\n", err)
+		return
+	}
+
+	columns, err := rows.Columns()
+	if err != nil {
+		fmt.Printf("ERROR : %s\n", err)
+		return
+	}
+
+	// print rows name
+	prettyPrintHeader(columns)
+
+	for rows.Next() {
+		holders := make([]interface{}, len(columns))
+		err := rows.Scan(holders...)
+		if err != nil {
+			fmt.Printf("ERROR : %s\n", err)
+			return
+		}
+		prettyPrintRow(holders)
+	}
+}
+
+func prettyPrintHeader(row []string) {
+	for i, r := range row {
+		if i != 0 {
+			fmt.Printf("|")
+		}
+		fmt.Printf("%10s", r)
+	}
+	fmt.Println()
+}
+
+func prettyPrintRow(row []interface{}) {
+	for i, r := range row {
+		if i != 0 {
+			fmt.Printf("|")
+		}
+		fmt.Printf("%10s", r)
+	}
+	fmt.Println()
+}
 
 func loop(db *sql.DB) {
 	// Readline
@@ -33,6 +99,16 @@ func loop(db *sql.DB) {
 		}
 
 		// Do things here
+		stmt := string(buffer)
+		if strings.HasPrefix(stmt, "SELECT") {
+			query(db, stmt)
+		} else if strings.HasPrefix(stmt, "SHOW") {
+			query(db, stmt)
+		} else if strings.HasPrefix(stmt, "DESCRIBE") {
+			query(db, stmt)
+		} else {
+			exec(db, stmt)
+		}
 	}
 }
 
