@@ -1,5 +1,9 @@
 package parser
 
+import (
+	"errors"
+)
+
 func ParseInstruction(instruction string) ([]Instruction, error) {
 
 	l := lexer{}
@@ -12,6 +16,10 @@ func ParseInstruction(instruction string) ([]Instruction, error) {
 	instructions, err := p.parse(tokens)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(instructions) == 0 {
+		return nil, errors.New("Error in syntax near " + instruction)
 	}
 
 	return instructions, nil
