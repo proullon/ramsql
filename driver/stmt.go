@@ -104,5 +104,37 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	log.Debug("Stmt.Query with %d args", len(args))
 	defer s.conn.mutex.Unlock()
 
-	return nil, newError(NotImplemented)
+	finalQuery := replaceArguments(s.query, args)
+	err := s.conn.conn.WriteQuery(finalQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	rowsChannel, err := s.conn.conn.ReadRows()
+	if err != nil {
+		return nil, err
+	}
+
+	r := newRows(rowsChannel)
+	return r, nil
+}
+
+// replace $* by arguments in query string
+func replaceArguments(query string, args []driver.Value) string {
+
+	for argumentIndex := 1; ; argumentIndex++ {
+		queryParts := strings.Split(query, fmt.Sprintf("$%d", argumentIndex))
+		if len(queryParts) == 1 {
+			return query
+		}
+
+		query = ""
+		for i, queryPart := range queryParts {
+			query += queryPart
+			if i != len(queryParts)-1 {
+				query += fmt.Sprintf("%s", args[argumentIndex-1])
+			}
+		}
+	}
+
 }

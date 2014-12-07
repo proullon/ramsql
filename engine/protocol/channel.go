@@ -181,6 +181,10 @@ func (cdc *ChannelDriverConn) ReadRows() (chan []string, error) {
 	channel := make(chan []string)
 
 	m := <-cdc.conn
+	if m.Type == errMessage {
+		return nil, errors.New(m.Value[0])
+	}
+
 	if m.Type != rowHeaderMessage {
 		return nil, errors.New("not a rows header")
 	}

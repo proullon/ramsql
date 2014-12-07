@@ -1,8 +1,8 @@
 package protocol
 
 type DriverConn interface {
-	WriteQuery(string) error
-	WriteExec(string) error
+	WriteQuery(query string) error
+	WriteExec(stmt string) error
 	ReadResult() (lastInsertedId int64, rowsAffected int64, err error)
 	ReadRows() (chan []string, error)
 	Close()

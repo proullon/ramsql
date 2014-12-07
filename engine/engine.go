@@ -156,15 +156,3 @@ func createExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn
 
 	return errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
 }
-
-func selectExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn) error {
-	Info("selectExecutor")
-
-	// For decl != FROM
-	// get attribute to select
-
-	// get FROM declaration
-
-	// get WHERE declaration
-	return errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
-}
