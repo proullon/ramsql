@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/proullon/ramsql/engine"
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
@@ -38,7 +38,7 @@ type ConnConf struct {
 // Open return an active connection so RamSQL server
 // If there is no connection in pool, start a new server.
 func (rs *RamSQLDriver) Open(uri string) (conn driver.Conn, err error) {
-	log.Printf("RamSQLDriver.Open")
+	log.Debug("RamSQLDriver.Open")
 	connConf, err := parseConnectionURI(uri)
 	if err != nil {
 		return nil, err

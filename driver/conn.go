@@ -2,9 +2,9 @@ package ramsql
 
 import (
 	"database/sql/driver"
-	"log"
 	"sync"
 
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
@@ -24,7 +24,7 @@ func NewConn(conn protocol.DriverConn) driver.Conn {
 
 // Prepare returns a prepared statement, bound to this connection.
 func (c *Conn) Prepare(query string) (driver.Stmt, error) {
-	log.Printf("Conn.Prepare: Got <%s>\n", query)
+	log.Debug("Conn.Prepare: Got <%s>\n", query)
 
 	stmt := prepareStatement(c, query)
 
@@ -40,13 +40,13 @@ func (c *Conn) Prepare(query string) (driver.Stmt, error) {
 // idle connections, it shouldn't be necessary for drivers to
 // do their own connection caching.
 func (c *Conn) Close() error {
-	log.Printf("Conn.Close")
+	log.Debug("Conn.Close")
 	c.conn.Close()
 	return nil
 }
 
 // Begin starts and returns a new transaction.
 func (c *Conn) Begin() (driver.Tx, error) {
-	log.Printf("Conn.Begin")
+	log.Debug("Conn.Begin")
 	return &Tx{}, newError(NotImplemented)
 }

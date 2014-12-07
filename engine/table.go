@@ -3,6 +3,7 @@ package engine
 import (
 	"errors"
 
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
 )
@@ -23,10 +24,6 @@ func NewTable(name string) *Table {
 // AddAttribute is used by CREATE TABLE and ALTER TABLE
 // Want to check that name isn't already taken
 func (t *Table) AddAttribute(attr Attribute) error {
-	// Check that name is not already taken
-	// for i := range t.attributes {
-
-	// }
 	t.attributes = append(t.attributes, attr)
 	return nil
 }
@@ -49,10 +46,6 @@ func (t Table) String() string {
 
 func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.EngineConn) error {
 
-	// Fetch table name
-	// if len(tableDecl.Decl) < 1 && tableDecl.Decl[0].Token != parser.StringToken {
-	// 	return "", errors.New("No table name provided")
-	// }
 	t := NewTable(tableDecl.Decl[0].Lexeme)
 
 	// Fetch attributes
@@ -85,8 +78,7 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
         |-> pierre.roullon@gmail.com
 */
 func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.EngineConn) error {
-	Info("insertIntoTableSelector")
-	insertDecl.Stringy(0)
+	log.Info("insertIntoTableSelector")
 
 	// Get table and concerned attributes
 	r, attributes, err := getRelation(e, insertDecl.Decl[0])
@@ -142,7 +134,7 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) error
 		}
 	}
 
-	Critical("New tuple : %v", t)
+	log.Critical("New tuple : %v", t)
 
 	// Insert tuple
 	err := r.Insert(t)

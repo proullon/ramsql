@@ -5,7 +5,6 @@ package parser
 
 import (
 	"fmt"
-	"log"
 )
 
 // The parser structure holds the parser's internal state.
@@ -59,6 +58,7 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 	tokens = stripSpaces(tokens)
 	p.tokens = tokens
 	debug("parser.parse : %v", tokens)
+	defer debug("~parse")
 
 	p.tokenLen = len(tokens)
 	p.index = 0
@@ -234,7 +234,7 @@ func (p *parser) parseCreate(tokens []Token) (*Instruction, error) {
 }
 
 func (p *parser) parseTable(tokens []Token) (*Decl, error) {
-	log.Printf("parser.parseTable")
+	debug("parser.parseTable")
 	var err error
 	tableDecl := NewDecl(tokens[p.index])
 	p.index++
@@ -372,7 +372,7 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	}
 
 	// Must be WHERE OR ... here
-	log.Printf("WHERE ? %v\n", tokens[p.index])
+	debug("WHERE ? %v\n", tokens[p.index])
 	if tokens[p.index].Token != WhereToken {
 		return nil, syntaxError(tokens[p.index])
 	}
@@ -405,12 +405,12 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 // "table".foo
 // foo
 func (p *parser) parseAttribute() (*Decl, error) {
-	log.Printf("parseAttribute")
+	debug("parseAttribute")
 	quoted := false
 
-	log.Printf("parseAttribute: Checkout quote")
+	debug("parseAttribute: Checkout quote")
 	if p.is(DoubleQuoteToken) {
-		log.Printf("parseAttribute: Got a quote !")
+		debug("parseAttribute: Got a quote !")
 		quoted = true
 		if err := p.next(); err != nil {
 			return nil, err
@@ -420,36 +420,36 @@ func (p *parser) parseAttribute() (*Decl, error) {
 	// shoud be a StringToken here
 	// If there is a point after, it's a table name,
 	// if not, it's the attribute
-	log.Printf("parseAttribute: Checkout String or Star")
+	debug("parseAttribute: Checkout String or Star")
 	if !p.is(StringToken, StarToken) {
-		log.Printf("parseAttribute: current token %s is not a string or a star", p.cur())
+		debug("parseAttribute: current token %s is not a string or a star", p.cur())
 		return nil, syntaxError(p.cur())
 	}
 	decl := NewDecl(p.cur())
 
 	if quoted {
-		log.Printf("parseAttribute: Checking ending quote")
+		debug("parseAttribute: Checking ending quote")
 
 		// Check there is a closing quote
 		if _, err := p.mustHaveNext(DoubleQuoteToken); err != nil {
-			log.Printf("parseAttribute: Missing closing quote")
+			debug("parseAttribute: Missing closing quote")
 			return nil, err
 		}
 	}
 	if err := p.next(); err != nil {
-		log.Printf("parseAttribute: undexpected end")
+		debug("parseAttribute: undexpected end")
 		return nil, err
 	}
 
-	log.Printf("parseAttribute: Checking period")
+	debug("parseAttribute: Checking period")
 
 	// Now, is it a point ?
 	if p.is(PeriodToken) {
-		log.Printf("Got a period token")
+		debug("Got a period token")
 		// if so, next must be the attribute name or a star
 		t, err := p.mustHaveNext(StringToken, StarToken)
 		if err != nil {
-			log.Printf("parseAttribute: error")
+			debug("parseAttribute: error")
 			return nil, err
 		}
 		attributeDecl := NewDecl(t)
@@ -491,8 +491,8 @@ func (p *parser) parseCondition() (*Decl, error) {
 }
 
 func (p *parser) parseValue() (*Decl, error) {
-	log.Printf("parseValue")
-	defer log.Printf("~parseValue")
+	debug("parseValue")
+	defer debug("~parseValue")
 	quoted := false
 
 	if err := p.next(); err != nil {
@@ -556,7 +556,6 @@ func (p *parser) next() error {
 }
 
 func (p *parser) hasNext() bool {
-	// log.Printf("parser.hasNext : Len is %d, current index is %d", len(p.tokens), p.index)
 	if p.index+1 < len(p.tokens) {
 		return true
 	}
@@ -612,21 +611,6 @@ func (p *parser) consumeToken(tokenTypes ...int) (*Decl, error) {
 	return decl, err
 }
 
-// func hasNext(t []Token, index int) bool {
-// 	if len(t) > index {
-// 		return true
-// 	}
-
-// 	return false
-// }
-
-// func next(tokens []Token, index int) (int, error) {
-// 	if !p.hasNext(tokens, index) {
-// 		return index, fmt.Errorf("Unexpected end")
-// 	}
-// 	return index + 1, nil
-// }
-
 func stripSpaces(t []Token) (ret []Token) {
 	for i := range t {
 		if t[i].Token != SpaceToken {
@@ -637,5 +621,5 @@ func stripSpaces(t []Token) (ret []Token) {
 }
 
 func syntaxError(t Token) error {
-	return fmt.Errorf("Syntax error near %v\n", t)
+	return fmt.Errorf("Syntax error near %v", t.Lexeme)
 }

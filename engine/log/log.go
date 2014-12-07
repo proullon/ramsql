@@ -1,12 +1,18 @@
-package engine
+package log
 
 import (
-	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/logs"
 )
 
-var log = beego.BeeLogger
+var log *logs.BeeLogger
 
-func initLog() {
+func SetLevel(lvl int) {
+	log.SetLevel(lvl)
+}
+
+func init() {
+	log = logs.NewLogger(10000)
+	log.SetLogger("console", "")
 	log.SetLogFuncCallDepth(3)
 }
 

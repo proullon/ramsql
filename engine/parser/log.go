@@ -1,8 +1,9 @@
 package parser
 
-import "log"
+import (
+	"github.com/proullon/ramsql/engine/log"
+)
 
 func debug(format string, v ...interface{}) {
-	return
-	log.Printf(format, v...)
+	log.Debug(format, v...)
 }

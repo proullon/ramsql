@@ -8,9 +8,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/proullon/ramsql/engine/log"
+
 	_ "github.com/proullon/ramsql/driver"
 )
 
+func init() {
+	log.SetLevel(0)
+}
 func exec(db *sql.DB, stmt string) {
 
 	res, err := db.Exec(stmt)
