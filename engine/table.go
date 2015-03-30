@@ -79,7 +79,7 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
         |-> pierre.roullon@gmail.com
 */
 func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.EngineConn) error {
-	log.Info("insertIntoTableSelector")
+	// log.Info("insertIntoTableSelector")
 
 	// Get table and concerned attributes
 	r, attributes, err := getRelation(e, insertDecl.Decl[0])
@@ -171,14 +171,57 @@ func selectExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn
 	log.Info("Selected attributes are %v", attr)
 
 	// get WHERE declaration
+	predicates, err := getSelectPredicate(createDecl.Decl[2])
+	if err != nil {
+		return err
+	}
 
 	// and select
-	err = selectRows(e, attr, tables, conn)
+	err = selectRows(e, attr, tables, conn, predicates)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+/*
+   |-> WHERE
+       |-> email
+           |-> =
+           |-> foo@bar.com
+*/
+func getSelectPredicate(whereDecl *parser.Decl) ([]Predicate, error) {
+	var predicates []Predicate
+
+	for i := range whereDecl.Decl {
+		var p Predicate
+
+		p.LeftValue.lexeme = whereDecl.Decl[i].Lexeme
+		if len(whereDecl.Decl[i].Decl) < 2 {
+			return nil, fmt.Errorf("Malformed predicate \"%s\"", whereDecl.Decl[i].Lexeme)
+		}
+
+		op, err := NewOperator(whereDecl.Decl[i].Decl[0].Token, whereDecl.Decl[i].Decl[0].Lexeme)
+		if err != nil {
+			return nil, err
+		}
+		p.Operator = op
+
+		p.RightValue.lexeme = whereDecl.Decl[i].Decl[1].Lexeme
+		p.RightValue.valid = true
+
+		log.Critical("%s", whereDecl.Decl[i].Lexeme)
+		log.Critical("Operator : [%s]", whereDecl.Decl[i].Decl[0].Lexeme)
+		log.Critical("Const : [%s]", whereDecl.Decl[i].Decl[1].Lexeme)
+		predicates = append(predicates, p)
+	}
+
+	if len(predicates) == 0 {
+		return nil, fmt.Errorf("No predicates provided")
+	}
+
+	return predicates, nil
 }
 
 /*
@@ -212,7 +255,7 @@ func getSelectedAttributes(e *Engine, attr *parser.Decl, tables []*Table) ([]Att
 	return attributes, nil
 }
 
-func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.EngineConn) error {
+func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.EngineConn, predicates []Predicate) error {
 	log.Info("selecting rows")
 
 	// get relations and write lock them
@@ -235,18 +278,34 @@ func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.Engi
 	}
 
 	// I don't have a fucking clue now
+	var ok bool
 	for _, tuple := range relations[0].rows {
-		var row []string
-		for _, value := range tuple.Values {
-			row = append(row, fmt.Sprintf("%s", value))
+		ok = true
+		// If the row validate all predicates, write it
+		for _, predicate := range predicates {
+			if predicate.Evaluate(tuple, relations[0].table) == false {
+				log.Critical("meeeh")
+				ok = false
+				continue
+			}
 		}
 
-		log.Critical("Writing row  %v", row)
-		err := conn.WriteRow(row)
-		if err != nil {
-			return err
+		if ok {
+			err = writeRow(conn, tuple)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	return conn.WriteRowEnd()
+}
+
+func writeRow(conn protocol.EngineConn, t *Tuple) error {
+	var row []string
+	for _, value := range t.Values {
+		row = append(row, fmt.Sprintf("%s", value))
+	}
+	log.Critical("Writing row  %v", row)
+	return conn.WriteRow(row)
 }

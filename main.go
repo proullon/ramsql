@@ -139,7 +139,7 @@ func loop(db *sql.DB) {
 func main() {
 	db, err := sql.Open("ramsql", "")
 	if err != nil {
-		fmt.Printf("Error : cannot open connection : %s\n")
+		fmt.Printf("Error : cannot open connection : %s\n", err)
 		return
 	}
 	loop(db)

@@ -2,7 +2,6 @@ package ramsql
 
 import (
 	"database/sql"
-	"fmt"
 	"testing"
 )
 
@@ -71,40 +70,49 @@ func TestSelect(t *testing.T) {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
 
-	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (1, 'foo@bar.com')")
+	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (2, 'bar@bar.com')")
 	if err != nil {
 		t.Fatalf("Cannot insert into table account: %s", err)
 	}
 
-	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (2, 'bar@bar.com')")
+	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (1, 'foo@bar.com')")
 	if err != nil {
 		t.Fatalf("Cannot insert into table account: %s", err)
 	}
 
 	rows, err := db.Query("SELECT * FROM account WHERE email = '$1'", "foo@bar.com")
 	if err != nil {
-		t.Fatalf("sql.Query error : %s\n", err)
+		t.Fatalf("sql.Query error : %s", err)
 	}
 
 	columns, err := rows.Columns()
 	if err != nil {
-		fmt.Printf("ERROR : %s\n", err)
+		t.Fatalf("rows.Column : %s", err)
 		return
 	}
 
-	// print rows name
-	prettyPrintHeader(columns)
+	if len(columns) != 2 {
+		t.Fatalf("Expected 2 columns, got %d", len(columns))
+	}
 
-	for rows.Next() {
-		holders := make([]interface{}, len(columns))
-		for i := range holders {
-			holders[i] = new(string)
-		}
-		err := rows.Scan(holders...)
-		if err != nil {
-			t.Fatalf("ERROR : %s\n", err)
-		}
-		prettyPrintRow(holders)
+	row := db.QueryRow("SELECT * FROM account WHERE email = '$1'", "foo@bar.com")
+	if row == nil {
+		t.Fatalf("sql.QueryRow error")
+	}
+
+	var email string
+	var id int
+	err = row.Scan(&id, &email)
+	if err != nil {
+		t.Fatalf("row.Scan: %s", err)
+	}
+
+	if id != 1 {
+		t.Fatalf("Expected id = 1, got %d", id)
+	}
+
+	if email != "foo@bar.com" {
+		t.Fatalf("Expected email = <foo@bar.com>, got <%s>", email)
 	}
 
 	err = db.Close()
@@ -112,28 +120,4 @@ func TestSelect(t *testing.T) {
 		t.Fatalf("sql.Close : Error : %s\n", err)
 	}
 
-}
-
-func prettyPrintHeader(row []string) {
-	for i, r := range row {
-		if i != 0 {
-			fmt.Printf("  |  ")
-		}
-		fmt.Printf("%-6s", r)
-	}
-	fmt.Printf("\n\n")
-}
-
-func prettyPrintRow(row []interface{}) {
-	for i, r := range row {
-		if i != 0 {
-			fmt.Printf("  |  ")
-		}
-		s, ok := r.(*string)
-		if !ok {
-			panic("lo")
-		}
-		fmt.Printf("%-6s", *s)
-	}
-	fmt.Println()
 }
