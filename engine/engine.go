@@ -95,18 +95,14 @@ func (e *Engine) listen() {
 }
 
 func (e *Engine) handleConnection(conn protocol.EngineConn) {
-	log.Info("Engine.handleConnection")
 
 	for {
-		log.Info("Engine.handleConnection: Reading")
 		stmt, err := conn.ReadStatement()
 		if err != nil {
 			log.Warning("Enginge.handleConnection: cannot read : %s", err)
 			conn.WriteError(err)
 			return
 		}
-
-		log.Notice("Engine.handleConnection: GOT <%s>", stmt)
 
 		instructions, err := parser.ParseInstruction(stmt)
 		if err != nil {
@@ -134,7 +130,6 @@ func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol
 }
 
 func (e *Engine) executeQuery(i parser.Instruction, conn protocol.EngineConn) error {
-	log.Info("Engine.executeQuery")
 
 	if e.opsExecutors[i.Decls[0].Token] != nil {
 		return e.opsExecutors[i.Decls[0].Token](e, i.Decls[0], conn)
@@ -144,7 +139,6 @@ func (e *Engine) executeQuery(i parser.Instruction, conn protocol.EngineConn) er
 }
 
 func createExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn) error {
-	log.Info("createExecutor")
 
 	if len(createDecl.Decl) == 0 {
 		return errors.New("Parsing failed, no declaration after CREATE")

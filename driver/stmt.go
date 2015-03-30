@@ -15,12 +15,11 @@ type Stmt struct {
 }
 
 func countArguments(query string) int {
-	for id := 1; ; id++ {
+	for id := 1; id > 0; id++ {
 		sep := fmt.Sprintf("$%d", id)
 		if strings.Count(query, sep) == 0 {
 			return id - 1
 		}
-
 	}
 
 	return -1
@@ -72,7 +71,6 @@ func (s *Stmt) NumInput() int {
 // Exec executes a query that doesn't return rows, such
 // as an INSERT or UPDATE.
 func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
-	log.Debug("Stmt.Exec: %v", args)
 	defer s.conn.mutex.Unlock()
 	var finalQuery string
 
@@ -101,7 +99,6 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 // Query executes a query that may return rows, such as a
 // SELECT.
 func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
-	log.Debug("Stmt.Query with %d args", len(args))
 	defer s.conn.mutex.Unlock()
 
 	finalQuery := replaceArguments(s.query, args)
