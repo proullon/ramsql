@@ -5,6 +5,10 @@ import (
 	"github.com/proullon/ramsql/engine/log"
 )
 
+var TruePredicate = Predicate{
+	True: true,
+}
+
 type Value struct {
 	v      interface{}
 	valid  bool
@@ -15,6 +19,7 @@ type Predicate struct {
 	LeftValue  Value
 	Operator   Operator
 	RightValue Value
+	True       bool
 }
 
 func NewPredicate() *Predicate {
@@ -40,6 +45,11 @@ func (p Predicate) String() string {
 
 func (p *Predicate) Evaluate(t *Tuple, table *Table) bool {
 	log.Debug("Evaluating predicate %s", p)
+
+	if p.True {
+		return true
+	}
+
 	// Find left
 	var i = 0
 	lenTable := len(table.attributes)

@@ -121,3 +121,41 @@ func TestSelect(t *testing.T) {
 	}
 
 }
+
+func TestSelectSimplePredicate(t *testing.T) {
+	db, err := sql.Open("ramsql", "")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE account (id INT, email TEXT)")
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (2, 'bar@bar.com')")
+	if err != nil {
+		t.Fatalf("Cannot insert into table account: %s", err)
+	}
+
+	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (1, 'foo@bar.com')")
+	if err != nil {
+		t.Fatalf("Cannot insert into table account: %s", err)
+	}
+
+	rows, err := db.Query("SELECT * FROM account WHERE 1")
+	if err != nil {
+		t.Fatalf("sql.Query error : %s", err)
+	}
+
+	columns, err := rows.Columns()
+	if err != nil {
+		t.Fatalf("rows.Column : %s", err)
+		return
+	}
+
+	if len(columns) != 2 {
+		t.Fatalf("Expected 2 columns, got %d", len(columns))
+	}
+}

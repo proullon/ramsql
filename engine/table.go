@@ -197,6 +197,12 @@ func getSelectPredicate(whereDecl *parser.Decl) ([]Predicate, error) {
 	for i := range whereDecl.Decl {
 		var p Predicate
 
+		// 1 PREDICATE
+		if whereDecl.Decl[i].Lexeme == "1" {
+			predicates = append(predicates, TruePredicate)
+			continue
+		}
+
 		p.LeftValue.lexeme = whereDecl.Decl[i].Lexeme
 		if len(whereDecl.Decl[i].Decl) < 2 {
 			return nil, fmt.Errorf("Malformed predicate \"%s\"", whereDecl.Decl[i].Lexeme)

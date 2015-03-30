@@ -379,7 +379,7 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	whereDecl := NewDecl(tokens[p.index])
 	selectDecl.Add(whereDecl)
 
-	// Now should be a list of: Attribute and Equal and Value
+	// Now should be a list of: Attribute and Operator and Value
 	gotClause := false
 	for {
 		if !p.hasNext() && gotClause {
@@ -464,6 +464,13 @@ func (p *parser) parseAttribute() (*Decl, error) {
 func (p *parser) parseCondition() (*Decl, error) {
 	if !p.hasNext() {
 		return nil, fmt.Errorf("Unexpected end, expected condition clause")
+	}
+
+	// We may have the WHERE 1 condition
+	if ok := p.hasNext(); ok && p.tokens[p.index+1].Lexeme == "1" {
+		attributeDecl := NewDecl(p.tokens[p.index+1])
+		p.next()
+		return attributeDecl, nil
 	}
 
 	// Attribute

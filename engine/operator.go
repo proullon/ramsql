@@ -30,3 +30,7 @@ func EqualityOperator(leftValue Value, rightValue Value) bool {
 	log.Critical("RETURNING FALDS")
 	return false
 }
+
+func TrueOperator(leftValue Value, rightValue Value) bool {
+	return true
+}

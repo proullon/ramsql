@@ -79,6 +79,11 @@ func TestSelectAllFromTable(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestSelectOnePredicate(t *testing.T) {
+	query := `SELECT * FROM account WHERE 1`
+	parse(query, 1, t)
+}
+
 func TestInsertMinimal(t *testing.T) {
 	query := `INSERT INTO account ('email', 'password', 'age') VALUES ('foo@bar.com', 'tititoto', '4')`
 	parse(query, 1, t)
