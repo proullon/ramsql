@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/proullon/ramsql/engine/parser"
 )
@@ -26,13 +26,13 @@ func parseAttribute(decl *parser.Decl) (Attribute, error) {
 
 	// Attribute name
 	if decl.Token != parser.StringToken {
-		return attr, errors.New("err.")
+		return attr, fmt.Errorf("engine: expected attribute name, got %v", decl.Token)
 	}
 	attr.name = decl.Lexeme
 
-	// Attribe type
+	// Attribute type
 	if len(decl.Decl) < 1 || decl.Decl[0].Token != parser.StringToken {
-		return attr, errors.New("err")
+		return attr, fmt.Errorf("engine: expected attribute type, got %v:%v", decl.Token, decl.Lexeme)
 	}
 	attr.typeName = decl.Decl[0].Lexeme
 

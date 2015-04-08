@@ -21,7 +21,7 @@ func TestParserMultipleInstructions(t *testing.T) {
 
 // func TestParserLowerCase(t *testing.T) {
 // 	query := `create table account (id INT PRIMARY KEY NOT NULL)`
-// parse(query, 1, t)
+// 	parse(query, 1, t)
 // }
 
 func TestParserComplete(t *testing.T) {
@@ -36,7 +36,6 @@ func TestParserComplete(t *testing.T) {
 	    town TEXT,
 	    zip_code TEXT
 	)`
-
 	parse(query, 1, t)
 }
 
@@ -46,8 +45,8 @@ func TestParserComplete(t *testing.T) {
 //     	id INT PRIMARY KEY,
 // 	    last_name VARCHAR(100)
 // 	)`
-// parse(query, 1, t)
-//  }
+// 	parse(query, 1, t)
+// }
 
 func TestSelectStar(t *testing.T) {
 	query := `SELECT * FROM account WHERE email = 'foo@bar.com'`
@@ -84,6 +83,13 @@ func TestSelectOnePredicate(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestSelectJoin(t *testing.T) {
+	query := `SELECT address.* FROM address
+	JOIN user_addresses ON address.id=user_addresses.address_id
+	WHERE user_addresses.user_id=1`
+	parse(query, 1, t)
+}
+
 func TestInsertMinimal(t *testing.T) {
 	query := `INSERT INTO account ('email', 'password', 'age') VALUES ('foo@bar.com', 'tititoto', '4')`
 	parse(query, 1, t)
@@ -111,7 +117,7 @@ func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 
 	instructions, err := parser.parse(decls)
 	if err != nil {
-		t.Fatalf("Cannot parse tokens : %s", err)
+		t.Fatalf("Cannot parse tokens from '%s': %s", query, err)
 	}
 
 	if len(instructions) != instructionNumber {

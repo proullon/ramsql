@@ -13,7 +13,7 @@ const (
 	CommaToken
 	BracketOpeningToken
 	BracketClosingToken
-	QuoteToken
+	// QuoteToken
 	DoubleQuoteToken
 	SimpleQuoteToken
 	StarToken
@@ -34,6 +34,13 @@ const (
 	TableToken
 	IntoToken
 	ValuesToken
+	JoinToken
+	OnToken
+	IfToken
+	NotToken
+	ExistsToken
+	NullToken
+	AutoincrementToken
 
 	// Type Token
 	TextToken
@@ -59,7 +66,6 @@ type lexer struct {
 type Matcher func() bool
 
 func (l *lexer) lex(instruction []byte) ([]Token, error) {
-	// log.Printf("lexer.lex : <%s>", instruction)
 	l.instructionLen = len(instruction)
 	l.tokens = nil
 	l.instruction = instruction
@@ -74,9 +80,8 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchBracketOpeningToken)
 	matchers = append(matchers, l.MatchBracketClosingToken)
 	matchers = append(matchers, l.MatchStarToken)
-	matchers = append(matchers, l.MatchQuoteToken)
-	matchers = append(matchers, l.MatchEqualityToken)
 	matchers = append(matchers, l.MatchSimpleQuoteToken)
+	matchers = append(matchers, l.MatchEqualityToken)
 	matchers = append(matchers, l.MatchPeriodToken)
 	matchers = append(matchers, l.MatchDoubleQuoteToken)
 	// First order Matcher
@@ -89,6 +94,13 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchWhereToken)
 	matchers = append(matchers, l.MatchIntoToken)
 	matchers = append(matchers, l.MatchValuesToken)
+	matchers = append(matchers, l.MatchJoinToken)
+	matchers = append(matchers, l.MatchOnToken)
+	matchers = append(matchers, l.MatchIfToken)
+	matchers = append(matchers, l.MatchNotToken)
+	matchers = append(matchers, l.MatchExistsToken)
+	matchers = append(matchers, l.MatchNullToken)
+	matchers = append(matchers, l.MatchAutoincrementToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -138,12 +150,28 @@ func (l *lexer) MatchSpaceToken() bool {
 
 func (l *lexer) MatchCreateToken() bool {
 
-	if l.instruction[l.pos] == 'C' &&
-		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'R' &&
-		l.pos+2 < l.instructionLen && l.instruction[l.pos+2] == 'E' &&
-		l.pos+3 < l.instructionLen && l.instruction[l.pos+3] == 'A' &&
-		l.pos+4 < l.instructionLen && l.instruction[l.pos+4] == 'T' &&
-		l.pos+5 < l.instructionLen && l.instruction[l.pos+5] == 'E' {
+	if l.pos+5 < l.instructionLen && l.instruction[l.pos] == 'C' &&
+		l.instruction[l.pos+1] == 'R' &&
+		l.instruction[l.pos+2] == 'E' &&
+		l.instruction[l.pos+3] == 'A' &&
+		l.instruction[l.pos+4] == 'T' &&
+		l.instruction[l.pos+5] == 'E' {
+
+		t := Token{
+			Token:  CreateToken,
+			Lexeme: "CREATE",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 6
+		return true
+	}
+
+	if l.pos+5 < l.instructionLen && l.instruction[l.pos] == 'c' &&
+		l.instruction[l.pos+1] == 'r' &&
+		l.instruction[l.pos+2] == 'e' &&
+		l.instruction[l.pos+3] == 'a' &&
+		l.instruction[l.pos+4] == 't' &&
+		l.instruction[l.pos+5] == 'e' {
 
 		t := Token{
 			Token:  CreateToken,
@@ -240,11 +268,26 @@ func (l *lexer) MatchFromToken() bool {
 
 func (l *lexer) MatchTableToken() bool {
 
-	if l.instruction[l.pos] == 'T' &&
-		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'A' &&
-		l.pos+2 < l.instructionLen && l.instruction[l.pos+2] == 'B' &&
-		l.pos+3 < l.instructionLen && l.instruction[l.pos+3] == 'L' &&
-		l.pos+4 < l.instructionLen && l.instruction[l.pos+4] == 'E' {
+	if l.pos+4 < l.instructionLen && l.instruction[l.pos] == 'T' &&
+		l.instruction[l.pos+1] == 'A' &&
+		l.instruction[l.pos+2] == 'B' &&
+		l.instruction[l.pos+3] == 'L' &&
+		l.instruction[l.pos+4] == 'E' {
+
+		t := Token{
+			Token:  TableToken,
+			Lexeme: "TABLE",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 5
+		return true
+	}
+
+	if l.pos+4 < l.instructionLen && l.instruction[l.pos] == 't' &&
+		l.instruction[l.pos+1] == 'a' &&
+		l.instruction[l.pos+2] == 'b' &&
+		l.instruction[l.pos+3] == 'l' &&
+		l.instruction[l.pos+4] == 'e' {
 
 		t := Token{
 			Token:  TableToken,
@@ -258,22 +301,220 @@ func (l *lexer) MatchTableToken() bool {
 	return false
 }
 
+func (l *lexer) MatchNullToken() bool {
+
+	if l.pos+3 < l.instructionLen && l.instruction[l.pos] == 'N' &&
+		l.instruction[l.pos+1] == 'U' &&
+		l.instruction[l.pos+2] == 'L' &&
+		l.instruction[l.pos+3] == 'L' {
+
+		t := Token{
+			Token:  NullToken,
+			Lexeme: "NULL",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	if l.pos+3 < l.instructionLen && l.instruction[l.pos] == 'n' &&
+		l.instruction[l.pos+1] == 'u' &&
+		l.instruction[l.pos+2] == 'l' &&
+		l.instruction[l.pos+3] == 'l' {
+
+		t := Token{
+			Token:  NullToken,
+			Lexeme: "NULL",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchIfToken() bool {
+
+	if l.pos+1 < l.instructionLen && l.instruction[l.pos] == 'I' &&
+		l.instruction[l.pos+1] == 'F' {
+
+		t := Token{
+			Token:  IfToken,
+			Lexeme: "IF",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	if l.pos+1 < l.instructionLen && l.instruction[l.pos] == 'i' &&
+		l.instruction[l.pos+1] == 'f' {
+
+		t := Token{
+			Token:  IfToken,
+			Lexeme: "IF",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchNotToken() bool {
+
+	if l.pos+2 < l.instructionLen && l.instruction[l.pos] == 'N' &&
+		l.instruction[l.pos+1] == 'O' &&
+		l.instruction[l.pos+2] == 'T' {
+
+		t := Token{
+			Token:  NotToken,
+			Lexeme: "NOT",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	if l.pos+2 < l.instructionLen && l.instruction[l.pos] == 'n' &&
+		l.instruction[l.pos+1] == 'o' &&
+		l.instruction[l.pos+2] == 't' {
+
+		t := Token{
+			Token:  NotToken,
+			Lexeme: "NOT",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchExistsToken() bool {
+
+	if l.pos+5 < l.instructionLen && l.instruction[l.pos] == 'E' &&
+		l.instruction[l.pos+1] == 'X' &&
+		l.instruction[l.pos+2] == 'I' &&
+		l.instruction[l.pos+3] == 'S' &&
+		l.instruction[l.pos+4] == 'T' &&
+		l.instruction[l.pos+5] == 'S' {
+
+		t := Token{
+			Token:  ExistsToken,
+			Lexeme: "EXISTS",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	if l.pos+5 < l.instructionLen && l.instruction[l.pos] == 'e' &&
+		l.instruction[l.pos+1] == 'x' &&
+		l.instruction[l.pos+2] == 'i' &&
+		l.instruction[l.pos+3] == 's' &&
+		l.instruction[l.pos+4] == 't' &&
+		l.instruction[l.pos+5] == 's' {
+
+		t := Token{
+			Token:  ExistsToken,
+			Lexeme: "EXISTS",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchAutoincrementToken() bool {
+
+	if l.pos+12 < l.instructionLen && l.instruction[l.pos] == 'A' &&
+		l.instruction[l.pos+1] == 'U' &&
+		l.instruction[l.pos+2] == 'T' &&
+		l.instruction[l.pos+3] == 'O' &&
+		l.instruction[l.pos+4] == 'I' &&
+		l.instruction[l.pos+5] == 'N' &&
+		l.instruction[l.pos+6] == 'C' &&
+		l.instruction[l.pos+7] == 'R' &&
+		l.instruction[l.pos+8] == 'E' &&
+		l.instruction[l.pos+9] == 'M' &&
+		l.instruction[l.pos+10] == 'E' &&
+		l.instruction[l.pos+11] == 'N' &&
+		l.instruction[l.pos+12] == 'T' {
+
+		t := Token{
+			Token:  AutoincrementToken,
+			Lexeme: "AUTOINCREMENT",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	if l.pos+12 < l.instructionLen && l.instruction[l.pos] == 'a' &&
+		l.instruction[l.pos+1] == 'u' &&
+		l.instruction[l.pos+2] == 't' &&
+		l.instruction[l.pos+3] == 'o' &&
+		l.instruction[l.pos+4] == 'i' &&
+		l.instruction[l.pos+5] == 'n' &&
+		l.instruction[l.pos+6] == 'c' &&
+		l.instruction[l.pos+7] == 'r' &&
+		l.instruction[l.pos+8] == 'e' &&
+		l.instruction[l.pos+9] == 'm' &&
+		l.instruction[l.pos+10] == 'e' &&
+		l.instruction[l.pos+11] == 'n' &&
+		l.instruction[l.pos+12] == 't' {
+
+		t := Token{
+			Token:  AutoincrementToken,
+			Lexeme: "AUTOINCREMENT",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	return false
+}
+
 func (l *lexer) MatchPrimaryToken() bool {
 
-	if l.instruction[l.pos] == 'P' &&
-		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'R' &&
-		l.pos+2 < l.instructionLen && l.instruction[l.pos+2] == 'I' &&
-		l.pos+3 < l.instructionLen && l.instruction[l.pos+3] == 'M' &&
-		l.pos+4 < l.instructionLen && l.instruction[l.pos+4] == 'A' &&
-		l.pos+5 < l.instructionLen && l.instruction[l.pos+5] == 'R' &&
-		l.pos+6 < l.instructionLen && l.instruction[l.pos+6] == 'Y' {
+	if l.pos+6 < l.instructionLen && l.instruction[l.pos] == 'P' &&
+		l.instruction[l.pos+1] == 'R' &&
+		l.instruction[l.pos+2] == 'I' &&
+		l.instruction[l.pos+3] == 'M' &&
+		l.instruction[l.pos+4] == 'A' &&
+		l.instruction[l.pos+5] == 'R' &&
+		l.instruction[l.pos+6] == 'Y' {
 
 		t := Token{
 			Token:  PrimaryToken,
 			Lexeme: "PRIMARY",
 		}
 		l.tokens = append(l.tokens, t)
-		l.pos += 7
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	if l.pos+6 < l.instructionLen && l.instruction[l.pos] == 'p' &&
+		l.instruction[l.pos+1] == 'r' &&
+		l.instruction[l.pos+2] == 'i' &&
+		l.instruction[l.pos+3] == 'm' &&
+		l.instruction[l.pos+4] == 'a' &&
+		l.instruction[l.pos+5] == 'r' &&
+		l.instruction[l.pos+6] == 'y' {
+
+		t := Token{
+			Token:  PrimaryToken,
+			Lexeme: "PRIMARY",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
 		return true
 	}
 
@@ -282,9 +523,22 @@ func (l *lexer) MatchPrimaryToken() bool {
 
 func (l *lexer) MatchKeyToken() bool {
 
-	if l.instruction[l.pos] == 'K' &&
-		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'E' &&
-		l.pos+2 < l.instructionLen && l.instruction[l.pos+2] == 'Y' {
+	if l.pos+2 < l.instructionLen && l.instruction[l.pos] == 'K' &&
+		l.instruction[l.pos+1] == 'E' &&
+		l.instruction[l.pos+2] == 'Y' {
+
+		t := Token{
+			Token:  KeyToken,
+			Lexeme: "KEY",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 3
+		return true
+	}
+
+	if l.pos+2 < l.instructionLen && l.instruction[l.pos] == 'k' &&
+		l.instruction[l.pos+1] == 'e' &&
+		l.instruction[l.pos+2] == 'y' {
 
 		t := Token{
 			Token:  KeyToken,
@@ -338,12 +592,48 @@ func (l *lexer) MatchValuesToken() bool {
 	return false
 }
 
+func (l *lexer) MatchJoinToken() bool {
+
+	if l.instruction[l.pos] == 'J' &&
+		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'O' &&
+		l.pos+2 < l.instructionLen && l.instruction[l.pos+2] == 'I' &&
+		l.pos+3 < l.instructionLen && l.instruction[l.pos+3] == 'N' {
+
+		t := Token{
+			Token:  JoinToken,
+			Lexeme: "JOIN",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 4
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchOnToken() bool {
+
+	if l.instruction[l.pos] == 'O' &&
+		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'N' {
+
+		t := Token{
+			Token:  OnToken,
+			Lexeme: "ON",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 2
+		return true
+	}
+
+	return false
+}
+
 func (l *lexer) MatchStringToken() bool {
 
 	i := l.pos
 	for i < l.instructionLen &&
 		(unicode.IsLetter(rune(l.instruction[i])) || l.instruction[i] == '_' ||
-			l.instruction[i] == '@' || l.instruction[i] == '.') {
+			l.instruction[i] == '@' /* || l.instruction[i] == '.'*/) {
 		i++
 	}
 
@@ -485,20 +775,20 @@ func (l *lexer) MatchStarToken() bool {
 	return false
 }
 
-func (l *lexer) MatchQuoteToken() bool {
+// func (l *lexer) MatchQuoteToken() bool {
 
-	if l.instruction[l.pos] == '\'' {
-		t := Token{
-			Token:  QuoteToken,
-			Lexeme: "'",
-		}
-		l.tokens = append(l.tokens, t)
-		l.pos += 1
-		return true
-	}
+// 	if l.instruction[l.pos] == '\'' {
+// 		t := Token{
+// 			Token:  QuoteToken,
+// 			Lexeme: "'",
+// 		}
+// 		l.tokens = append(l.tokens, t)
+// 		l.pos += 1
+// 		return true
+// 	}
 
-	return false
-}
+// 	return false
+// }
 
 func (l *lexer) MatchEqualityToken() bool {
 
@@ -518,14 +808,45 @@ func (l *lexer) MatchEqualityToken() bool {
 func (l *lexer) MatchSimpleQuoteToken() bool {
 
 	if l.instruction[l.pos] == '\'' {
+
 		t := Token{
 			Token:  SimpleQuoteToken,
 			Lexeme: "'",
 		}
 		l.tokens = append(l.tokens, t)
 		l.pos += 1
+
+		if l.MatchSingleQuotedStringToken() {
+			t := Token{
+				Token:  SimpleQuoteToken,
+				Lexeme: "'",
+			}
+			l.tokens = append(l.tokens, t)
+			l.pos += 1
+			return true
+		}
+
 		return true
 	}
 
 	return false
+}
+
+func (l *lexer) MatchSingleQuotedStringToken() bool {
+	i := l.pos
+	for i < l.instructionLen && l.instruction[i] != '\'' {
+		i++
+	}
+	if i == l.pos {
+		return false
+	}
+
+	t := Token{
+		Token:  StringToken,
+		Lexeme: string(l.instruction[l.pos:i]),
+	}
+	l.tokens = append(l.tokens, t)
+	l.pos = i
+
+	return true
 }
