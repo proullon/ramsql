@@ -33,6 +33,10 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 		parser.TableToken:  createTableExecutor,
 		parser.SelectToken: selectExecutor,
 		parser.InsertToken: insertIntoTableExecutor,
+		parser.DeleteToken: deleteExecutor,
+		parser.IfToken:     ifExecutor,
+		parser.NotToken:    notExecutor,
+		parser.ExistsToken: existsExecutor,
 	}
 
 	e.relations = make(map[string]*Relation)

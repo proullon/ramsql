@@ -191,7 +191,7 @@ func selectExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn
            |-> =
            |-> foo@bar.com
 */
-func getSelectPredicate(whereDecl *parser.Decl) ([]Predicate, error) {
+func whereExecutor(whereDecl *parser.Decl) ([]Predicate, error) {
 	var predicates []Predicate
 
 	for i := range whereDecl.Decl {
@@ -234,7 +234,7 @@ func getSelectPredicate(whereDecl *parser.Decl) ([]Predicate, error) {
 |-> FROM
     |-> account
 */
-func getSelectedTables(fromDecl *parser.Decl) []*Table {
+func fromExecutor(fromDecl *parser.Decl) []*Table {
 	var tables []*Table
 	for _, t := range fromDecl.Decl {
 		tables = append(tables, NewTable(t.Lexeme))

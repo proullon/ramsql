@@ -88,6 +88,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchCreateToken)
 	matchers = append(matchers, l.MatchSelectToken)
 	matchers = append(matchers, l.MatchInsertToken)
+	matchers = append(matchers, l.MatchDeleteToken)
 	// Second order Matcher
 	matchers = append(matchers, l.MatchTableToken)
 	matchers = append(matchers, l.MatchFromToken)
@@ -263,6 +264,20 @@ func (l *lexer) MatchFromToken() bool {
 		return true
 	}
 
+	if l.instruction[l.pos] == 'f' &&
+		l.pos+1 < l.instructionLen && l.instruction[l.pos+1] == 'r' &&
+		l.pos+2 < l.instructionLen && l.instruction[l.pos+2] == 'o' &&
+		l.pos+3 < l.instructionLen && l.instruction[l.pos+3] == 'm' {
+
+		t := Token{
+			Token:  FromToken,
+			Lexeme: "FROM",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += 4
+		return true
+	}
+
 	return false
 }
 
@@ -422,6 +437,43 @@ func (l *lexer) MatchExistsToken() bool {
 		t := Token{
 			Token:  ExistsToken,
 			Lexeme: "EXISTS",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchDeleteToken() bool {
+
+	if l.pos+5 < l.instructionLen && l.instruction[l.pos] == 'D' &&
+		l.instruction[l.pos+1] == 'E' &&
+		l.instruction[l.pos+2] == 'L' &&
+		l.instruction[l.pos+3] == 'E' &&
+		l.instruction[l.pos+4] == 'T' &&
+		l.instruction[l.pos+5] == 'E' {
+
+		t := Token{
+			Token:  DeleteToken,
+			Lexeme: "DELETE",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos += len(t.Lexeme)
+		return true
+	}
+
+	if l.pos+5 < l.instructionLen && l.instruction[l.pos] == 'd' &&
+		l.instruction[l.pos+1] == 'e' &&
+		l.instruction[l.pos+2] == 'l' &&
+		l.instruction[l.pos+3] == 'e' &&
+		l.instruction[l.pos+4] == 't' &&
+		l.instruction[l.pos+5] == 'e' {
+
+		t := Token{
+			Token:  DeleteToken,
+			Lexeme: "DELETE",
 		}
 		l.tokens = append(l.tokens, t)
 		l.pos += len(t.Lexeme)

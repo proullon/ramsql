@@ -105,6 +105,11 @@ func TestInsertNumber(t *testing.T) {
 // 	parse(query, 1, t)
 // }
 
+func TestDelete(t *testing.T) {
+	query := `delete from "posts"`
+	parse(query, 1, t)
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	t.Log("\n\n\n")
 
