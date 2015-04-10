@@ -46,11 +46,33 @@ func (t Table) String() string {
 }
 
 func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.EngineConn) error {
+	var i int
 
-	t := NewTable(tableDecl.Decl[0].Lexeme)
+	if len(tableDecl.Decl) == 0 {
+		return fmt.Errorf("parsing failed, malformed query")
+	}
+
+	// Fetch constraint
+	i = 0
+	for i < len(tableDecl.Decl) {
+
+		if e.opsExecutors[tableDecl.Decl[i].Token] != nil {
+			if err := e.opsExecutors[tableDecl.Decl[i].Token](e, tableDecl.Decl[i], conn); err != nil {
+				return err
+			}
+		} else {
+			break
+		}
+
+		i++
+	}
+
+	// Fetch table name
+	t := NewTable(tableDecl.Decl[i].Lexeme)
 
 	// Fetch attributes
-	for i := 1; i < len(tableDecl.Decl); i++ {
+	i++
+	for i < len(tableDecl.Decl) {
 		attr, err := parseAttribute(tableDecl.Decl[i])
 		if err != nil {
 			return err
@@ -59,6 +81,7 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 		if err != nil {
 			return err
 		}
+		i++
 	}
 
 	e.relations[t.name] = NewRelation(t)
