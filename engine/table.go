@@ -79,7 +79,6 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
         |-> pierre.roullon@gmail.com
 */
 func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.EngineConn) error {
-	// log.Info("insertIntoTableSelector")
 
 	// Get table and concerned attributes
 	r, attributes, err := getRelation(e, insertDecl.Decl[0])
@@ -156,22 +155,22 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) error
             |-> =
             |-> foo@bar.com
 */
-func selectExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn) error {
+func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn) error {
 	log.Info("selectExecutor")
 
 	// get selected tables
-	tables := getSelectedTables(createDecl.Decl[1])
+	tables := fromExecutor(selectDecl.Decl[1])
 	log.Info("Selected tables are %v", tables)
 
 	// get attribute to select
-	attr, err := getSelectedAttributes(e, createDecl.Decl[0], tables)
+	attr, err := getSelectedAttributes(e, selectDecl.Decl[0], tables)
 	if err != nil {
 		return err
 	}
 	log.Info("Selected attributes are %v", attr)
 
 	// get WHERE declaration
-	predicates, err := getSelectPredicate(createDecl.Decl[2])
+	predicates, err := whereExecutor(selectDecl.Decl[2])
 	if err != nil {
 		return err
 	}

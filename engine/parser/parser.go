@@ -328,12 +328,6 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 	}
 
 	// Now we should found table name
-	// if !p.hasNext() || tokens[p.index].Token != StringToken {
-	// 	return nil, fmt.Errorf("TABLE token must be followed by table name")
-	// }
-	// nameTable := NewDecl(tokens[p.index])
-	// tableDecl.Add(nameTable)
-	// p.index++
 	nameTable, err := p.parseAttribute()
 	if err != nil {
 		return nil, p.syntaxError()
@@ -352,31 +346,14 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 		if err != nil {
 			return nil, err
 		}
-		// if tokens[p.index].Token != StringToken {
-		// 	return nil, fmt.Errorf("Expected attribute name, not <%s>", tokens[p.index].Lexeme)
-		// }
-		// newAttribute := NewDecl(tokens[p.index])
 		tableDecl.Add(newAttribute)
-		// if err = p.next(); err != nil {
-		// 	return nil, fmt.Errorf("Unexpected end")
-		// }
 
-		debug("ATTRIBUTE NAME ALRIGHT")
-		// New attribute type
-		// if tokens[p.index].Token != StringToken {
-		// 	return nil, fmt.Errorf("Expected attribute type, not <%s>", tokens[p.index].Lexeme)
-		// }
 		newAttributeType, err := p.parseType()
 		if err != nil {
 			return nil, err
 		}
-		// newAttributeType := NewDecl(tokens[p.index])
 		newAttribute.Add(newAttributeType)
-		// if err = p.next(); err != nil {
-		// 	return nil, fmt.Errorf("Unexpected end")
-		// }
-		debug("ATTRIBUTE TYPE ALRIGHT")
-		debug("HOHOHO current is %v", p.cur())
+
 		// Is it not null ?
 		if _, err = p.isNext(NullToken); p.is(NotToken) && err == nil {
 			notDecl, err := p.consumeToken(NotToken)
@@ -390,7 +367,6 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 			}
 			notDecl.Add(nullDecl)
 		}
-		debug("HOHOHO current is %v", p.cur())
 
 		// Is it a primary key ?
 		if tokens[p.index].Token == PrimaryToken && p.hasNext() && tokens[p.index+1].Token == KeyToken {
@@ -411,7 +387,6 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 
 		// ANOTHER PROPERTY FFS ! Autoincrement ?
 		if p.is(AutoincrementToken) {
-			debug("OHLOL")
 			autoincDecl, err := p.consumeToken(AutoincrementToken)
 			if err != nil {
 				return nil, err
@@ -478,10 +453,7 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	if err = p.next(); err != nil {
 		return nil, fmt.Errorf("SELECT token must be followed by attributes to select")
 	}
-	// if tokens[p.index].Token == StarToken {
-	// 	starDecl := NewDecl(tokens[p.index])
-	// 	selectDecl.Add(starDecl)
-	// }
+
 	for {
 		attrDecl, err := p.parseAttribute()
 		if err != nil {
@@ -544,10 +516,6 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	if err != nil {
 		return nil, err
 	}
-	// if tokens[p.index].Token != WhereToken {
-	// 	return nil, syntaxError(tokens[p.index])
-	// }
-	// whereDecl := NewDecl(tokens[p.index])
 	selectDecl.Add(whereDecl)
 
 	// Now should be a list of: Attribute and Operator and Value
@@ -665,11 +633,8 @@ func (p *parser) parseQuotedToken() (*Decl, error) {
 			return nil, err
 		}
 	}
-	if err := p.next(); err != nil {
-		debug("parseQuotedToken: undexpected end")
-		return nil, err
-	}
 
+	p.next()
 	return decl, nil
 }
 
@@ -754,7 +719,6 @@ func (p *parser) parseValue() (*Decl, error) {
 // parseJoin parses the JOIN keywords and all its condition
 // JOIN user_addresses ON address.id=user_addresses.address_id
 func (p *parser) parseJoin() (*Decl, error) {
-	debug("HEEEEEEEEEELO PARSE JOIN !")
 	joinDecl, err := p.consumeToken(JoinToken)
 	if err != nil {
 		return nil, err
@@ -910,11 +874,11 @@ func (p *parser) consumeToken(tokenTypes ...int) (*Decl, error) {
 
 func (p *parser) syntaxError() error {
 	if p.index == 0 {
-		return fmt.Errorf("Syntax error near %v%v", p.tokens[p.index].Lexeme, p.tokens[p.index+1].Lexeme)
+		return fmt.Errorf("Syntax error near %v %v", p.tokens[p.index].Lexeme, p.tokens[p.index+1].Lexeme)
 	} else if !p.hasNext() {
-		return fmt.Errorf("Syntax error near %v%v", p.tokens[p.index-1].Lexeme, p.tokens[p.index].Lexeme)
+		return fmt.Errorf("Syntax error near %v %v", p.tokens[p.index-1].Lexeme, p.tokens[p.index].Lexeme)
 	}
-	return fmt.Errorf("Syntax error near %v%v%v", p.tokens[p.index-1].Lexeme, p.tokens[p.index].Lexeme, p.tokens[p.index+1].Lexeme)
+	return fmt.Errorf("Syntax error near %v %v %v", p.tokens[p.index-1].Lexeme, p.tokens[p.index].Lexeme, p.tokens[p.index+1].Lexeme)
 }
 
 func stripSpaces(t []Token) (ret []Token) {
