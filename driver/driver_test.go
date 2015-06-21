@@ -3,9 +3,13 @@ package ramsql
 import (
 	"database/sql"
 	"testing"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 func TestCreateTable(t *testing.T) {
+	log.UseTestLogger(t)
+
 	db, err := sql.Open("ramsql", "")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
@@ -24,6 +28,7 @@ func TestCreateTable(t *testing.T) {
 }
 
 func TestInsertTable(t *testing.T) {
+	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
@@ -59,6 +64,7 @@ func TestInsertTable(t *testing.T) {
 }
 
 func TestSelect(t *testing.T) {
+	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
@@ -123,6 +129,7 @@ func TestSelect(t *testing.T) {
 }
 
 func TestSelectSimplePredicate(t *testing.T) {
+	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
@@ -161,6 +168,7 @@ func TestSelectSimplePredicate(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)

@@ -2,18 +2,20 @@ package log
 
 import (
 	"github.com/astaxie/beego/logs"
+	"testing"
 )
 
-var log *logs.BeeLogger
+var log Logger
 
 func SetLevel(lvl int) {
 	log.SetLevel(lvl)
 }
 
 func init() {
-	log = logs.NewLogger(10000)
-	log.SetLogger("console", "")
-	log.SetLogFuncCallDepth(3)
+	beelog := logs.NewLogger(0)
+	beelog.SetLogger("console", "")
+	beelog.SetLogFuncCallDepth(3)
+	log = beelog
 }
 
 func Debug(format string, values ...interface{}) {
@@ -34,4 +36,48 @@ func Warning(format string, values ...interface{}) {
 
 func Critical(format string, values ...interface{}) {
 	log.Critical(format, values...)
+}
+
+type Logger interface {
+	SetLevel(lvl int)
+	Debug(fmt string, values ...interface{})
+	Info(fmt string, values ...interface{})
+	Notice(fmt string, values ...interface{})
+	Warning(fmt string, values ...interface{})
+	Critical(fmt string, values ...interface{})
+}
+
+type TestLogger struct {
+	t *testing.T
+}
+
+func (l TestLogger) SetLevel(lvl int) {
+}
+
+func (l TestLogger) Debug(fmt string, values ...interface{}) {
+	l.t.Logf(fmt, values...)
+}
+
+func (l TestLogger) Info(fmt string, values ...interface{}) {
+	l.t.Logf(fmt, values...)
+}
+
+func (l TestLogger) Notice(fmt string, values ...interface{}) {
+	l.t.Logf(fmt, values...)
+}
+
+func (l TestLogger) Warning(fmt string, values ...interface{}) {
+	l.t.Logf(fmt, values...)
+}
+
+func (l TestLogger) Critical(fmt string, values ...interface{}) {
+	l.t.Logf(fmt, values...)
+}
+
+func UseTestLogger(t *testing.T) {
+	logger := TestLogger{
+		t: t,
+	}
+
+	log = logger
 }

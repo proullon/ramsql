@@ -538,18 +538,47 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	return i, nil
 }
 
+// parseBuiltinFunc looks for COUNT,MAX,MIN
+func (p *parser) parseBuiltinFunc() (*Decl, error) {
+	var d *Decl
+	var err error
+
+	// COUNT(attribute)
+	if p.is(CountToken) {
+		d, err = p.consumeToken(CountToken)
+		if err != nil {
+			return nil, err
+		}
+		// Bracket
+		_, err = p.consumeToken(BracketOpeningToken)
+		if err != nil {
+			return nil, err
+		}
+		// Attribute
+		attr, err := p.parseAttribute()
+		if err != nil {
+			return nil, err
+		}
+		d.Add(attr)
+		// Bracket
+		_, err = p.consumeToken(BracketClosingToken)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return d, nil
+}
+
 // parseAttribute parse an attribute of the form
 // table.foo
 // table.*
 // "table".foo
 // foo
 func (p *parser) parseAttribute() (*Decl, error) {
-	debug("parseAttribute")
 	quoted := false
 
-	debug("parseAttribute: Checkout quote")
 	if p.is(DoubleQuoteToken) {
-		debug("parseAttribute: Got a quote !")
 		quoted = true
 		if err := p.next(); err != nil {
 			return nil, err
@@ -559,16 +588,12 @@ func (p *parser) parseAttribute() (*Decl, error) {
 	// shoud be a StringToken here
 	// If there is a point after, it's a table name,
 	// if not, it's the attribute
-	debug("parseAttribute: Checkout String or Star")
 	if !p.is(StringToken, StarToken) {
-		debug("parseAttribute: current token %s is not a string or a star", p.cur())
 		return nil, p.syntaxError()
 	}
 	decl := NewDecl(p.cur())
 
 	if quoted {
-		debug("parseAttribute: Checking ending quote")
-
 		// Check there is a closing quote
 		if _, err := p.mustHaveNext(DoubleQuoteToken); err != nil {
 			debug("parseAttribute: Missing closing quote")
@@ -576,19 +601,14 @@ func (p *parser) parseAttribute() (*Decl, error) {
 		}
 	}
 	if err := p.next(); err != nil {
-		debug("parseAttribute: undexpected end")
 		return nil, err
 	}
 
-	debug("parseAttribute: Checking period")
-
 	// Now, is it a point ?
 	if p.is(PeriodToken) {
-		debug("Got a period token")
 		// if so, next must be the attribute name or a star
 		t, err := p.mustHaveNext(StringToken, StarToken)
 		if err != nil {
-			debug("parseAttribute: error")
 			return nil, err
 		}
 		attributeDecl := NewDecl(t)
@@ -642,13 +662,8 @@ func (p *parser) parseCondition() (*Decl, error) {
 	debug("\t IN parseCondition")
 	defer debug("\t OUT parseCondition")
 
-	// if !p.hasNext() {
-	// 	return nil, fmt.Errorf("Unexpected end, expected condition clause")
-	// }
-
 	// We may have the WHERE 1 condition
 	if t := p.cur(); t.Token == NumberToken && t.Lexeme == "1" {
-		// if ok := p.hasNext(); ok && p.tokens[p.index+1].Lexeme == "1" {
 		attributeDecl := NewDecl(t)
 		p.next()
 		return attributeDecl, nil
@@ -656,33 +671,23 @@ func (p *parser) parseCondition() (*Decl, error) {
 
 	// Attribute
 	attributeDecl, err := p.parseAttribute()
-	// t, err := p.mustHaveNext(StringToken)
 	if err != nil {
 		return nil, err
 	}
-	// attributeDecl := NewDecl(t)
-	debug("ATTRIBUTE OK")
 
 	// Equal
 	if !p.is(EqualityToken) {
 		return nil, p.syntaxError()
 	}
 	equalDecl := NewDecl(p.cur())
-	// equalDecl, err := p.consumeToken(EqualityToken)
-	// if err != nil {
-	// 	return nil, err
-	// }
 	attributeDecl.Add(equalDecl)
-	debug("EQUAL OK")
 
 	// Value
 	valueDecl, err := p.parseValue()
 	if err != nil {
-		debug("VALUE KO")
 		return nil, err
 	}
 	attributeDecl.Add(valueDecl)
-	debug("VALUE OK")
 
 	return attributeDecl, nil
 }
@@ -692,11 +697,7 @@ func (p *parser) parseValue() (*Decl, error) {
 	defer debug("~parseValue")
 	quoted := false
 
-	// if err := p.next(); err != nil {
-	// 	return nil, err
-	debug("IS VALUE QUTED %v ?", p.cur())
 	if _, err := p.isNext(SimpleQuoteToken); err == nil {
-		debug("value is quoted")
 		p.next()
 		quoted = true
 	}

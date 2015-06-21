@@ -3,10 +3,12 @@ package engine
 import (
 	"testing"
 
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 )
 
 func TestCreateTable(t *testing.T) {
+	log.UseTestLogger(t)
 	query := `CREATE TABLE user
 	(
         id INT PRIMARY KEY,
@@ -34,6 +36,7 @@ func TestCreateTable(t *testing.T) {
 }
 
 func TestInsertTable(t *testing.T) {
+	log.UseTestLogger(t)
 	query := `INSERT INTO user ('last_name', 'first_name', 'email') VALUES ('Roullon', 'Pierre', 'pierre.roullon@gmail.com')`
 
 	e := testEngine(t)
@@ -53,6 +56,7 @@ func TestInsertTable(t *testing.T) {
 }
 
 func createTable(e *Engine, t *testing.T) {
+	log.UseTestLogger(t)
 	query := `CREATE TABLE user
 	(
         id INT PRIMARY KEY,

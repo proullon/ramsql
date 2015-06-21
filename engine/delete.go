@@ -11,7 +11,6 @@ import (
 
 func deleteExecutor(e *Engine, deleteDecl *parser.Decl, conn protocol.EngineConn) error {
 	log.Info("deleteExecutor")
-	deleteDecl.Stringy(0)
 
 	// get tables to be deleted
 	tables := fromExecutor(deleteDecl.Decl[0])
@@ -33,7 +32,6 @@ func deleteExecutor(e *Engine, deleteDecl *parser.Decl, conn protocol.EngineConn
 }
 
 func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates []Predicate) error {
-	log.Critical("deleteRows !")
 	var rowsDeleted int
 
 	// get relations and write lock them
@@ -65,7 +63,6 @@ func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates
 }
 
 func truncateTable(e *Engine, table *Table, conn protocol.EngineConn) error {
-	log.Critical("truncateTable %s !", table.name)
 	var rowsDeleted int
 
 	// get relations and write lock them
