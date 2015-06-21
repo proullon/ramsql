@@ -102,6 +102,26 @@ func TestInsertNumber(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestInsertNumberWithQuote(t *testing.T) {
+	query := `INSERT INTO "account" ('email', 'password', 'age') VALUES ('foo@bar.com', 'tititoto', 4)`
+	parse(query, 1, t)
+}
+
+func TestCreateTableWithKeywordName(t *testing.T) {
+	query := `CREATE TABLE test ("id" bigserial not null primary key, "name" text, "key" text)`
+	parse(query, 1, t)
+}
+
+// func TestInsertStringWithDoubleQuote(t *testing.T) {
+// 	query := `insert into "posts" ("post_id","Created","Title","Body") values (null,12321123,"Hello world !","!");`
+// 	parse(query, 1, t)
+// }
+
+func TestInsertStringWithSimpleQuote(t *testing.T) {
+	query := `insert into "posts" ("post_id","Created","Title","Body") values (null,12321123,'Hello world !','!');`
+	parse(query, 1, t)
+}
+
 // func TestInsertImplicitAttributes(t *testing.T) {
 // 	query := `INSERT INTO account VALUES ('foo@bar.com', 'tititoto', 4)`
 // 	parse(query, 1, t)

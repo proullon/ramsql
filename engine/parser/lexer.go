@@ -283,9 +283,9 @@ func (l *lexer) MatchSemicolonToken() bool {
 	return l.MatchSingle(';', SemicolonToken)
 }
 
-func (l *lexer) MatchDoubleQuoteToken() bool {
-	return l.MatchSingle('"', DoubleQuoteToken)
-}
+//func (l *lexer) MatchDoubleQuoteToken() bool {
+//	return l.MatchSingle('"', DoubleQuoteToken)
+//}
 
 func (l *lexer) MatchPeriodToken() bool {
 	return l.MatchSingle('.', PeriodToken)
@@ -309,6 +309,52 @@ func (l *lexer) MatchStarToken() bool {
 
 func (l *lexer) MatchEqualityToken() bool {
 	return l.MatchSingle('=', EqualityToken)
+}
+
+func (l *lexer) MatchDoubleQuoteToken() bool {
+
+	if l.instruction[l.pos] == '"' {
+
+		t := Token{
+			Token:  DoubleQuoteToken,
+			Lexeme: "\"",
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos++
+
+		if l.MatchDoubleQuotedStringToken() {
+			t := Token{
+				Token:  DoubleQuoteToken,
+				Lexeme: "\"",
+			}
+			l.tokens = append(l.tokens, t)
+			l.pos++
+			return true
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchDoubleQuotedStringToken() bool {
+	i := l.pos
+	for i < l.instructionLen && l.instruction[i] != '"' {
+		i++
+	}
+	if i == l.pos {
+		return false
+	}
+
+	t := Token{
+		Token:  StringToken,
+		Lexeme: string(l.instruction[l.pos:i]),
+	}
+	l.tokens = append(l.tokens, t)
+	l.pos = i
+
+	return true
 }
 
 func (l *lexer) MatchSimpleQuoteToken() bool {
