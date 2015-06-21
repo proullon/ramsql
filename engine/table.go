@@ -52,7 +52,7 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 		return fmt.Errorf("parsing failed, malformed query")
 	}
 
-	// Fetch constraint
+	// Fetch constrainit (i.e: "IF EXISTS")
 	i = 0
 	for i < len(tableDecl.Decl) {
 
@@ -110,12 +110,12 @@ func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.E
 	}
 
 	// Create a new tuple with values
-	err = insert(r, attributes, insertDecl.Decl[1].Decl)
+	id, err := insert(r, attributes, insertDecl.Decl[1].Decl)
 	if err != nil {
 		return err
 	}
 
-	conn.WriteResult(0, 1)
+	conn.WriteResult(id, 1)
 	return nil
 }
 
@@ -137,20 +137,30 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 	return r, intoDecl.Decl[0].Decl, nil
 }
 
-func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) error {
+func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) (int64, error) {
 	var assigned = false
+	var id int64
 
 	// Create tuple
 	t := NewTuple()
 	for _, attr := range r.table.attributes {
 		assigned = false
+
 		for x, decl := range attributes {
+
 			if attr.name == decl.Lexeme {
 				t.Append(values[x].Lexeme)
 				assigned = true
 			}
 		}
 
+		// If attribute is AUTO INCREMENT, compute it and assign it
+		if attr.autoIncrement {
+			log.Critical("Attribute %v is auto incre !", attr)
+			assigned = true
+			id = int64(len(r.rows) + 1)
+			t.Append(id)
+		}
 		// If values was not explictly given, set default value
 		if assigned == false {
 			t.Append(attr.defaultValue)
@@ -162,10 +172,10 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) error
 	// Insert tuple
 	err := r.Insert(t)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	return id, nil
 }
 
 /*
@@ -279,7 +289,7 @@ func getSelectedAttributes(e *Engine, attr *parser.Decl, tables []*Table) ([]Att
 
 	// handle COUNT
 	if attr.Token == parser.CountToken {
-		attributes = append(attributes, NewAttribute("COUNT", "int"))
+		attributes = append(attributes, NewAttribute("COUNT", "int", false))
 	}
 
 	return attributes, nil

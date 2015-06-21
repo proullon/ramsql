@@ -15,11 +15,12 @@ type Domain struct {
 // AKA Field
 // AKA Column
 type Attribute struct {
-	name         string
-	typeName     string
-	typeInstance interface{}
-	defaultValue interface{}
-	domain       Domain
+	name          string
+	typeName      string
+	typeInstance  interface{}
+	defaultValue  interface{}
+	domain        Domain
+	autoIncrement bool
 }
 
 func parseAttribute(decl *parser.Decl) (Attribute, error) {
@@ -41,14 +42,23 @@ func parseAttribute(decl *parser.Decl) (Attribute, error) {
 	attr.typeName = decl.Decl[0].Lexeme
 
 	// Maybe domain and special thing like primary key
+	typeDecl := decl.Decl[1:]
+	for i := range typeDecl {
+		log.Debug("Got %v for %s %s", typeDecl[i], attr.name, attr.typeName)
+		if typeDecl[i].Token == parser.AutoincrementToken {
+			attr.autoIncrement = true
+		}
+	}
+
 	return attr, nil
 }
 
 // NewAttribute initialize a new Attribute struct
-func NewAttribute(name string, typeName string) Attribute {
+func NewAttribute(name string, typeName string, autoIncrement bool) Attribute {
 	a := Attribute{
-		name:     name,
-		typeName: typeName,
+		name:          name,
+		typeName:      typeName,
+		autoIncrement: autoIncrement,
 	}
 
 	return a

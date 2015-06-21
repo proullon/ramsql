@@ -26,3 +26,21 @@ When starting a new project, enjoy a clean database at each reboot of your appli
 
 Not advised
 
+
+## Roadmap
+
+
+## Todo
+
+- UPDATE
+- PRIMARY KEY
+
+## Done
+
+- CREATE
+- INSERT
+- SELECT
+- WHERE
+- DELETE
+- COUNT
+- AUTO INCREMENT
