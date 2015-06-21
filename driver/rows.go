@@ -3,20 +3,26 @@ package ramsql
 import (
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/proullon/ramsql/engine/log"
 )
 
+// Rows implements the sql/driver Rows interface
 type Rows struct {
 	rowsChannel chan []string
 	columns     []string
 }
 
 func newRows(channel chan []string) *Rows {
-	log.Debug("newRows")
 	r := &Rows{rowsChannel: channel}
-	c := <-channel
+	c, ok := <-channel
+	if !ok {
+		log.Critical("Cannot receive column names form channel")
+		return nil
+	}
+
 	r.columns = c
 	return r
 }

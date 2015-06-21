@@ -763,8 +763,6 @@ func (p *parser) parseJoin() (*Decl, error) {
 }
 
 func (p *parser) parseListElement() (*Decl, error) {
-	debug("parseListElement")
-	defer debug("~parseListElement")
 	quoted := false
 
 	if p.is(SimpleQuoteToken) {
