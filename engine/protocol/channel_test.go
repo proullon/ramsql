@@ -134,7 +134,7 @@ func TestExecAndResult(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
-	errMessage := errors.New("oh shoot !")
+	errMessage := errors.New("oh shoot")
 	driverE, engineE := NewChannelEndpoints()
 
 	go func() {

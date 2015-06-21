@@ -10,7 +10,7 @@ import (
 	"github.com/proullon/ramsql/engine/log"
 )
 
-func TestGorp(t *testing.T) {
+func testGorp(t *testing.T) {
 	log.UseTestLogger(t)
 
 	// initialize the DbMap
@@ -30,9 +30,11 @@ func TestGorp(t *testing.T) {
 	checkErr(t, err, "Insert failed")
 
 	// use convenience SelectInt
-	count, err := dbmap.SelectInt("select count(*) from posts")
+	count, err := dbmap.SelectInt("select count(*) from posts where 1")
 	checkErr(t, err, "select count(*) failed")
-	t.Log("Rows after inserting:", count)
+	if count != 2 {
+		t.Fatalf("Rows after inserting: %d, expected %d", count, 2)
+	}
 
 	// update a row
 	p2.Title = "Go 1.2 is better than ever"

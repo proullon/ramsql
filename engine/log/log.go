@@ -1,6 +1,7 @@
 package log
 
 import (
+	// TODO: remove dependency someday
 	"github.com/astaxie/beego/logs"
 	"testing"
 )

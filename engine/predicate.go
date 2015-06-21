@@ -25,12 +25,12 @@ type Predicate struct {
 	True       bool
 }
 
-func NewPredicate() *Predicate {
-	return nil
-}
-
 func (p Predicate) String() string {
 	var left, right string
+
+	if p.True {
+		return "AlwaysTrue"
+	}
 
 	left = "?"
 	right = "?"

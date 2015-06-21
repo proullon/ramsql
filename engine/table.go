@@ -179,18 +179,18 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) error
             |-> foo@bar.com
 */
 func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn) error {
-	log.Info("selectExecutor")
 
 	// get selected tables
 	tables := fromExecutor(selectDecl.Decl[1])
-	log.Info("Selected tables are %v", tables)
 
 	// get attribute to select
 	attr, err := getSelectedAttributes(e, selectDecl.Decl[0], tables)
 	if err != nil {
 		return err
 	}
-	log.Info("Selected attributes are %v", attr)
+
+	// Instanciate a new select functor
+	functors, err := getSelectFunctors(selectDecl)
 
 	// get WHERE declaration
 	predicates, err := whereExecutor(selectDecl.Decl[2])
@@ -199,7 +199,7 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 	}
 
 	// and select
-	err = selectRows(e, attr, tables, conn, predicates)
+	err = selectRows(e, attr, tables, conn, predicates, functors)
 	if err != nil {
 		return err
 	}
@@ -239,9 +239,6 @@ func whereExecutor(whereDecl *parser.Decl) ([]Predicate, error) {
 		p.RightValue.lexeme = whereDecl.Decl[i].Decl[1].Lexeme
 		p.RightValue.valid = true
 
-		//log.Critical("%s", whereDecl.Decl[i].Lexeme)
-		//log.Critical("Operator : [%s]", whereDecl.Decl[i].Decl[0].Lexeme)
-		//log.Critical("Const : [%s]", whereDecl.Decl[i].Decl[1].Lexeme)
 		predicates = append(predicates, p)
 	}
 
@@ -280,11 +277,16 @@ func getSelectedAttributes(e *Engine, attr *parser.Decl, tables []*Table) ([]Att
 		}
 	}
 
+	// handle COUNT
+	if attr.Token == parser.CountToken {
+		attributes = append(attributes, NewAttribute("COUNT", "int"))
+	}
+
 	return attributes, nil
 }
 
-func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.EngineConn, predicates []Predicate) error {
-	log.Info("selecting rows")
+func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.EngineConn, predicates []Predicate, functors []selectFunctor) error {
+	log.Debug("selecting rows")
 
 	// get relations and write lock them
 	var relations []*Relation
@@ -299,10 +301,12 @@ func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.Engi
 	for _, a := range attr {
 		header = append(header, a.name)
 	}
-	log.Critical("Writing row header %v", header)
-	err := conn.WriteRowHeader(header)
-	if err != nil {
-		return err
+
+	// Initialize functors here
+	for i := range functors {
+		if err := functors[i].Init(e, conn, header, header); err != nil {
+			return err
+		}
 	}
 
 	// I don't have a fucking clue now
@@ -312,21 +316,33 @@ func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.Engi
 		// If the row validate all predicates, write it
 		for _, predicate := range predicates {
 			if predicate.Evaluate(tuple, relations[0].table) == false {
-				log.Critical("meeeh")
 				ok = false
 				continue
 			}
 		}
 
 		if ok {
-			err = writeRow(conn, tuple)
-			if err != nil {
-				return err
+			//err = writeRow(conn, tuple)
+			for i := range functors {
+				err := functors[i].Feed(tuple)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
 
-	return conn.WriteRowEnd()
+	for i := range functors {
+		err := functors[i].Done()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func defaultSelectOperation() {
 }
 
 func writeRow(conn protocol.EngineConn, t *Tuple) error {

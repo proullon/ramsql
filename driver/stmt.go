@@ -76,7 +76,6 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 
 	// replace $* by arguments in query string
 	finalQuery = replaceArguments(s.query, args)
-	log.Debug("Exec : <%s>", finalQuery)
 
 	// Send query to server
 	err := s.conn.conn.WriteExec(finalQuery)
@@ -107,6 +106,7 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 
 	rowsChannel, err := s.conn.conn.ReadRows()
 	if err != nil {
+		log.Critical("Query: Error reading rows")
 		return nil, err
 	}
 

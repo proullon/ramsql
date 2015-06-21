@@ -283,10 +283,6 @@ func (l *lexer) MatchSemicolonToken() bool {
 	return l.MatchSingle(';', SemicolonToken)
 }
 
-//func (l *lexer) MatchDoubleQuoteToken() bool {
-//	return l.MatchSingle('"', DoubleQuoteToken)
-//}
-
 func (l *lexer) MatchPeriodToken() bool {
 	return l.MatchSingle('.', PeriodToken)
 }

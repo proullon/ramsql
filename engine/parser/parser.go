@@ -205,7 +205,7 @@ func (p *parser) parseInsert() (*Instruction, error) {
 	insertDecl.Add(intoDecl)
 
 	// should be table Name
-	tableDecl, err := p.consumeToken(StringToken)
+	tableDecl, err := p.parseQuotedToken()
 	if err != nil {
 		return nil, err
 	}
@@ -259,6 +259,7 @@ func (p *parser) parseInsert() (*Instruction, error) {
 		valuesDecl.Add(decl)
 
 		if p.is(BracketClosingToken) {
+			p.consumeToken(BracketClosingToken)
 			break
 		}
 
@@ -441,7 +442,6 @@ func (p *parser) parseType() (*Decl, error) {
 		}
 	}
 
-	debug("attribute %v DONE", typeDecl)
 	return typeDecl, nil
 }
 
@@ -456,17 +456,25 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	// After select token, should be either
 	// a StarToken
 	// a list of table names + (StarToken Or Attribute)
+	// a builtin func (COUNT, MAX, ...)
 	if err = p.next(); err != nil {
 		return nil, fmt.Errorf("SELECT token must be followed by attributes to select")
 	}
 
 	for {
-		attrDecl, err := p.parseAttribute()
-		if err != nil {
-			return nil, err
+		if p.is(CountToken) {
+			attrDecl, err := p.parseBuiltinFunc()
+			if err != nil {
+				return nil, err
+			}
+			selectDecl.Add(attrDecl)
+		} else {
+			attrDecl, err := p.parseAttribute()
+			if err != nil {
+				return nil, err
+			}
+			selectDecl.Add(attrDecl)
 		}
-
-		selectDecl.Add(attrDecl)
 
 		// If comma, loop again.
 		if p.is(CommaToken) {
@@ -507,7 +515,6 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	}
 
 	// JOIN OR ...?
-	debug("JOIN ? %v", tokens[p.index])
 	if p.is(JoinToken) {
 		joinDecl, err := p.parseJoin()
 		if err != nil {
@@ -517,7 +524,6 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	}
 
 	// Must be WHERE  here
-	debug("WHERE ? %v", tokens[p.index])
 	whereDecl, err := p.consumeToken(WhereToken)
 	if err != nil {
 		return nil, err
@@ -736,7 +742,6 @@ func (p *parser) parseJoin() (*Decl, error) {
 	}
 	// onDecl := NewDecl(t)
 	joinDecl.Add(onDecl)
-	debug("ON OK")
 
 	// ATTRIBUTE
 	leftAttributeDecl, err := p.parseAttribute()
@@ -765,19 +770,19 @@ func (p *parser) parseJoin() (*Decl, error) {
 func (p *parser) parseListElement() (*Decl, error) {
 	quoted := false
 
-	if p.is(SimpleQuoteToken) {
-		debug("value is quoted")
+	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
 		quoted = true
 		p.next()
 	}
 
-	valueDecl, err := p.consumeToken(StringToken, NumberToken)
+	var valueDecl *Decl
+	valueDecl, err := p.consumeToken(StringToken, NumberToken, NullToken)
 	if err != nil {
 		return nil, err
 	}
 
 	if quoted {
-		if _, err := p.consumeToken(SimpleQuoteToken); err != nil {
+		if _, err := p.consumeToken(SimpleQuoteToken, DoubleQuoteToken); err != nil {
 			return nil, err
 		}
 	}
