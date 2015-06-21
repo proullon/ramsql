@@ -2,12 +2,14 @@ package ramsql
 
 import (
 	"database/sql/driver"
+	"fmt"
 	"sync"
 
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
+// Conn implements sql/driver Conn interface
 type Conn struct {
 	// Mutex is locked when a Statement is created
 	// then released on Statement.Exec or Statement.Query
@@ -18,7 +20,7 @@ type Conn struct {
 	// socket net.Conn
 }
 
-func NewConn(conn protocol.DriverConn) driver.Conn {
+func newConn(conn protocol.DriverConn) driver.Conn {
 	return &Conn{conn: conn}
 }
 
@@ -48,5 +50,5 @@ func (c *Conn) Close() error {
 // Begin starts and returns a new transaction.
 func (c *Conn) Begin() (driver.Tx, error) {
 	log.Debug("Conn.Begin")
-	return &Tx{}, newError(NotImplemented)
+	return &Tx{}, fmt.Errorf("Not implemented.")
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 )
 
+// ParseInstruction calls lexer and parser, then return Decl tree for each instruction
 func ParseInstruction(instruction string) ([]Instruction, error) {
 
 	l := lexer{}

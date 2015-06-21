@@ -6,3 +6,4 @@ INSERT INTO account ('id', 'email') VALUES (3, 'titi@golang.org');
 
 SELECT * FROM account WHERE 1;
 SELECT * FROM account WHERE email = 'foo@bar.com';
+

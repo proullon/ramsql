@@ -13,10 +13,12 @@ import (
 )
 
 func init() {
-	sql.Register("ramsql", &RamSQLDriver{})
+	sql.Register("ramsql", &Driver{})
 }
 
-type RamSQLDriver struct {
+// Driver is the driver entrypoint,
+// implementing database/sql/driver interface
+type Driver struct {
 	// // pool is the pool of active connection to server
 	// pool []driver.Conn
 	endpoint protocol.DriverEndpoint
@@ -25,7 +27,7 @@ type RamSQLDriver struct {
 	server *engine.Engine
 }
 
-type ConnConf struct {
+type connConf struct {
 	Proto    string
 	Addr     string
 	Laddr    string
@@ -37,7 +39,7 @@ type ConnConf struct {
 
 // Open return an active connection so RamSQL server
 // If there is no connection in pool, start a new server.
-func (rs *RamSQLDriver) Open(uri string) (conn driver.Conn, err error) {
+func (rs *Driver) Open(uri string) (conn driver.Conn, err error) {
 	log.Debug("RamSQLDriver.Open")
 	connConf, err := parseConnectionURI(uri)
 	if err != nil {
@@ -60,20 +62,14 @@ func (rs *RamSQLDriver) Open(uri string) (conn driver.Conn, err error) {
 			return nil, err
 		}
 
-		return NewConn(driverConn), nil
+		return newConn(driverConn), nil
 	}
 
-	// conn, err = connectToRamSQLServer(connConf.Proto, rs.server.Endpoint().String())
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// rs.pool = append(rs.pool, conn)
 	driverConn, err := rs.endpoint.New(uri)
-	return NewConn(driverConn), nil
+	return newConn(driverConn), nil
 }
 
-func endpoints(conf *ConnConf) (protocol.DriverEndpoint, protocol.EngineEndpoint, error) {
+func endpoints(conf *connConf) (protocol.DriverEndpoint, protocol.EngineEndpoint, error) {
 	switch conf.Proto {
 	default:
 		driver, engine := protocol.NewChannelEndpoints()
@@ -100,8 +96,8 @@ func endpoints(conf *ConnConf) (protocol.DriverEndpoint, protocol.EngineEndpoint
 // Currently implemented options:
 //   laddr   - local address/port (eg. 1.2.3.4:0)
 //   timeout - connect timeout in format accepted by time.ParseDuration
-func parseConnectionURI(uri string) (*ConnConf, error) {
-	c := &ConnConf{}
+func parseConnectionURI(uri string) (*connConf, error) {
+	c := &connConf{}
 
 	if uri == "" {
 		c.Proto = "tcp"

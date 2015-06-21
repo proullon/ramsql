@@ -5,16 +5,19 @@ import (
 	"github.com/proullon/ramsql/engine/log"
 )
 
+// TruePredicate is a predicate wich return always true
 var TruePredicate = Predicate{
 	True: true,
 }
 
+// Value is a value given to predicates
 type Value struct {
 	v      interface{}
 	valid  bool
 	lexeme string
 }
 
+// Predicate evaluate if a condition is valid with 2 values and an operator on this 2 values
 type Predicate struct {
 	LeftValue  Value
 	Operator   Operator
@@ -43,6 +46,7 @@ func (p Predicate) String() string {
 	return fmt.Sprintf("[%s] vs [%s]", left, right)
 }
 
+// Evaluate calls operators and use tuple as operand
 func (p *Predicate) Evaluate(t *Tuple, table *Table) bool {
 	log.Debug("Evaluating predicate %s", p)
 

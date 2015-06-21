@@ -1,14 +1,15 @@
 package ramsql
 
+// Result is the type returned by sql/driver after an Exec statement.
 type Result struct {
 	err            error
-	lastInsertedId int64
+	lastInsertedID int64
 	rowsAffected   int64
 }
 
-func newResult(lastInsertedId int64, rowsAffected int64) *Result {
+func newResult(lastInsertedID int64, rowsAffected int64) *Result {
 	r := &Result{
-		lastInsertedId: lastInsertedId,
+		lastInsertedID: lastInsertedID,
 		rowsAffected:   rowsAffected,
 	}
 
@@ -22,7 +23,7 @@ func (r *Result) LastInsertId() (int64, error) {
 	if r.err != nil {
 		return 0, r.err
 	}
-	return r.lastInsertedId, nil
+	return r.lastInsertedID, nil
 }
 
 // RowsAffected returns the number of rows affected by the

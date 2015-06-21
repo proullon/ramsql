@@ -1,4 +1,4 @@
-// Parser package implements a parser for SQL statements
+// Package parser implements a parser for SQL statements
 //
 // Inspired by go/parser
 package parser
@@ -17,12 +17,14 @@ type parser struct {
 	tokens   []Token
 }
 
+// Decl structure is the node to statement declaration tree
 type Decl struct {
 	Token  int
 	Lexeme string
 	Decl   []*Decl
 }
 
+// Stringy prints the declaration tree in console
 func (d Decl) Stringy(depth int) {
 	indent := ""
 	for i := 0; i < depth; i++ {
@@ -35,16 +37,19 @@ func (d Decl) Stringy(depth int) {
 	}
 }
 
+// Instruction define a valid SQL statement
 type Instruction struct {
 	Decls []*Decl
 }
 
+// PrettyPrint prints instruction's declarations on console with indentation
 func (i Instruction) PrettyPrint() {
 	for _, d := range i.Decls {
 		d.Stringy(0)
 	}
 }
 
+// NewDecl initialize a Decl struct from a given token
 func NewDecl(t Token) *Decl {
 	return &Decl{
 		Token:  t.Token,
@@ -52,6 +57,7 @@ func NewDecl(t Token) *Decl {
 	}
 }
 
+// Add creates a new leaf with given Decl
 func (d *Decl) Add(subDecl *Decl) {
 	d.Decl = append(d.Decl, subDecl)
 }
@@ -614,23 +620,19 @@ func (p *parser) parseAttribute() (*Decl, error) {
 		attributeDecl := NewDecl(t)
 		attributeDecl.Add(decl)
 		return attributeDecl, p.next()
-	} else {
-		// Then the first string token was the naked attribute name
-		return decl, nil
 	}
+
+	// Then the first string token was the naked attribute name
+	return decl, nil
 }
 
 // parseQuotedToken parse a token of the form
 // table
 // "table"
 func (p *parser) parseQuotedToken() (*Decl, error) {
-	debug("parseQuotedToken")
-	defer debug("~parseQuotedToken")
 	quoted := false
 
-	debug("parseQuotedToken: Checkout quote")
 	if p.is(DoubleQuoteToken) {
-		debug("parseQuotedToken: Got a quote !")
 		quoted = true
 		if err := p.next(); err != nil {
 			return nil, err
@@ -638,18 +640,15 @@ func (p *parser) parseQuotedToken() (*Decl, error) {
 	}
 
 	// shoud be a StringToken here
-	debug("parseQuotedToken: Checkout String")
 	if !p.is(StringToken) {
 		return nil, p.syntaxError()
 	}
 	decl := NewDecl(p.cur())
 
 	if quoted {
-		debug("parseQuotedToken: Checking ending quote")
 
 		// Check there is a closing quote
 		if _, err := p.mustHaveNext(DoubleQuoteToken); err != nil {
-			debug("parseQuotedToken: Missing closing quote")
 			return nil, err
 		}
 	}
@@ -659,8 +658,6 @@ func (p *parser) parseQuotedToken() (*Decl, error) {
 }
 
 func (p *parser) parseCondition() (*Decl, error) {
-	debug("\t IN parseCondition")
-	defer debug("\t OUT parseCondition")
 
 	// We may have the WHERE 1 condition
 	if t := p.cur(); t.Token == NumberToken && t.Lexeme == "1" {
@@ -794,8 +791,7 @@ func (p *parser) next() error {
 	if !p.hasNext() {
 		return fmt.Errorf("Unexpected end")
 	}
-	p.index += 1
-	// debug("parser.next: %v -> %v", p.tokens[p.index-1], p.tokens[p.index])
+	p.index++
 	return nil
 }
 

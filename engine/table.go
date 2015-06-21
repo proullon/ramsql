@@ -9,11 +9,14 @@ import (
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
+// Table is defined by a name and attributes
+// A table with data is called a Relation
 type Table struct {
 	name       string
 	attributes []Attribute
 }
 
+// NewTable initializes a new Table
 func NewTable(name string) *Table {
 	t := &Table{
 		name: name,
@@ -29,10 +32,7 @@ func (t *Table) AddAttribute(attr Attribute) error {
 	return nil
 }
 
-func (t *Table) Insert(values []interface{}) error {
-	return nil
-}
-
+// String returns a printable string with table name and attributes
 func (t Table) String() string {
 	stringy := t.name + " ("
 	for i, a := range t.attributes {
@@ -138,7 +138,7 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 }
 
 func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) error {
-	var assigned bool = false
+	var assigned = false
 
 	// Create tuple
 	t := NewTuple()
@@ -239,9 +239,9 @@ func whereExecutor(whereDecl *parser.Decl) ([]Predicate, error) {
 		p.RightValue.lexeme = whereDecl.Decl[i].Decl[1].Lexeme
 		p.RightValue.valid = true
 
-		log.Critical("%s", whereDecl.Decl[i].Lexeme)
-		log.Critical("Operator : [%s]", whereDecl.Decl[i].Decl[0].Lexeme)
-		log.Critical("Const : [%s]", whereDecl.Decl[i].Decl[1].Lexeme)
+		//log.Critical("%s", whereDecl.Decl[i].Lexeme)
+		//log.Critical("Operator : [%s]", whereDecl.Decl[i].Decl[0].Lexeme)
+		//log.Critical("Const : [%s]", whereDecl.Decl[i].Decl[1].Lexeme)
 		predicates = append(predicates, p)
 	}
 
@@ -334,6 +334,5 @@ func writeRow(conn protocol.EngineConn, t *Tuple) error {
 	for _, value := range t.Values {
 		row = append(row, fmt.Sprintf("%s", value))
 	}
-	log.Critical("Writing row  %v", row)
 	return conn.WriteRow(row)
 }

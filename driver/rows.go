@@ -26,13 +26,11 @@ func newRows(channel chan []string) *Rows {
 // slice.  If a particular column name isn't known, an empty
 // string should be returned for that entry.
 func (r *Rows) Columns() []string {
-	log.Debug("Rows.Columns")
 	return r.columns
 }
 
 // Close closes the rows iterator.
 func (r *Rows) Close() error {
-	log.Debug("Rows.Close")
 	return nil
 }
 
@@ -46,18 +44,16 @@ func (r *Rows) Close() error {
 //
 // Next should return io.EOF when there are no more rows.
 func (r *Rows) Next(dest []driver.Value) (err error) {
-	log.Debug("Rows.Next")
 
 	value, ok := <-r.rowsChannel
 	if !ok {
-		log.Debug("a pu")
 		return io.EOF
 	}
-	log.Debug("Row %v", value)
 
 	for i, v := range value {
-		log.Debug("copying value <%v> into dest %d", v, i)
-
+		if len(dest) <= i {
+			return fmt.Errorf("slice too short")
+		}
 		dest[i] = []byte(v)
 	}
 
@@ -65,7 +61,6 @@ func (r *Rows) Next(dest []driver.Value) (err error) {
 }
 
 func (r *Rows) setColumns(columns []string) {
-	log.Debug("Rows.setColumns: %v", columns)
 	r.columns = columns
 }
 
@@ -73,7 +68,6 @@ func assignValue(s string, v driver.Value) error {
 	dest, ok := v.(*string)
 	if !ok {
 		err := errors.New("cannot assign value")
-		log.Warning("%s", err)
 		return err
 	}
 

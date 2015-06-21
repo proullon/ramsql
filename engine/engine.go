@@ -10,6 +10,7 @@ import (
 
 type executor func(*Engine, *parser.Decl, protocol.EngineConn) error
 
+// Engine is the root struct of RamSQL server
 type Engine struct {
 	endpoint     protocol.EngineEndpoint
 	relations    map[string]*Relation
@@ -20,6 +21,7 @@ type Engine struct {
 	stop chan bool
 }
 
+// New initialize a new RamSQL server
 func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 
 	e = &Engine{
@@ -54,6 +56,7 @@ func (e *Engine) start() (err error) {
 	return nil
 }
 
+// Stop shutdown the RamSQL server
 func (e *Engine) Stop() {
 	e.stop <- true
 }

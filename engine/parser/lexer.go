@@ -7,14 +7,18 @@ import (
 	"github.com/proullon/ramsql/engine/log"
 )
 
+// SQL Tokens
 const (
 	// Ponctuation token
+
 	SpaceToken = iota
 	SemicolonToken
 	CommaToken
 	BracketOpeningToken
 	BracketClosingToken
+
 	// QuoteToken
+
 	DoubleQuoteToken
 	SimpleQuoteToken
 	StarToken
@@ -22,6 +26,7 @@ const (
 	PeriodToken
 
 	// First order Token
+
 	CreateToken
 	SelectToken
 	InsertToken
@@ -30,6 +35,7 @@ const (
 	ExplainToken
 
 	// Second order Token
+
 	FromToken
 	WhereToken
 	TableToken
@@ -45,6 +51,7 @@ const (
 	CountToken
 
 	// Type Token
+
 	TextToken
 	IntToken
 	PrimaryToken
@@ -53,6 +60,7 @@ const (
 	NumberToken
 )
 
+// Token struct holds token id and it's lexeme
 type Token struct {
 	Token  int
 	Lexeme string
@@ -65,6 +73,7 @@ type lexer struct {
 	pos            int
 }
 
+// Matcher tries to match given string to an SQL token
 type Matcher func() bool
 
 func (l *lexer) lex(instruction []byte) ([]Token, error) {
@@ -145,7 +154,7 @@ func (l *lexer) MatchSpaceToken() bool {
 			Lexeme: " ",
 		}
 		l.tokens = append(l.tokens, t)
-		l.pos += 1
+		l.pos++
 		return true
 	}
 
@@ -311,7 +320,7 @@ func (l *lexer) MatchSimpleQuoteToken() bool {
 			Lexeme: "'",
 		}
 		l.tokens = append(l.tokens, t)
-		l.pos += 1
+		l.pos++
 
 		if l.MatchSingleQuotedStringToken() {
 			t := Token{
@@ -319,7 +328,7 @@ func (l *lexer) MatchSimpleQuoteToken() bool {
 				Lexeme: "'",
 			}
 			l.tokens = append(l.tokens, t)
-			l.pos += 1
+			l.pos++
 			return true
 		}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/proullon/ramsql/engine/log"
 )
 
+// Stmt implements the Statement interface of sql/driver
 type Stmt struct {
 	conn     *Conn
 	query    string
@@ -51,8 +52,7 @@ func prepareStatement(c *Conn, query string) *Stmt {
 // As of Go 1.1, a Stmt will not be closed if it's in use
 // by any queries.
 func (s *Stmt) Close() error {
-	log.Debug("Stmt.Close")
-	return newError(NotImplemented)
+	return fmt.Errorf("Not implemented.")
 }
 
 // NumInput returns the number of placeholder parameters.
@@ -76,7 +76,7 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 
 	// replace $* by arguments in query string
 	finalQuery = replaceArguments(s.query, args)
-	log.Critical("Exec : <%s>", finalQuery)
+	log.Debug("Exec : <%s>", finalQuery)
 
 	// Send query to server
 	err := s.conn.conn.WriteExec(finalQuery)
@@ -85,13 +85,13 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	}
 
 	// Get answer from server
-	lastInsertedId, rowsAffected, err := s.conn.conn.ReadResult()
+	lastInsertedID, rowsAffected, err := s.conn.conn.ReadResult()
 	if err != nil {
 		return nil, err
 	}
 
 	// Create a driver.Result
-	return newResult(lastInsertedId, rowsAffected), nil
+	return newResult(lastInsertedID, rowsAffected), nil
 }
 
 // Query executes a query that may return rows, such as a

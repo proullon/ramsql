@@ -43,6 +43,7 @@ func parseAttribute(decl *parser.Decl) (Attribute, error) {
 	return attr, nil
 }
 
+// NewAttribute initialize a new Attribute struct
 func NewAttribute(name string, typeName string) Attribute {
 	a := Attribute{
 		name:     name,

@@ -13,6 +13,7 @@ type Relation struct {
 	rows  []*Tuple
 }
 
+// NewRelation initializes a new Relation struct
 func NewRelation(t *Table) *Relation {
 	r := &Relation{
 		table: t,
@@ -21,6 +22,7 @@ func NewRelation(t *Table) *Relation {
 	return r
 }
 
+// Insert a tuple in relation
 func (r *Relation) Insert(t *Tuple) error {
 	// Maybe do somthing like lock read/write here
 	// Maybe index

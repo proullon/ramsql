@@ -6,9 +6,13 @@ import (
 	"time"
 
 	"github.com/go-gorp/gorp"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 func TestGorp(t *testing.T) {
+	log.UseTestLogger(t)
+
 	// initialize the DbMap
 	dbmap := initDb(t)
 	defer dbmap.Db.Close()
@@ -41,7 +45,7 @@ func TestGorp(t *testing.T) {
 	// Postgres users should use $1 instead of ? placeholders
 	// See 'Known Issues' below
 	//
-	err = dbmap.SelectOne(&p2, "select * from posts where post_id=?", p2.Id)
+	err = dbmap.SelectOne(&p2, "select * from posts where post_id=?", p2.ID)
 	checkErr(t, err, "SelectOne failed")
 	t.Log("p2 row:", p2)
 
@@ -60,7 +64,7 @@ func TestGorp(t *testing.T) {
 	t.Log("Rows deleted:", count)
 
 	// delete row manually via Exec
-	_, err = dbmap.Exec("delete from posts where post_id=?", p2.Id)
+	_, err = dbmap.Exec("delete from posts where post_id=?", p2.ID)
 	checkErr(t, err, "Exec failed")
 
 	// confirm count is zero
@@ -73,7 +77,7 @@ func TestGorp(t *testing.T) {
 
 type Post struct {
 	// db tag lets you specify the column name if it differs from the struct field
-	Id      int64 `db:"post_id"`
+	ID      int64 `db:"post_id"`
 	Created int64
 	Title   string
 	Body    string
@@ -100,7 +104,7 @@ func initDb(t *testing.T) *gorp.DbMap {
 
 	// add a table, setting the table name to 'posts' and
 	// specifying that the Id property is an auto incrementing PK
-	dbmap.AddTableWithName(Post{}, "posts").SetKeys(true, "Id")
+	dbmap.AddTableWithName(Post{}, "posts").SetKeys(true, "ID")
 
 	// create the table. in a production system you'd generally
 	// use a migration tool, or create the tables via scripts

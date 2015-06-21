@@ -13,7 +13,7 @@ func (conn *TestEngineConn) ReadStatement() (string, error) {
 	return "", nil
 }
 
-func (conn *TestEngineConn) WriteResult(lastInsertedId int, rowsAffected int) error {
+func (conn *TestEngineConn) WriteResult(lastInsertedID int, rowsAffected int) error {
 	return nil
 }
 

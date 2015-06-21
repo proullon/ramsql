@@ -20,18 +20,21 @@ type message struct {
 	Value []string
 }
 
+// ChannelDriverConn implements DriverConn for channel backend
 type ChannelDriverConn struct {
 	conn chan message
 }
 
+// ChannelDriverEndpoint implements DriverEndpoint for channel backend
 type ChannelDriverEndpoint struct {
 	newConnChannel chan<- chan message
 }
 
+// Close method closes the connection to RamSQL server
 func (cdc *ChannelDriverConn) Close() {
-
 }
 
+// New method creates a new DriverConn from DriverEndpoint
 func (cde *ChannelDriverEndpoint) New(uri string) (DriverConn, error) {
 
 	channel := make(chan message)
@@ -41,6 +44,7 @@ func (cde *ChannelDriverEndpoint) New(uri string) (DriverConn, error) {
 	return cdc, nil
 }
 
+// NewChannelDriverEndpoint initialize a DriverEndpoint with channel backend
 func NewChannelDriverEndpoint(channel chan<- chan message) DriverEndpoint {
 	cde := &ChannelDriverEndpoint{
 		newConnChannel: channel,
@@ -49,10 +53,12 @@ func NewChannelDriverEndpoint(channel chan<- chan message) DriverEndpoint {
 	return cde
 }
 
+// ChannelEngineEndpoint implements EngineEndpoint for channel backend
 type ChannelEngineEndpoint struct {
 	newConnChannel <-chan chan message
 }
 
+// NewChannelEngineEndpoint initialize a EngineEndpoint with channel backend
 func NewChannelEngineEndpoint(channel <-chan chan message) EngineEndpoint {
 	cee := &ChannelEngineEndpoint{
 		newConnChannel: channel,
@@ -61,6 +67,7 @@ func NewChannelEngineEndpoint(channel <-chan chan message) EngineEndpoint {
 	return cee
 }
 
+// Accept read from new channels channel and return an EngineConn
 func (cee *ChannelEngineEndpoint) Accept() (EngineConn, error) {
 	newConn, ok := <-cee.newConnChannel
 	if !ok {
@@ -70,13 +77,16 @@ func (cee *ChannelEngineEndpoint) Accept() (EngineConn, error) {
 	return NewChannelEngineConn(newConn), nil
 }
 
+// Close close the connection with client
 func (cee *ChannelEngineEndpoint) Close() {
 }
 
+// ChannelEngineConn implements EngineConn for channel backend
 type ChannelEngineConn struct {
 	conn chan message
 }
 
+// NewChannelEngineConn initializes a new EngineConn with channel backend
 func NewChannelEngineConn(newConn chan message) EngineConn {
 	cec := &ChannelEngineConn{
 		conn: newConn,
@@ -85,6 +95,7 @@ func NewChannelEngineConn(newConn chan message) EngineConn {
 	return cec
 }
 
+// ReadStatement get SQL statements from client
 func (cec *ChannelEngineConn) ReadStatement() (string, error) {
 	message, ok := <-cec.conn
 	if !ok {
@@ -94,16 +105,18 @@ func (cec *ChannelEngineConn) ReadStatement() (string, error) {
 	return message.Value[0], nil
 }
 
-func (cec *ChannelEngineConn) WriteResult(lastInsertedId int, rowsAffected int) error {
+// WriteResult is used to answer to statements other than SELECT
+func (cec *ChannelEngineConn) WriteResult(lastInsertedID int, rowsAffected int) error {
 	m := message{
 		Type:  resultMessage,
-		Value: []string{fmt.Sprintf("%d %d", lastInsertedId, rowsAffected)},
+		Value: []string{fmt.Sprintf("%d %d", lastInsertedID, rowsAffected)},
 	}
 
 	cec.conn <- m
 	return nil
 }
 
+// WriteError when error occurs
 func (cec *ChannelEngineConn) WriteError(err error) error {
 	m := message{
 		Type:  errMessage,
@@ -115,6 +128,7 @@ func (cec *ChannelEngineConn) WriteError(err error) error {
 
 }
 
+// WriteRowHeader indicates that rows are coming next
 func (cec *ChannelEngineConn) WriteRowHeader(header []string) error {
 	m := message{
 		Type:  rowHeaderMessage,
@@ -126,6 +140,7 @@ func (cec *ChannelEngineConn) WriteRowHeader(header []string) error {
 
 }
 
+// WriteRow must be called after WriteRowHeader and before WriteRowEnd
 func (cec *ChannelEngineConn) WriteRow(row []string) error {
 	m := message{
 		Type:  rowValueMessage,
@@ -136,6 +151,7 @@ func (cec *ChannelEngineConn) WriteRow(row []string) error {
 	return nil
 }
 
+// WriteRowEnd indicates that query is done
 func (cec *ChannelEngineConn) WriteRowEnd() error {
 	m := message{
 		Type: rowEndMessage,
@@ -145,6 +161,7 @@ func (cec *ChannelEngineConn) WriteRowEnd() error {
 	return nil
 }
 
+// WriteQuery allows client to query the RamSQL server
 func (cdc *ChannelDriverConn) WriteQuery(query string) error {
 	m := message{
 		Type:  queryMessage,
@@ -154,6 +171,7 @@ func (cdc *ChannelDriverConn) WriteQuery(query string) error {
 	return nil
 }
 
+// WriteExec allows client to manipulate the RamSQL server
 func (cdc *ChannelDriverConn) WriteExec(statement string) error {
 	m := message{
 		Type:  execMessage,
@@ -163,7 +181,8 @@ func (cdc *ChannelDriverConn) WriteExec(statement string) error {
 	return nil
 }
 
-func (cdc *ChannelDriverConn) ReadResult() (lastInsertedId int64, rowsAffected int64, err error) {
+// ReadResult when Exec has been used
+func (cdc *ChannelDriverConn) ReadResult() (lastInsertedID int64, rowsAffected int64, err error) {
 
 	m := <-cdc.conn
 	if m.Type != resultMessage {
@@ -173,10 +192,11 @@ func (cdc *ChannelDriverConn) ReadResult() (lastInsertedId int64, rowsAffected i
 		return 0, 0, errors.New("not a result")
 	}
 
-	_, err = fmt.Sscanf(m.Value[0], "%d %d", &lastInsertedId, &rowsAffected)
-	return lastInsertedId, rowsAffected, err
+	_, err = fmt.Sscanf(m.Value[0], "%d %d", &lastInsertedID, &rowsAffected)
+	return lastInsertedID, rowsAffected, err
 }
 
+// ReadRows when Query has been used
 func (cdc *ChannelDriverConn) ReadRows() (chan []string, error) {
 	channel := make(chan []string)
 

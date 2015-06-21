@@ -5,7 +5,7 @@ type Tuple struct {
 	Values []interface{}
 }
 
-// Want to check that value are for the right Attribute and match domain
+// NewTuple should check that value are for the right Attribute and match domain
 func NewTuple(values ...interface{}) *Tuple {
 	t := &Tuple{}
 
@@ -15,6 +15,7 @@ func NewTuple(values ...interface{}) *Tuple {
 	return t
 }
 
+// Append add a value to the tuple
 func (t *Tuple) Append(value interface{}) {
 	t.Values = append(t.Values, value)
 }
