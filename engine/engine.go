@@ -76,7 +76,6 @@ func (e *Engine) listen() {
 		for {
 			conn, err := e.endpoint.Accept()
 
-			log.Info("Engine.listen: accept")
 			if err != nil {
 				log.Warning("Engine.listen: Cannot accept new connection : %s", err)
 				break
@@ -89,7 +88,6 @@ func (e *Engine) listen() {
 	for {
 		select {
 		case conn := <-newConnectionChannel:
-			log.Info("Engine.listen: new connection")
 			go e.handleConnection(conn)
 			break
 

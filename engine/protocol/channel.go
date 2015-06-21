@@ -106,7 +106,7 @@ func (cec *ChannelEngineConn) ReadStatement() (string, error) {
 }
 
 // WriteResult is used to answer to statements other than SELECT
-func (cec *ChannelEngineConn) WriteResult(lastInsertedID int, rowsAffected int) error {
+func (cec *ChannelEngineConn) WriteResult(lastInsertedID int64, rowsAffected int64) error {
 	m := message{
 		Type:  resultMessage,
 		Value: []string{fmt.Sprintf("%d %d", lastInsertedID, rowsAffected)},

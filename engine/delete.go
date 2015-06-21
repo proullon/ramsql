@@ -32,7 +32,7 @@ func deleteExecutor(e *Engine, deleteDecl *parser.Decl, conn protocol.EngineConn
 }
 
 func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates []Predicate) error {
-	var rowsDeleted int
+	var rowsDeleted int64
 
 	// get relations and write lock them
 	var relations []*Relation
@@ -48,7 +48,6 @@ func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates
 		// If the row validate all predicates, write it
 		for _, predicate := range predicates {
 			if predicate.Evaluate(tuple, relations[0].table) == false {
-				log.Critical("meeeh")
 				ok = false
 				continue
 			}
@@ -63,11 +62,11 @@ func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates
 }
 
 func truncateTable(e *Engine, table *Table, conn protocol.EngineConn) error {
-	var rowsDeleted int
+	var rowsDeleted int64
 
 	// get relations and write lock them
 	r := e.relation(table.name)
-	rowsDeleted = len(r.rows)
+	rowsDeleted = int64(len(r.rows))
 	r.rows = make([]*Tuple, 0)
 
 	return conn.WriteResult(0, rowsDeleted)

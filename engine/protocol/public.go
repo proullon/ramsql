@@ -14,7 +14,7 @@ type DriverConn interface {
 // either with channels or network sockets.
 type EngineConn interface {
 	ReadStatement() (string, error)
-	WriteResult(lastInsertedID int, rowsAffected int) error
+	WriteResult(lastInsertedID int64, rowsAffected int64) error
 	WriteError(err error) error
 	WriteRowHeader(header []string) error
 	WriteRow(row []string) error

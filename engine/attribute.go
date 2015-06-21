@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 )
 
