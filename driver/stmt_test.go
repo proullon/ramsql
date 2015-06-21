@@ -79,6 +79,16 @@ func TestReplaceEnd(t *testing.T) {
 	testReplaceArguments(t, query, args, wantedQuery)
 }
 
+func TestReplaceEndODBC(t *testing.T) {
+	query := `SELECT * FROM account WHERE email = ?`
+	wantedQuery := `SELECT * FROM account WHERE email = foo@bar.com`
+	args := []driver.Value{
+		driver.Value("foo@bar.com"),
+	}
+
+	testReplaceArguments(t, query, args, wantedQuery)
+}
+
 func testReplaceArguments(t *testing.T, query string, args []driver.Value, wantedQuery string) {
 	finalQuery := replaceArguments(query, args)
 	if finalQuery != wantedQuery {

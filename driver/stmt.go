@@ -74,11 +74,9 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	defer s.conn.mutex.Unlock()
 	var finalQuery string
 
-	finalQuery = s.query
 	// replace $* by arguments in query string
-	for i, arg := range args {
-		log.Debug("Stmt.Exec: Arg %d : %v", i, arg)
-	}
+	finalQuery = replaceArguments(s.query, args)
+	log.Critical("Exec : <%s>", finalQuery)
 
 	// Send query to server
 	err := s.conn.conn.WriteExec(finalQuery)
@@ -119,6 +117,10 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 // replace $* by arguments in query string
 func replaceArguments(query string, args []driver.Value) string {
 
+	if strings.Count(query, "?") == len(args) {
+		return replaceArgumentsODBC(query, args)
+	}
+
 	for argumentIndex := 1; ; argumentIndex++ {
 		queryParts := strings.Split(query, fmt.Sprintf("$%d", argumentIndex))
 		if len(queryParts) == 1 {
@@ -134,4 +136,21 @@ func replaceArguments(query string, args []driver.Value) string {
 		}
 	}
 
+}
+
+func replaceArgumentsODBC(query string, args []driver.Value) string {
+	var finalQuery string
+
+	queryParts := strings.Split(query, "?")
+	finalQuery = queryParts[0]
+	for i := range args {
+		arg := fmt.Sprintf("%v", args[i])
+		if strings.Count(arg, " ") > 0 {
+			arg = "'" + arg + "'"
+		}
+		finalQuery += arg
+		finalQuery += queryParts[i+1]
+	}
+
+	return finalQuery
 }
