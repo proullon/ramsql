@@ -5,8 +5,6 @@ package parser
 
 import (
 	"fmt"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 // The parser structure holds the parser's internal state.
@@ -65,8 +63,6 @@ func (d *Decl) Add(subDecl *Decl) {
 func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 	tokens = stripSpaces(tokens)
 	p.tokens = tokens
-	log.Critical("parser.parse : %v", tokens)
-	defer debug("~parse")
 
 	p.tokenLen = len(tokens)
 	p.index = 0

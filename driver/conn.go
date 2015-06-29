@@ -26,7 +26,6 @@ func newConn(conn protocol.DriverConn) driver.Conn {
 
 // Prepare returns a prepared statement, bound to this connection.
 func (c *Conn) Prepare(query string) (driver.Stmt, error) {
-	log.Debug("Conn.Prepare: Got <%s>\n", query)
 
 	stmt := prepareStatement(c, query)
 

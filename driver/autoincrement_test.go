@@ -7,7 +7,7 @@ import (
 	"github.com/proullon/ramsql/engine/log"
 )
 
-func TestUpdateSimple(t *testing.T) {
+func TestAutoIncrementSimple(t *testing.T) {
 	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "")
