@@ -24,7 +24,7 @@ When starting a new project, enjoy a clean database at each reboot of your appli
 
 ### Production
 
-Not advised
+Not recommended.
 
 
 ## Roadmap
@@ -34,6 +34,16 @@ Not advised
 
 - UPDATE
 - PRIMARY KEY
+- ORDER BY
+- JOIN
+- Select on multiple tables
+- Attribute domains
+- Foreign keys
+- Transactions
+- Constraints
+- Random disconections and lags on demand
+- Random slow queries
+- ...
 
 ## Done
 

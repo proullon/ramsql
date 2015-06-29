@@ -17,7 +17,7 @@ type selectFunctor interface {
 // getSelectFunctors instanciate new functors for COUNT, MAX, MIN, AVG, ... and default select functor that return rows to client
 // If a functor is specified, no attribute can be selected ?
 func getSelectFunctors(attr *parser.Decl) ([]selectFunctor, error) {
-	log.Critical("getSelectFunctors")
+	log.Debug("getSelectFunctors")
 	var functors []selectFunctor
 
 	for i := range attr.Decl {
@@ -25,7 +25,6 @@ func getSelectFunctors(attr *parser.Decl) ([]selectFunctor, error) {
 		if attr.Decl[i].Token == parser.FromToken {
 			break
 		}
-		log.Critical("huhuhu %v\n", attr.Decl[i])
 
 		if attr.Decl[i].Token == parser.CountToken {
 			f := &countSelectFunction{}
@@ -63,7 +62,7 @@ func (f *defaultSelectFunction) Feed(t *Tuple) error {
 	for _, value := range t.Values {
 		row = append(row, fmt.Sprintf("%s", value))
 	}
-	log.Critical("Writing row  %v", row)
+	log.Debug("Writing row  %v", row)
 	return f.conn.WriteRow(row)
 }
 
@@ -80,7 +79,7 @@ type countSelectFunction struct {
 }
 
 func (f *countSelectFunction) Init(e *Engine, conn protocol.EngineConn, attr []string, alias []string) error {
-	log.Critical("countSelectFunction.Init\nReceived attr=%v\nalias=%v\n", attr, alias)
+	log.Debug("countSelectFunction.Init\nReceived attr=%v\nalias=%v\n", attr, alias)
 	f.e = e
 	f.conn = conn
 	f.attributes = attr
@@ -95,14 +94,13 @@ func (f *countSelectFunction) Feed(t *Tuple) error {
 }
 
 func (f *countSelectFunction) Done() error {
-	log.Critical("countSelectFunction.Done")
-	log.Critical("-> Writing row header : %v\n", f.alias)
+	log.Debug("-> Writing row header : %v\n", f.alias)
 	err := f.conn.WriteRowHeader(f.alias)
 	if err != nil {
 		return err
 	}
 
-	log.Critical("countSelectFunction.Done: Writing %d", f.Count)
+	log.Debug("countSelectFunction.Done: Writing %d", f.Count)
 	err = f.conn.WriteRow([]string{fmt.Sprintf("%d", f.Count)})
 	if err != nil {
 		return err

@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/proullon/ramsql/engine"
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
 func init() {
 	sql.Register("ramsql", &Driver{})
+	log.SetLevel(0)
 }
 
 // Driver is the driver entrypoint,
