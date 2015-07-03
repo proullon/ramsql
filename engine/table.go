@@ -148,7 +148,8 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) (int6
 
 		for x, decl := range attributes {
 
-			if attr.name == decl.Lexeme {
+			if attr.name == decl.Lexeme && attr.autoIncrement == false {
+				log.Critical("Assigning value %v to %v", values[x].Lexeme, attr.name)
 				t.Append(values[x].Lexeme)
 				assigned = true
 			}
@@ -319,7 +320,7 @@ func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.Engi
 		}
 	}
 
-	// I don't have a fucking clue now
+	// Perform actual check of predicates on every row
 	var ok bool
 	for _, tuple := range relations[0].rows {
 		ok = true
