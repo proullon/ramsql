@@ -132,6 +132,16 @@ func TestDelete(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestUpdate(t *testing.T) {
+	query := `UPDATE account SET email = 'roger@gmail.com' WHERE id = 2`
+	parse(query, 1, t)
+}
+
+func TestUpdateMultipleAttributes(t *testing.T) {
+	query := `update "posts" set "Created"=1435760856063203203, "Title"='Go 1.2 is better than ever', "Body"='Lorem ipsum lorem ipsum' where "post_id"=2`
+	parse(query, 1, t)
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)
 

@@ -108,6 +108,11 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 			p.i = append(p.i, *i)
 			break
 		case UpdateToken:
+			i, err := p.parseUpdate()
+			if err != nil {
+				return nil, err
+			}
+			p.i = append(p.i, *i)
 			break
 		case DeleteToken:
 			i, err := p.parseDelete()
@@ -124,6 +129,80 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 	}
 
 	return p.i, nil
+}
+
+func (p *parser) parseUpdate() (*Instruction, error) {
+	i := &Instruction{}
+
+	// Set DELETE decl
+	updateDecl, err := p.consumeToken(UpdateToken)
+	if err != nil {
+		return nil, err
+	}
+	i.Decls = append(i.Decls, updateDecl)
+
+	// should be table name
+	nameDecl, err := p.parseQuotedToken()
+	if err != nil {
+		return nil, err
+	}
+	updateDecl.Add(nameDecl)
+
+	// should be SET
+	setDecl, err := p.consumeToken(SetToken)
+	if err != nil {
+		return nil, err
+	}
+	updateDecl.Add(setDecl)
+
+	// should be a list of equality
+	gotClause := false
+	for p.tokens[p.index].Token != WhereToken {
+
+		if !p.hasNext() && gotClause {
+			break
+		}
+
+		attributeDecl, err := p.parseCondition()
+		if err != nil {
+			return nil, err
+		}
+		setDecl.Add(attributeDecl)
+		//p.mustHaveNext(WhereToken, CommaToken)
+		//p.consumeToken(CommaToken, SimpleQuoteToken)
+		p.consumeToken(CommaToken)
+
+		// Got at least one clause
+		gotClause = true
+	}
+
+	// WHERE
+	whereDecl, err := p.consumeToken(WhereToken)
+	if err != nil {
+		return nil, err
+	}
+	updateDecl.Add(whereDecl)
+
+	// Now should be a list of: Attribute and Operator and Value
+	gotClause = false
+	for {
+		if !p.hasNext() && gotClause {
+			break
+		}
+
+		attributeDecl, err := p.parseCondition()
+		if err != nil {
+			return nil, err
+		}
+		whereDecl.Add(attributeDecl)
+
+		// Got at least one clause
+		gotClause = true
+	}
+
+	debug("Yo on passe pas par la ?")
+	i.Decls[0].Stringy(0)
+	return i, nil
 }
 
 func (p *parser) parseDelete() (*Instruction, error) {
@@ -146,7 +225,6 @@ func (p *parser) parseDelete() (*Instruction, error) {
 	// Should be a table name
 	nameDecl, err := p.parseQuotedToken()
 	if err != nil {
-		fmt.Println(" AH BA BVOILA")
 		return nil, err
 	}
 	fromDecl.Add(nameDecl)
@@ -675,10 +753,14 @@ func (p *parser) parseCondition() (*Decl, error) {
 	}
 
 	// Equal
-	if !p.is(EqualityToken) {
+	/*if !p.is(EqualityToken) {
 		return nil, p.syntaxError()
 	}
-	equalDecl := NewDecl(p.cur())
+	equalDecl := NewDecl(p.cur())*/
+	equalDecl, err := p.consumeToken(EqualityToken)
+	if err != nil {
+		return nil, err
+	}
 	attributeDecl.Add(equalDecl)
 
 	// Value
@@ -696,19 +778,40 @@ func (p *parser) parseValue() (*Decl, error) {
 	defer debug("~parseValue")
 	quoted := false
 
-	if _, err := p.isNext(SimpleQuoteToken); err == nil {
+	/*if _, err := p.isNext(SimpleQuoteToken, DoubleQuoteToken); err == nil {
 		p.next()
 		quoted = true
+		debug("value is quoted!")
+	}*/
+	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
+		quoted = true
+		debug("value %v is quoted!", p.tokens[p.index])
+		_, err := p.consumeToken(SimpleQuoteToken, DoubleQuoteToken)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	t, err := p.mustHaveNext(StringToken, NumberToken)
+	/*t, err := p.mustHaveNext(StringToken, NumberToken)
 	if err != nil {
 		return nil, err
 	}
-	valueDecl := NewDecl(t)
+	valueDecl := NewDecl(t)*/
+	valueDecl, err := p.consumeToken(StringToken, NumberToken)
+	if err != nil {
+		debug("parseValue: Wasn't expecting %v\n", p.tokens[p.index])
+		return nil, err
+	}
+	debug("Parsing value %v !\n", valueDecl)
 
 	if quoted {
-		if _, err := p.mustHaveNext(SimpleQuoteToken); err != nil {
+		/*if _, err := p.mustHaveNext(SimpleQuoteToken, DoubleQuoteToken); err != nil {
+			return nil, err
+		}*/
+		debug("consume quote %v\n", p.tokens[p.index])
+		_, err := p.consumeToken(SimpleQuoteToken, DoubleQuoteToken)
+		if err != nil {
+			debug("uuuh, wasn't a quote")
 			return nil, err
 		}
 	}
@@ -864,8 +967,8 @@ func (p *parser) consumeToken(tokenTypes ...int) (*Decl, error) {
 	}
 
 	decl := NewDecl(p.tokens[p.index])
-	err := p.next()
-	return decl, err
+	p.next()
+	return decl, nil
 }
 
 func (p *parser) syntaxError() error {

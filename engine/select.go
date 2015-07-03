@@ -60,7 +60,7 @@ func (f *defaultSelectFunction) Init(e *Engine, conn protocol.EngineConn, attr [
 func (f *defaultSelectFunction) Feed(t *Tuple) error {
 	var row []string
 	for _, value := range t.Values {
-		row = append(row, fmt.Sprintf("%s", value))
+		row = append(row, fmt.Sprintf("%v", value))
 	}
 	log.Debug("Writing row  %v", row)
 	return f.conn.WriteRow(row)

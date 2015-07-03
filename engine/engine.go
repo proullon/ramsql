@@ -36,6 +36,7 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 		parser.SelectToken: selectExecutor,
 		parser.InsertToken: insertIntoTableExecutor,
 		parser.DeleteToken: deleteExecutor,
+		parser.UpdateToken: updateExecutor,
 		parser.IfToken:     ifExecutor,
 		parser.NotToken:    notExecutor,
 		parser.ExistsToken: existsExecutor,

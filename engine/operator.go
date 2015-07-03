@@ -21,16 +21,13 @@ func NewOperator(token int, lexeme string) (Operator, error) {
 
 // EqualityOperator checks if given value are equal
 func EqualityOperator(leftValue Value, rightValue Value) bool {
-	log.Critical("EqualityOperator!")
+	log.Debug("<%v> vs <%s> !", leftValue.v, rightValue.lexeme)
 
-	log.Critical("%s vs %s !", leftValue.v, rightValue.lexeme)
-
-	if leftValue.v == rightValue.lexeme {
-		log.Critical("%s == %s !", leftValue.v, rightValue.lexeme)
+	if fmt.Sprintf("%v", leftValue.v) == rightValue.lexeme {
+		log.Debug("%v == %s !", leftValue.v, rightValue.lexeme)
 		return true
 	}
 
-	log.Critical("RETURNING FALDS")
 	return false
 }
 
