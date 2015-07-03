@@ -37,7 +37,21 @@ func (r *Rows) Columns() []string {
 
 // Close closes the rows iterator.
 func (r *Rows) Close() error {
-	return nil
+	log.Debug("Rows.Close %v", r.rowsChannel)
+
+	if r.rowsChannel == nil {
+		return nil
+	}
+
+	for {
+		r.rowsChannel <- []string{}
+
+		_, ok := <-r.rowsChannel
+		if !ok {
+			r.rowsChannel = nil
+			return nil
+		}
+	}
 }
 
 // Next is called to populate the next row of data into
@@ -50,9 +64,15 @@ func (r *Rows) Close() error {
 //
 // Next should return io.EOF when there are no more rows.
 func (r *Rows) Next(dest []driver.Value) (err error) {
+	log.Debug("Rows.Next %v", r.rowsChannel)
+
+	// Allow close
+	// Send a value to forwarding goroutine to get the next row
+	r.rowsChannel <- []string{}
 
 	value, ok := <-r.rowsChannel
 	if !ok {
+		r.rowsChannel = nil
 		return io.EOF
 	}
 

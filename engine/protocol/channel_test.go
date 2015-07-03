@@ -70,6 +70,8 @@ func TestQuery(t *testing.T) {
 		t.Fatalf("Expected first columns name to be <bar>, got <%s>", header[1])
 	}
 
+	channel <- []string{}
+
 	rows, ok := <-channel
 	if !ok {
 		t.Fatal("Cannot read rows")

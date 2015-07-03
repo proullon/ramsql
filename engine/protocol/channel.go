@@ -3,6 +3,8 @@ package protocol
 import (
 	"errors"
 	"fmt"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 const (
@@ -32,11 +34,11 @@ type ChannelDriverEndpoint struct {
 
 // Close method closes the connection to RamSQL server
 func (cdc *ChannelDriverConn) Close() {
+	close(cdc.conn)
 }
 
 // New method creates a new DriverConn from DriverEndpoint
 func (cde *ChannelDriverEndpoint) New(uri string) (DriverConn, error) {
-
 	channel := make(chan message)
 	cdc := &ChannelDriverConn{conn: channel}
 
@@ -156,7 +158,6 @@ func (cec *ChannelEngineConn) WriteRowEnd() error {
 	m := message{
 		Type: rowEndMessage,
 	}
-
 	cec.conn <- m
 	return nil
 }
@@ -209,8 +210,16 @@ func (cdc *ChannelDriverConn) ReadRows() (chan []string, error) {
 		return nil, errors.New("not a rows header")
 	}
 
+	// This goroutine should exit if channel is closed
 	go func() {
+		// Send the row header line
 		channel <- m.Value
+
+		// Wait for next go from Rows channel
+		_, ok := <-channel
+		if !ok {
+			return
+		}
 
 		for {
 			m, ok := <-cdc.conn
@@ -225,6 +234,12 @@ func (cdc *ChannelDriverConn) ReadRows() (chan []string, error) {
 			}
 
 			channel <- m.Value
+
+			// Wait for next go from Rows channel
+			_, ok = <-channel
+			if !ok {
+				return
+			}
 		}
 	}()
 
