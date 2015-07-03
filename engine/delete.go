@@ -2,7 +2,7 @@ package engine
 
 import (
 	// "errors"
-	// "fmt"
+	"fmt"
 
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
@@ -66,7 +66,13 @@ func truncateTable(e *Engine, table *Table, conn protocol.EngineConn) error {
 
 	// get relations and write lock them
 	r := e.relation(table.name)
-	rowsDeleted = int64(len(r.rows))
+	if r == nil {
+		return fmt.Errorf("Table %v not found", table.name)
+	}
+
+	if r.rows != nil {
+		rowsDeleted = int64(len(r.rows))
+	}
 	r.rows = make([]*Tuple, 0)
 
 	return conn.WriteResult(0, rowsDeleted)
