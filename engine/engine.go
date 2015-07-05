@@ -106,7 +106,6 @@ func (e *Engine) handleConnection(conn protocol.EngineConn) {
 		stmt, err := conn.ReadStatement()
 		if err != nil {
 			log.Warning("Enginge.handleConnection: cannot read : %s", err)
-			conn.WriteError(err)
 			return
 		}
 

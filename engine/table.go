@@ -149,7 +149,6 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) (int6
 		for x, decl := range attributes {
 
 			if attr.name == decl.Lexeme && attr.autoIncrement == false {
-				log.Critical("Assigning value %v to %v", values[x].Lexeme, attr.name)
 				t.Append(values[x].Lexeme)
 				assigned = true
 			}
@@ -157,7 +156,6 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) (int6
 
 		// If attribute is AUTO INCREMENT, compute it and assign it
 		if attr.autoIncrement {
-			log.Critical("Attribute %v is auto incre !", attr)
 			assigned = true
 			id = int64(len(r.rows) + 1)
 			t.Append(id)
@@ -168,7 +166,7 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) (int6
 		}
 	}
 
-	log.Critical("New tuple : %v", t)
+	log.Info("New tuple : %v", t)
 
 	// Insert tuple
 	err := r.Insert(t)
@@ -297,7 +295,6 @@ func getSelectedAttributes(e *Engine, attr *parser.Decl, tables []*Table) ([]Att
 }
 
 func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.EngineConn, predicates []Predicate, functors []selectFunctor) error {
-	log.Debug("selecting rows")
 
 	// get relations and write lock them
 	var relations []*Relation
@@ -333,7 +330,6 @@ func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.Engi
 		}
 
 		if ok {
-			//err = writeRow(conn, tuple)
 			for i := range functors {
 				err := functors[i].Feed(tuple)
 				if err != nil {

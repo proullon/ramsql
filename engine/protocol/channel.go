@@ -3,8 +3,6 @@ package protocol
 import (
 	"errors"
 	"fmt"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 const (
@@ -190,7 +188,7 @@ func (cdc *ChannelDriverConn) ReadResult() (lastInsertedID int64, rowsAffected i
 		if m.Type == errMessage {
 			return 0, 0, errors.New(m.Value[0])
 		}
-		return 0, 0, errors.New("not a result")
+		return 0, 0, fmt.Errorf("Protocal error: ReadResult received %v", m)
 	}
 
 	_, err = fmt.Sscanf(m.Value[0], "%d %d", &lastInsertedID, &rowsAffected)

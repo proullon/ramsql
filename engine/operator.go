@@ -2,7 +2,7 @@ package engine
 
 import (
 	"fmt"
-	"github.com/proullon/ramsql/engine/log"
+
 	"github.com/proullon/ramsql/engine/parser"
 )
 
@@ -21,10 +21,8 @@ func NewOperator(token int, lexeme string) (Operator, error) {
 
 // EqualityOperator checks if given value are equal
 func EqualityOperator(leftValue Value, rightValue Value) bool {
-	log.Debug("<%v> vs <%s> !", leftValue.v, rightValue.lexeme)
 
 	if fmt.Sprintf("%v", leftValue.v) == rightValue.lexeme {
-		log.Debug("%v == %s !", leftValue.v, rightValue.lexeme)
 		return true
 	}
 

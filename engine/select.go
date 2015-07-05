@@ -3,7 +3,6 @@ package engine
 import (
 	"fmt"
 
-	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
 )
@@ -17,7 +16,6 @@ type selectFunctor interface {
 // getSelectFunctors instanciate new functors for COUNT, MAX, MIN, AVG, ... and default select functor that return rows to client
 // If a functor is specified, no attribute can be selected ?
 func getSelectFunctors(attr *parser.Decl) ([]selectFunctor, error) {
-	log.Debug("getSelectFunctors")
 	var functors []selectFunctor
 
 	for i := range attr.Decl {
@@ -62,7 +60,6 @@ func (f *defaultSelectFunction) Feed(t *Tuple) error {
 	for _, value := range t.Values {
 		row = append(row, fmt.Sprintf("%v", value))
 	}
-	log.Debug("Writing row  %v", row)
 	return f.conn.WriteRow(row)
 }
 
@@ -79,7 +76,6 @@ type countSelectFunction struct {
 }
 
 func (f *countSelectFunction) Init(e *Engine, conn protocol.EngineConn, attr []string, alias []string) error {
-	log.Debug("countSelectFunction.Init\nReceived attr=%v\nalias=%v\n", attr, alias)
 	f.e = e
 	f.conn = conn
 	f.attributes = attr
@@ -89,18 +85,15 @@ func (f *countSelectFunction) Init(e *Engine, conn protocol.EngineConn, attr []s
 
 func (f *countSelectFunction) Feed(t *Tuple) error {
 	f.Count++
-	log.Critical("countSelectFunction.Feed")
 	return nil
 }
 
 func (f *countSelectFunction) Done() error {
-	log.Debug("-> Writing row header : %v\n", f.alias)
 	err := f.conn.WriteRowHeader(f.alias)
 	if err != nil {
 		return err
 	}
 
-	log.Debug("countSelectFunction.Done: Writing %d", f.Count)
 	err = f.conn.WriteRow([]string{fmt.Sprintf("%d", f.Count)})
 	if err != nil {
 		return err

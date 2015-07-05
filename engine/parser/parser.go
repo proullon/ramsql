@@ -5,6 +5,8 @@ package parser
 
 import (
 	"fmt"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 // The parser structure holds the parser's internal state.
@@ -29,7 +31,7 @@ func (d Decl) Stringy(depth int) {
 		indent = fmt.Sprintf("%s    ", indent)
 	}
 
-	fmt.Printf("%s|-> %s\n", indent, d.Lexeme)
+	log.Debug("%s|-> %s\n", indent, d.Lexeme)
 	for _, subD := range d.Decl {
 		subD.Stringy(depth + 1)
 	}
@@ -168,8 +170,6 @@ func (p *parser) parseUpdate() (*Instruction, error) {
 			return nil, err
 		}
 		setDecl.Add(attributeDecl)
-		//p.mustHaveNext(WhereToken, CommaToken)
-		//p.consumeToken(CommaToken, SimpleQuoteToken)
 		p.consumeToken(CommaToken)
 
 		// Got at least one clause
@@ -200,8 +200,6 @@ func (p *parser) parseUpdate() (*Instruction, error) {
 		gotClause = true
 	}
 
-	debug("Yo on passe pas par la ?")
-	i.Decls[0].Stringy(0)
 	return i, nil
 }
 

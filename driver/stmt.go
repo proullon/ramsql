@@ -76,16 +76,19 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 
 	// replace $* by arguments in query string
 	finalQuery = replaceArguments(s.query, args)
+	log.Info("Exec <%s>\n", finalQuery)
 
 	// Send query to server
 	err := s.conn.conn.WriteExec(finalQuery)
 	if err != nil {
+		log.Warning("Exec: Cannot send query to server: %s", err)
 		return nil, fmt.Errorf("Cannot send query to server: %s", err)
 	}
 
 	// Get answer from server
 	lastInsertedID, rowsAffected, err := s.conn.conn.ReadResult()
 	if err != nil {
+		log.Warning("Exec: Cannot read result: %s\n", err)
 		return nil, err
 	}
 
@@ -99,6 +102,7 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	defer s.conn.mutex.Unlock()
 
 	finalQuery := replaceArguments(s.query, args)
+	log.Info("Query <%s>\n", finalQuery)
 	err := s.conn.conn.WriteQuery(finalQuery)
 	if err != nil {
 		return nil, err

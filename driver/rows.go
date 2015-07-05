@@ -37,7 +37,6 @@ func (r *Rows) Columns() []string {
 
 // Close closes the rows iterator.
 func (r *Rows) Close() error {
-	log.Debug("Rows.Close %v", r.rowsChannel)
 
 	if r.rowsChannel == nil {
 		return nil
@@ -64,7 +63,6 @@ func (r *Rows) Close() error {
 //
 // Next should return io.EOF when there are no more rows.
 func (r *Rows) Next(dest []driver.Value) (err error) {
-	log.Debug("Rows.Next %v", r.rowsChannel)
 
 	// Allow close
 	// Send a value to forwarding goroutine to get the next row

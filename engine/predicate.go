@@ -2,7 +2,6 @@ package engine
 
 import (
 	"fmt"
-	"github.com/proullon/ramsql/engine/log"
 )
 
 // TruePredicate is a predicate wich return always true
@@ -48,7 +47,6 @@ func (p Predicate) String() string {
 
 // Evaluate calls operators and use tuple as operand
 func (p *Predicate) Evaluate(t *Tuple, table *Table) bool {
-	log.Debug("Evaluating predicate %s", p)
 
 	if p.True {
 		return true
