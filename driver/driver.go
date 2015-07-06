@@ -14,7 +14,7 @@ import (
 
 func init() {
 	sql.Register("ramsql", &Driver{})
-	log.SetLevel(0)
+	log.SetLevel(log.WarningLevel)
 }
 
 // Driver is the driver entrypoint,
