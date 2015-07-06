@@ -38,7 +38,8 @@ func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates
 	var relations []*Relation
 	for _, t := range tables {
 		r := e.relation(t.name)
-		// r.writeLock ?
+		r.Lock()
+		defer r.Unlock()
 		relations = append(relations, r)
 	}
 

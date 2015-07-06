@@ -1,14 +1,13 @@
 package engine
 
 import (
-// "sync"
-// "database/sql"
+	"sync"
 )
 
 // Relation is a table with column and rows
 // AKA File
 type Relation struct {
-	// mutex sync.Mutex
+	sync.RWMutex
 	table *Table
 	rows  []*Tuple
 }
