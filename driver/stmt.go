@@ -88,7 +88,6 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	// Get answer from server
 	lastInsertedID, rowsAffected, err := s.conn.conn.ReadResult()
 	if err != nil {
-		log.Warning("Exec: Cannot read result: %s\n", err)
 		return nil, err
 	}
 
@@ -110,7 +109,6 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 
 	rowsChannel, err := s.conn.conn.ReadRows()
 	if err != nil {
-		log.Critical("Query: Error reading rows")
 		return nil, err
 	}
 

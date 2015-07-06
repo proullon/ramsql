@@ -10,7 +10,7 @@ import (
 func TestCreateTable(t *testing.T) {
 	log.UseTestLogger(t)
 
-	db, err := sql.Open("ramsql", "")
+	db, err := sql.Open("ramsql", "TestCreateTable")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
@@ -29,7 +29,7 @@ func TestCreateTable(t *testing.T) {
 
 func TestInsertTable(t *testing.T) {
 	log.UseTestLogger(t)
-	db, err := sql.Open("ramsql", "")
+	db, err := sql.Open("ramsql", "TestInsertTable")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
@@ -65,7 +65,7 @@ func TestInsertTable(t *testing.T) {
 
 func TestSelect(t *testing.T) {
 	log.UseTestLogger(t)
-	db, err := sql.Open("ramsql", "")
+	db, err := sql.Open("ramsql", "TestSelect")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
@@ -130,7 +130,7 @@ func TestSelect(t *testing.T) {
 
 func TestSelectSimplePredicate(t *testing.T) {
 	log.UseTestLogger(t)
-	db, err := sql.Open("ramsql", "")
+	db, err := sql.Open("ramsql", "TestSelectSimplePredicate")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
@@ -169,7 +169,7 @@ func TestSelectSimplePredicate(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	log.UseTestLogger(t)
-	db, err := sql.Open("ramsql", "")
+	db, err := sql.Open("ramsql", "TestDelete")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
@@ -223,7 +223,7 @@ func TestDelete(t *testing.T) {
 
 func TestCount(t *testing.T) {
 	log.UseTestLogger(t)
-	db, err := sql.Open("ramsql", "")
+	db, err := sql.Open("ramsql", "TestCount")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}

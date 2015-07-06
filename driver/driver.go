@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/proullon/ramsql/engine"
@@ -13,19 +14,32 @@ import (
 )
 
 func init() {
-	sql.Register("ramsql", &Driver{})
+	sql.Register("ramsql", newDriver())
 	log.SetLevel(log.WarningLevel)
+}
+
+// Server structs holds engine for each sql.DB instance.
+// This way a sql.DB cann open as much connection to engine as wanted
+// without colliding with another engine (during tests for example)
+// with the unique constraint of providing a unique DataSourceName
+type Server struct {
+	endpoint protocol.DriverEndpoint
+	server   *engine.Engine
 }
 
 // Driver is the driver entrypoint,
 // implementing database/sql/driver interface
 type Driver struct {
-	// // pool is the pool of active connection to server
-	// pool []driver.Conn
-	endpoint protocol.DriverEndpoint
+	// Mutex protect the map of Server
+	sync.Mutex
+	// Holds all matching sql.DB instances of RamSQL engine
+	servers map[string]Server
+}
 
-	// server is the engine instance started by driver
-	server *engine.Engine
+func newDriver() *Driver {
+	d := &Driver{}
+	d.servers = make(map[string]Server)
+	return d
 }
 
 type connConf struct {
@@ -40,32 +54,45 @@ type connConf struct {
 
 // Open return an active connection so RamSQL server
 // If there is no connection in pool, start a new server.
-func (rs *Driver) Open(uri string) (conn driver.Conn, err error) {
-	connConf, err := parseConnectionURI(uri)
+// After first instantiation of the server,
+func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
+	log.Critical("Open driver %s", dsn)
+	rs.Lock()
+	defer rs.Unlock()
+
+	connConf, err := parseConnectionURI(dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	if rs.server == nil {
+	dsnServer, exist := rs.servers[dsn]
+	if !exist {
+		log.Critical("creating new server for %s !", dsn)
 		driverEndpoint, engineEndpoint, err := endpoints(connConf)
 		if err != nil {
 			return nil, err
 		}
 
-		if rs.server, err = engine.New(engineEndpoint); err != nil {
-			return nil, err
-		}
-		rs.endpoint = driverEndpoint
-
-		driverConn, err := driverEndpoint.New(uri)
+		server, err := engine.New(engineEndpoint)
 		if err != nil {
 			return nil, err
 		}
 
+		driverConn, err := driverEndpoint.New(dsn)
+		if err != nil {
+			return nil, err
+		}
+
+		s := Server{
+			endpoint: driverEndpoint,
+			server:   server,
+		}
+		rs.servers[dsn] = s
+
 		return newConn(driverConn), nil
 	}
 
-	driverConn, err := rs.endpoint.New(uri)
+	driverConn, err := dsnServer.endpoint.New(dsn)
 	return newConn(driverConn), nil
 }
 
@@ -100,8 +127,7 @@ func parseConnectionURI(uri string) (*connConf, error) {
 	c := &connConf{}
 
 	if uri == "" {
-		c.Proto = "tcp"
-		return c, nil
+		return nil, errors.New("Empty data source name, please provide a unique identifier")
 	}
 
 	pd := strings.SplitN(uri, "*", 2)
@@ -109,7 +135,8 @@ func parseConnectionURI(uri string) (*connConf, error) {
 		// Parse protocol part of URI
 		p := strings.SplitN(pd[0], ":", 2)
 		if len(p) != 2 {
-			return nil, errors.New("Wrong protocol part of URI")
+			// Wrong protocol part of URI
+			return c, nil
 		}
 		c.Proto = p[0]
 		options := strings.Split(p[1], ",")
@@ -141,7 +168,8 @@ func parseConnectionURI(uri string) (*connConf, error) {
 	// Parse database part of URI
 	dup := strings.SplitN(pd[0], "/", 3)
 	if len(dup) != 3 {
-		return nil, errors.New("Wrong database part of URI")
+		// Wrong database part of URI
+		return c, nil
 	}
 
 	c.Db = dup[0]

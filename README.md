@@ -6,11 +6,18 @@ The idead behing RamSQL is testing.
 I don't want to bother with a persistant DBMS, setup the database, manage credentials and clean tables...
 But I do want to test my queries, my constraints and run a full test suite in no time. 
 
+A unique engine is tied to a single sql.DB with as much sql.Conn as needed providing a unique DataSourceName.
+
 ### Unit testing
 
 - Full isolation between tests
 - No setup (either file or databases)
 - Good performance
+
+### SQL parsing
+
+- Databse schema validation
+- ALTER file validation
 
 ### Stress testing
 

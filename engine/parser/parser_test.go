@@ -127,12 +127,12 @@ func TestInsertStringWithSimpleQuote(t *testing.T) {
 // 	parse(query, 1, t)
 // }
 
-func TestDelete(t *testing.T) {
+func TestParseDelete(t *testing.T) {
 	query := `delete from "posts"`
 	parse(query, 1, t)
 }
 
-func TestUpdate(t *testing.T) {
+func TestParseUpdate(t *testing.T) {
 	query := `UPDATE account SET email = 'roger@gmail.com' WHERE id = 2`
 	parse(query, 1, t)
 }
