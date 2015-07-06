@@ -3,6 +3,7 @@ package protocol
 import (
 	"errors"
 	"fmt"
+	"io"
 )
 
 const (
@@ -71,7 +72,7 @@ func NewChannelEngineEndpoint(channel <-chan chan message) EngineEndpoint {
 func (cee *ChannelEngineEndpoint) Accept() (EngineConn, error) {
 	newConn, ok := <-cee.newConnChannel
 	if !ok {
-		return nil, errors.New("connection closed")
+		return nil, io.EOF
 	}
 
 	return NewChannelEngineConn(newConn), nil
@@ -99,7 +100,7 @@ func NewChannelEngineConn(newConn chan message) EngineConn {
 func (cec *ChannelEngineConn) ReadStatement() (string, error) {
 	message, ok := <-cec.conn
 	if !ok {
-		return "", errors.New("connection closed")
+		return "", io.EOF
 	}
 
 	return message.Value[0], nil

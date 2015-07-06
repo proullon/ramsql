@@ -2,6 +2,7 @@ package engine
 
 import (
 	"errors"
+	"io"
 
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
@@ -103,6 +104,9 @@ func (e *Engine) handleConnection(conn protocol.EngineConn) {
 
 	for {
 		stmt, err := conn.ReadStatement()
+		if err == io.EOF {
+			return
+		}
 		if err != nil {
 			log.Warning("Enginge.handleConnection: cannot read : %s", err)
 			return

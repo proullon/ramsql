@@ -67,6 +67,12 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 		i++
 	}
 
+	// Check if table does not exists
+	r := e.relation(tableDecl.Decl[i].Lexeme)
+	if r != nil {
+		return fmt.Errorf("table %s already exists", tableDecl.Decl[i].Lexeme)
+	}
+
 	// Fetch table name
 	t := NewTable(tableDecl.Decl[i].Lexeme)
 

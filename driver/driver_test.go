@@ -259,3 +259,22 @@ func TestCount(t *testing.T) {
 		t.Fatalf("Expected count = 2, got %d", count)
 	}
 }
+
+func TestMultipleCreate(t *testing.T) {
+	log.UseTestLogger(t)
+	db, err := sql.Open("ramsql", "TestMultipleCreate")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE account (id INT, email TEXT)")
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	_, err = db.Exec("CREATE TABLE account (id INT, email TEXT)")
+	if err == nil {
+		t.Fatalf("Should not have been able to recreate table account")
+	}
+}
