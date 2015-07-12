@@ -70,6 +70,8 @@ func truncateTable(e *Engine, table *Table, conn protocol.EngineConn) error {
 	if r == nil {
 		return fmt.Errorf("Table %v not found", table.name)
 	}
+	r.Lock()
+	defer r.Unlock()
 
 	if r.rows != nil {
 		rowsDeleted = int64(len(r.rows))
