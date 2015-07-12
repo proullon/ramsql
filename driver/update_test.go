@@ -10,7 +10,7 @@ import (
 func TestUpdateSimple(t *testing.T) {
 	log.UseTestLogger(t)
 
-	db, err := sql.Open("ramsql", "")
+	db, err := sql.Open("ramsql", "TestUpdateSimple")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
