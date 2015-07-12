@@ -67,10 +67,8 @@ func TestQuery(t *testing.T) {
 	}
 
 	if header[1] != "bar" {
-		t.Fatalf("Expected first columns name to be <bar>, got <%s>", header[1])
+		t.Fatalf("Expected second columns name to be <bar>, got <%s>", header[1])
 	}
-
-	channel <- []string{}
 
 	rows, ok := <-channel
 	if !ok {

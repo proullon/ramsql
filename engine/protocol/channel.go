@@ -198,7 +198,6 @@ func (cdc *ChannelDriverConn) ReadResult() (lastInsertedID int64, rowsAffected i
 
 // ReadRows when Query has been used
 func (cdc *ChannelDriverConn) ReadRows() (chan []string, error) {
-	channel := make(chan []string)
 
 	m := <-cdc.conn
 	if m.Type == errMessage {
@@ -209,38 +208,5 @@ func (cdc *ChannelDriverConn) ReadRows() (chan []string, error) {
 		return nil, errors.New("not a rows header")
 	}
 
-	// This goroutine should exit if channel is closed
-	go func() {
-		// Send the row header line
-		channel <- m.Value
-
-		// Wait for next go from Rows channel
-		_, ok := <-channel
-		if !ok {
-			return
-		}
-
-		for {
-			m, ok := <-cdc.conn
-			if !ok {
-				close(channel)
-				return
-			}
-
-			if m.Type == rowEndMessage {
-				close(channel)
-				return
-			}
-
-			channel <- m.Value
-
-			// Wait for next go from Rows channel
-			_, ok = <-channel
-			if !ok {
-				return
-			}
-		}
-	}()
-
-	return channel, nil
+	return UnlimitedRowsChannel(cdc.conn, m), nil
 }
