@@ -56,7 +56,6 @@ type connConf struct {
 // If there is no connection in pool, start a new server.
 // After first instantiation of the server,
 func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
-	log.Critical("Open driver %s", dsn)
 	rs.Lock()
 	defer rs.Unlock()
 
@@ -67,7 +66,6 @@ func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
 
 	dsnServer, exist := rs.servers[dsn]
 	if !exist {
-		log.Critical("creating new server for %s !", dsn)
 		driverEndpoint, engineEndpoint, err := endpoints(connConf)
 		if err != nil {
 			return nil, err
