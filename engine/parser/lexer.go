@@ -50,6 +50,8 @@ const (
 	AutoincrementToken
 	CountToken
 	SetToken
+	OrderToken
+	ByToken
 
 	// Type Token
 
@@ -117,6 +119,8 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchAutoincrementToken)
 	matchers = append(matchers, l.MatchCountToken)
 	matchers = append(matchers, l.MatchSetToken)
+	matchers = append(matchers, l.MatchOrderToken)
+	matchers = append(matchers, l.MatchByToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -162,6 +166,14 @@ func (l *lexer) MatchSpaceToken() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) MatchOrderToken() bool {
+	return l.Match([]byte("order"), OrderToken)
+}
+
+func (l *lexer) MatchByToken() bool {
+	return l.Match([]byte("by"), ByToken)
 }
 
 func (l *lexer) MatchSetToken() bool {

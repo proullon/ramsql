@@ -595,10 +595,65 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 		selectDecl.Add(joinDecl)
 	}
 
-	// Must be WHERE  here
+	// WHERE clause is implicit
+	if p.cur().Token != WhereToken {
+		whereDecl := &Decl{
+			Token:  WhereToken,
+			Lexeme: "where",
+		}
+		whereDecl.Add(&Decl{
+			Token:  NumberToken,
+			Lexeme: "1",
+		})
+
+		selectDecl.Add(whereDecl)
+	}
+
+	switch p.cur().Token {
+	case WhereToken:
+		err := p.parseWhere(selectDecl)
+		if err != nil {
+			return nil, err
+		}
+	case OrderToken:
+		err := p.parseOrderBy(selectDecl)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return i, nil
+}
+
+func (p *parser) parseOrderBy(selectDecl *Decl) error {
+	orderDecl, err := p.consumeToken(OrderToken)
+	if err != nil {
+		return err
+	}
+	selectDecl.Add(orderDecl)
+
+	_, err = p.consumeToken(ByToken)
+	if err != nil {
+		return err
+	}
+
+	// parse attribute now
+	attrDecl, err := p.parseAttribute()
+	if err != nil {
+		return err
+	}
+	orderDecl.Add(attrDecl)
+
+	return nil
+}
+
+func (p *parser) parseWhere(selectDecl *Decl) error {
+
+	// May be WHERE  here
+	// Can be ORDER BY if WHERE cause if implicit
 	whereDecl, err := p.consumeToken(WhereToken)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	selectDecl.Add(whereDecl)
 
@@ -611,7 +666,7 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 
 		attributeDecl, err := p.parseCondition()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		whereDecl.Add(attributeDecl)
 
@@ -619,7 +674,7 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 		gotClause = true
 	}
 
-	return i, nil
+	return nil
 }
 
 // parseBuiltinFunc looks for COUNT,MAX,MIN
@@ -684,8 +739,12 @@ func (p *parser) parseAttribute() (*Decl, error) {
 			return nil, err
 		}
 	}
+	// If no next token,and not quoted, then is was the atribute name
 	if err := p.next(); err != nil {
-		return nil, err
+		if quoted {
+			return nil, err
+		}
+		return decl, nil
 	}
 
 	// Now, is it a point ?

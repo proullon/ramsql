@@ -38,6 +38,9 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 		return err
 	}
 
+	// Mybe order by ?
+	// TODO: implement ORDER BY
+
 	// and select
 	err = selectRows(e, attr, tables, conn, predicates, functors)
 	if err != nil {
