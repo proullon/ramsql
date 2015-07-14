@@ -10,7 +10,7 @@ import (
 	"github.com/proullon/ramsql/engine/log"
 )
 
-func testGorp(t *testing.T) {
+func TestGorp(t *testing.T) {
 	log.UseTestLogger(t)
 
 	// initialize the DbMap
@@ -73,6 +73,9 @@ func testGorp(t *testing.T) {
 	count, err = dbmap.SelectInt("select count(*) from posts")
 	checkErr(t, err, "select count(*) failed")
 	t.Log("Row count - should be zero:", count)
+	if count != 0 {
+		t.Fatalf("Count should be 0, got %d", count)
+	}
 
 	t.Log("Done!")
 }

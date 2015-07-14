@@ -157,6 +157,7 @@ func (cec *ChannelEngineConn) WriteRowEnd() error {
 	m := message{
 		Type: rowEndMessage,
 	}
+
 	cec.conn <- m
 	return nil
 }
