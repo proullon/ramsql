@@ -125,7 +125,8 @@ func parseConnectionURI(uri string) (*connConf, error) {
 	c := &connConf{}
 
 	if uri == "" {
-		return nil, errors.New("Empty data source name, please provide a unique identifier")
+		log.Info("Empty data source name, using 'default' engine")
+		uri = "default"
 	}
 
 	pd := strings.SplitN(uri, "*", 2)
