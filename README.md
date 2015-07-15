@@ -39,16 +39,16 @@ Not recommended.
 
 ## Todo
 
-- UPDATE
 - PRIMARY KEY
 - ORDER BY
 - JOIN
+- ALTER
 - Select on multiple tables
 - Attribute domains
 - Foreign keys
 - Transactions
 - Constraints
-- Random disconections and lags on demand
+- Random disconnections and lags on demand
 - Random slow queries
 - ...
 
@@ -61,3 +61,4 @@ Not recommended.
 - DELETE
 - COUNT
 - AUTO INCREMENT
+- UPDATE
