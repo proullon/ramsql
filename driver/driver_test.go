@@ -27,6 +27,27 @@ func TestCreateTable(t *testing.T) {
 	}
 }
 
+func TestInsertEmptyString(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestInsertEmptyString")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE account (id INT, email TEXT)")
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	_, err = db.Exec("INSERT INTO account (id, email) VALUES (1, '')")
+	if err != nil {
+		t.Fatalf("Cannot insert empty string: %s", err)
+	}
+
+}
+
 func TestInsertTable(t *testing.T) {
 	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "TestInsertTable")

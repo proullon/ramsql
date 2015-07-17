@@ -362,9 +362,6 @@ func (l *lexer) MatchDoubleQuotedStringToken() bool {
 	for i < l.instructionLen && l.instruction[i] != '"' {
 		i++
 	}
-	if i == l.pos {
-		return false
-	}
 
 	t := Token{
 		Token:  StringToken,
@@ -407,9 +404,6 @@ func (l *lexer) MatchSingleQuotedStringToken() bool {
 	i := l.pos
 	for i < l.instructionLen && l.instruction[i] != '\'' {
 		i++
-	}
-	if i == l.pos {
-		return false
 	}
 
 	t := Token{
