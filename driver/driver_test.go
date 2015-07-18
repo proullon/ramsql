@@ -299,3 +299,29 @@ func TestMultipleCreate(t *testing.T) {
 		t.Fatalf("Should not have been able to recreate table account")
 	}
 }
+
+func TestCreateTableWithTimestamp(t *testing.T) {
+	log.UseTestLogger(t)
+
+	query := `create table if not exists "refresh_token" ("uuid" text not null primary key,
+	"hash_token" text,
+	"user_id" bigint,
+	"expires" timestamp with time zone,
+	"tag" text) ;`
+
+	db, err := sql.Open("ramsql", "TestCreateTableWithTimestamp")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec(query)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	err = db.Close()
+	if err != nil {
+		t.Fatalf("sql.Close : Error : %s\n", err)
+	}
+}

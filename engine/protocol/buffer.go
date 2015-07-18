@@ -34,11 +34,6 @@ func UnlimitedRowsChannel(bufferThis chan message, firstMessage message) chan []
 				driverChannelNullable = nil
 			}
 
-			log.Debug("Unlimited: %d values in buffer, driverChannel is %v and driverChannelNullable is %v",
-				rowList.Len(),
-				driverChannel,
-				driverChannelNullable)
-
 			select {
 			// In case a new row is sent to driver
 			case driverChannelNullable <- nextRow:

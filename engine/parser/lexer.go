@@ -52,6 +52,9 @@ const (
 	SetToken
 	OrderToken
 	ByToken
+	WithToken
+	TimeToken
+	ZoneToken
 
 	// Type Token
 
@@ -121,6 +124,9 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchSetToken)
 	matchers = append(matchers, l.MatchOrderToken)
 	matchers = append(matchers, l.MatchByToken)
+	matchers = append(matchers, l.MatchWithToken)
+	matchers = append(matchers, l.MatchTimeToken)
+	matchers = append(matchers, l.MatchZoneToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -166,6 +172,18 @@ func (l *lexer) MatchSpaceToken() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) MatchWithToken() bool {
+	return l.Match([]byte("with"), WithToken)
+}
+
+func (l *lexer) MatchTimeToken() bool {
+	return l.Match([]byte("time"), TimeToken)
+}
+
+func (l *lexer) MatchZoneToken() bool {
+	return l.Match([]byte("zone"), ZoneToken)
 }
 
 func (l *lexer) MatchOrderToken() bool {
