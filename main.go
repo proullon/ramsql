@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	log.SetLevel(0)
+	log.SetLevel(log.CriticalLevel)
 }
 
 func exec(db *sql.DB, stmt string) {
