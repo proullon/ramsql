@@ -50,6 +50,10 @@ func parseAttribute(decl *parser.Decl) (Attribute, error) {
 		}
 	}
 
+	if attr.typeName == "bigserial" {
+		attr.autoIncrement = true
+	}
+
 	return attr, nil
 }
 
