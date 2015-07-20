@@ -105,7 +105,7 @@ func initDb(t *testing.T) *gorp.DbMap {
 	}
 
 	// construct a gorp DbMap
-	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
 
 	// add a table, setting the table name to 'posts' and
 	// specifying that the Id property is an auto incrementing PK

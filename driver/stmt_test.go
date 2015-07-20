@@ -71,7 +71,7 @@ func TestReplaceTwoArgumentsTwice(t *testing.T) {
 
 func TestReplaceEnd(t *testing.T) {
 	query := `SELECT * FROM account WHERE email = $1`
-	wantedQuery := `SELECT * FROM account WHERE email = foo@bar.com`
+	wantedQuery := `SELECT * FROM account WHERE email = 'foo@bar.com'`
 	args := []driver.Value{
 		driver.Value("foo@bar.com"),
 	}

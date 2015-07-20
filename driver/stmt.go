@@ -133,7 +133,15 @@ func replaceArguments(query string, args []driver.Value) string {
 		for i, queryPart := range queryParts {
 			query += queryPart
 			if i != len(queryParts)-1 {
-				query += fmt.Sprintf("%s", args[argumentIndex-1])
+				// Test if Value is a string, if so, add simple quotes
+				_, ok := args[argumentIndex-1].(string)
+				if ok && !strings.HasSuffix(query, "'") {
+					query += `'` + strings.Replace(fmt.Sprintf("%s", args[argumentIndex-1]), `"`, `""`, -1) + `'`
+				} else if ok {
+					query += fmt.Sprintf("%s", args[argumentIndex-1])
+				} else {
+					query += fmt.Sprintf("%v", args[argumentIndex-1])
+				}
 			}
 		}
 	}
