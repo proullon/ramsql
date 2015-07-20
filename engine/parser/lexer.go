@@ -33,6 +33,7 @@ const (
 	UpdateToken
 	DeleteToken
 	ExplainToken
+	TruncateToken
 
 	// Second order Token
 
@@ -55,6 +56,7 @@ const (
 	WithToken
 	TimeToken
 	ZoneToken
+	ReturningToken
 
 	// Type Token
 
@@ -107,6 +109,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchInsertToken)
 	matchers = append(matchers, l.MatchUpdateToken)
 	matchers = append(matchers, l.MatchDeleteToken)
+	matchers = append(matchers, l.MatchTruncateToken)
 	// Second order Matcher
 	matchers = append(matchers, l.MatchTableToken)
 	matchers = append(matchers, l.MatchFromToken)
@@ -127,6 +130,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchWithToken)
 	matchers = append(matchers, l.MatchTimeToken)
 	matchers = append(matchers, l.MatchZoneToken)
+	matchers = append(matchers, l.MatchReturningToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -172,6 +176,14 @@ func (l *lexer) MatchSpaceToken() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) MatchReturningToken() bool {
+	return l.Match([]byte("returning"), ReturningToken)
+}
+
+func (l *lexer) MatchTruncateToken() bool {
+	return l.Match([]byte("truncate"), TruncateToken)
 }
 
 func (l *lexer) MatchWithToken() bool {

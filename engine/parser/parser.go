@@ -123,6 +123,13 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 			}
 			p.i = append(p.i, *i)
 			break
+		case TruncateToken:
+			i, err := p.parseTruncate()
+			if err != nil {
+				return nil, err
+			}
+			p.i = append(p.i, *i)
+			break
 		case ExplainToken:
 			break
 		default:
@@ -283,6 +290,16 @@ func (p *parser) parseInsert() (*Instruction, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// we may have `returning "something"` here
+	if retDecl, err := p.consumeToken(ReturningToken); err == nil {
+		insertDecl.Add(retDecl)
+		attrDecl, err := p.parseAttribute()
+		if err != nil {
+			return nil, err
+		}
+		retDecl.Add(attrDecl)
 	}
 
 	return i, nil

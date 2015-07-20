@@ -32,15 +32,16 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 	e.stop = make(chan bool)
 
 	e.opsExecutors = map[int]executor{
-		parser.CreateToken: createExecutor,
-		parser.TableToken:  createTableExecutor,
-		parser.SelectToken: selectExecutor,
-		parser.InsertToken: insertIntoTableExecutor,
-		parser.DeleteToken: deleteExecutor,
-		parser.UpdateToken: updateExecutor,
-		parser.IfToken:     ifExecutor,
-		parser.NotToken:    notExecutor,
-		parser.ExistsToken: existsExecutor,
+		parser.CreateToken:   createExecutor,
+		parser.TableToken:    createTableExecutor,
+		parser.SelectToken:   selectExecutor,
+		parser.InsertToken:   insertIntoTableExecutor,
+		parser.DeleteToken:   deleteExecutor,
+		parser.UpdateToken:   updateExecutor,
+		parser.IfToken:       ifExecutor,
+		parser.NotToken:      notExecutor,
+		parser.ExistsToken:   existsExecutor,
+		parser.TruncateToken: truncateExecutor,
 	}
 
 	e.relations = make(map[string]*Relation)
