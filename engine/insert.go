@@ -2,6 +2,8 @@ package engine
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
@@ -30,13 +32,31 @@ func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.E
 	r.Lock()
 	defer r.Unlock()
 
+	// Check for RETURNING clause
+	var returnedID string
+	if len(insertDecl.Decl) > 2 {
+		for i := range insertDecl.Decl {
+			if insertDecl.Decl[i].Token == parser.ReturningToken {
+				returnedID = insertDecl.Decl[i].Lexeme
+				break
+			}
+		}
+	}
+
 	// Create a new tuple with values
-	id, err := insert(r, attributes, insertDecl.Decl[1].Decl)
+	id, err := insert(r, attributes, insertDecl.Decl[1].Decl, returnedID)
 	if err != nil {
 		return err
 	}
 
-	conn.WriteResult(id, 1)
+	// if RETURNING decl is not present
+	if returnedID != "" {
+		conn.WriteRowHeader([]string{returnedID})
+		conn.WriteRow([]string{fmt.Sprintf("%v", id)})
+		conn.WriteRowEnd()
+	} else {
+		conn.WriteResult(id, 1)
+	}
 	return nil
 }
 
@@ -58,7 +78,7 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 	return r, intoDecl.Decl[0].Decl, nil
 }
 
-func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) (int64, error) {
+func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, returnedID string) (int64, error) {
 	var assigned = false
 	var id int64
 
@@ -72,6 +92,13 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl) (int6
 			if attr.name == decl.Lexeme && attr.autoIncrement == false {
 				t.Append(values[x].Lexeme)
 				assigned = true
+				if returnedID == attr.name {
+					var err error
+					id, err = strconv.ParseInt(values[x].Lexeme, 10, 64)
+					if err != nil {
+						return 0, err
+					}
+				}
 			}
 		}
 
