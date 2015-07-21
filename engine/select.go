@@ -32,6 +32,8 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 	// Instanciate a new select functor
 	functors, err := getSelectFunctors(selectDecl)
 
+	// Check if there is JOIN
+
 	// get WHERE declaration
 	predicates, err := whereExecutor(selectDecl.Decl[2])
 	if err != nil {
@@ -156,6 +158,7 @@ func whereExecutor(whereDecl *parser.Decl) ([]Predicate, error) {
 
 	for i := range whereDecl.Decl {
 		var p Predicate
+		cond := whereDecl.Decl[i]
 
 		// 1 PREDICATE
 		if whereDecl.Decl[i].Lexeme == "1" {
@@ -168,11 +171,16 @@ func whereExecutor(whereDecl *parser.Decl) ([]Predicate, error) {
 			return nil, fmt.Errorf("Malformed predicate \"%s\"", whereDecl.Decl[i].Lexeme)
 		}
 
-		op, err := NewOperator(whereDecl.Decl[i].Decl[0].Token, whereDecl.Decl[i].Decl[0].Lexeme)
+		// The first element of the list is then the relation of the attribute
+		var err error
+		if len(cond.Decl) == 3 {
+			p.Operator, err = NewOperator(whereDecl.Decl[i].Decl[1].Token, whereDecl.Decl[i].Decl[2].Lexeme)
+		} else {
+			p.Operator, err = NewOperator(whereDecl.Decl[i].Decl[0].Token, whereDecl.Decl[i].Decl[0].Lexeme)
+		}
 		if err != nil {
 			return nil, err
 		}
-		p.Operator = op
 
 		p.RightValue.lexeme = whereDecl.Decl[i].Decl[1].Lexeme
 		p.RightValue.valid = true
