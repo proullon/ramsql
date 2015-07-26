@@ -50,6 +50,9 @@ Not recommended.
 - Constraints
 - Random disconnections and lags on demand
 - Random slow queries
+- FETCH
+- MOVE
+- COPY
 - ...
 
 ## Done

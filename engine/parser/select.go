@@ -58,14 +58,14 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 		if err = p.next(); err != nil {
 			return nil, fmt.Errorf("Unexpected end. Syntax error near %v\n", tokens[p.index])
 		}
-		if tokens[p.index].Token != StringToken {
-			return nil, p.syntaxError()
+		tableNameDecl, err := p.parseAttribute()
+		if err != nil {
+			return nil, err
 		}
-		tableNameDecl := NewDecl(tokens[p.index])
 		fromDecl.Add(tableNameDecl)
 
 		// If no next, then it's implicit where
-		if err = p.next(); err != nil {
+		if !p.hasNext() {
 			addImplicitWhereAll(selectDecl)
 			return i, nil
 		}

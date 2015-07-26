@@ -21,7 +21,7 @@ func deleteExecutor(e *Engine, deleteDecl *parser.Decl, conn protocol.EngineConn
 	}
 
 	// get WHERE declaration
-	predicates, err := whereExecutor(deleteDecl.Decl[1])
+	predicates, err := whereExecutor(deleteDecl.Decl[1], tables[0].name)
 	if err != nil {
 		return err
 	}
@@ -40,13 +40,17 @@ func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates
 	r.Lock()
 	defer r.Unlock()
 
-	var ok bool
+	var ok, res bool
+	var err error
 	lenRows := len(r.rows)
 	for i := 0; i < lenRows; i++ {
 		ok = true
 		// If the row validate all predicates, write it
 		for _, predicate := range predicates {
-			if predicate.Evaluate(r.rows[i], r.table) == false {
+			if res, err = predicate.Evaluate(r.rows[i], r.table); err != nil {
+				return err
+			}
+			if res == false {
 				ok = false
 				continue
 			}

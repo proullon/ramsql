@@ -106,6 +106,7 @@ func (e *Engine) handleConnection(conn protocol.EngineConn) {
 	for {
 		stmt, err := conn.ReadStatement()
 		if err == io.EOF {
+			// Todo: close engine if there is no conn left
 			return
 		}
 		if err != nil {

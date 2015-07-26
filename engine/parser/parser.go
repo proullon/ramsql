@@ -65,6 +65,7 @@ func (d *Decl) Add(subDecl *Decl) {
 func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 	tokens = stripSpaces(tokens)
 	p.tokens = tokens
+	log.Debug("parser.parse: %v\n", p.tokens)
 
 	p.tokenLen = len(tokens)
 	p.index = 0
@@ -437,6 +438,7 @@ func (p *parser) parseAttribute() (*Decl, error) {
 		return nil, p.syntaxError()
 	}
 	decl := NewDecl(p.cur())
+	log.Debug("Decl is %v", decl)
 
 	if quoted {
 		// Check there is a closing quote

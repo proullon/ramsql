@@ -11,9 +11,11 @@ var TruePredicate = Predicate{
 
 // Value is a value given to predicates
 type Value struct {
-	v      interface{}
-	valid  bool
-	lexeme string
+	v        interface{}
+	valid    bool
+	lexeme   string
+	constant bool
+	table    string
 }
 
 // Predicate evaluate if a condition is valid with 2 values and an operator on this 2 values
@@ -45,11 +47,29 @@ func (p Predicate) String() string {
 	return fmt.Sprintf("[%s] vs [%s]", left, right)
 }
 
-// Evaluate calls operators and use tuple as operand
-func (p *Predicate) Evaluate(t *Tuple, table *Table) bool {
+// Eval fetches operand from virtual row and run operator
+func (p *Predicate) Eval(row virtualRow) (bool, error) {
 
 	if p.True {
-		return true
+		return true, nil
+	}
+
+	// Find left attribute
+	left := p.LeftValue.table + "." + p.LeftValue.lexeme
+	val, ok := row[left]
+	if !ok {
+		return false, fmt.Errorf("Attribute [%s] not found in row", left)
+	}
+	p.LeftValue.v = val.v
+
+	return p.Operator(p.LeftValue, p.RightValue), nil
+}
+
+// Evaluate is deprecated (see Eval). It calls operators and use tuple as operand
+func (p *Predicate) Evaluate(t *Tuple, table *Table) (bool, error) {
+
+	if p.True {
+		return true, nil
 	}
 
 	// Find left
@@ -61,9 +81,9 @@ func (p *Predicate) Evaluate(t *Tuple, table *Table) bool {
 		}
 	}
 	if i == lenTable {
-		panic(p.LeftValue.lexeme + "not found !")
+		return false, fmt.Errorf("Attribute [%s] not found in table [%s]", p.LeftValue.lexeme, table.name)
 	}
 
 	p.LeftValue.v = t.Values[i]
-	return p.Operator(p.LeftValue, p.RightValue)
+	return p.Operator(p.LeftValue, p.RightValue), nil
 }
