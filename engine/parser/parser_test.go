@@ -85,6 +85,11 @@ func TestSelectOnePredicate(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestSelectQuotedTableName(t *testing.T) {
+	query := `SELECT * FROM "account" WHERE 1`
+	parse(query, 1, t)
+}
+
 func TestSelectJoin(t *testing.T) {
 	query := `SELECT address.* FROM address
 	JOIN user_addresses ON address.id=user_addresses.address_id

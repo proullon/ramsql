@@ -10,41 +10,70 @@ import (
 
 /*
 |-> SELECT
-    |-> *
-    |-> FROM
-        |-> account
-    |-> WHERE
-        |-> email
-            |-> =
-            |-> foo@bar.com
+	|-> *
+	|-> FROM
+		|-> account
+	|-> WHERE
+		|-> email
+			|-> =
+			|-> foo@bar.com
 */
 func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn) error {
+	var attributes []Attribute
+	var tables []*Table
+	var predicates []Predicate
+	var functors []selectFunctor
+	var joiners []joiner
+	var err error
 
-	// get selected tables
-	tables := fromExecutor(selectDecl.Decl[1])
-
-	// get attribute to select
-	attr, err := getSelectedAttributes(e, selectDecl.Decl[0], tables)
-	if err != nil {
-		return err
+	selectDecl.Stringy(0)
+	for i := range selectDecl.Decl {
+		switch selectDecl.Decl[i].Token {
+		case parser.FromToken:
+			// get selected tables
+			tables = fromExecutor(selectDecl.Decl[i])
+		case parser.WhereToken:
+			// get WHERE declaration
+			predicates, err = whereExecutor(selectDecl.Decl[i], tables[0].name)
+			if err != nil {
+				return err
+			}
+		case parser.JoinToken:
+			j, err := joinExecutor(selectDecl.Decl[i])
+			if err != nil {
+				return err
+			}
+			joiners = append(joiners, j)
+		case parser.OrderToken:
+			// TODO: implement ORDER BY
+		}
 	}
 
+	for i := range selectDecl.Decl {
+		if selectDecl.Decl[i].Token != parser.StringToken &&
+			selectDecl.Decl[i].Token != parser.StarToken &&
+			selectDecl.Decl[i].Token != parser.CountToken {
+			continue
+		}
+
+		// get attribute to selected
+		attr, err := getSelectedAttribute(e, selectDecl.Decl[i], tables)
+		if err != nil {
+			return err
+		}
+		attributes = append(attributes, attr...)
+
+	}
 	// Instanciate a new select functor
-	functors, err := getSelectFunctors(selectDecl)
-
-	// Check if there is JOIN
-
-	// get WHERE declaration
-	predicates, err := whereExecutor(selectDecl.Decl[2])
-	if err != nil {
-		return err
-	}
-
-	// Mybe order by ?
-	// TODO: implement ORDER BY
+	functors, err = getSelectFunctors(selectDecl)
 
 	// and select
-	err = selectRows(e, attr, tables, conn, predicates, functors)
+	// TODO: always use generateVirtualRows
+	if len(joiners) != 0 {
+		err = generateVirtualRows(e, attributes, conn, tables[0].name, joiners, predicates, functors)
+	} else {
+		err = selectRows(e, attributes, tables, conn, predicates, functors)
+	}
 	if err != nil {
 		return err
 	}
@@ -55,6 +84,7 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 type selectFunctor interface {
 	Init(e *Engine, conn protocol.EngineConn, attr []string, alias []string) error
 	Feed(t *Tuple) error
+	FeedVirtualRow(row virtualRow) error
 	Done() error
 }
 
@@ -100,8 +130,24 @@ func (f *defaultSelectFunction) Init(e *Engine, conn protocol.EngineConn, attr [
 	return f.conn.WriteRowHeader(f.alias)
 }
 
+func (f *defaultSelectFunction) FeedVirtualRow(vrow virtualRow) error {
+	var row []string
+
+	for _, attr := range f.attributes {
+		val, ok := vrow[attr]
+		if !ok {
+			return fmt.Errorf("could not select attribute %s", attr)
+		}
+		row = append(row, fmt.Sprintf("%v", val.v))
+	}
+
+	return f.conn.WriteRow(row)
+}
+
+// TODO Need disappear (see FeedVirtualRow).
 func (f *defaultSelectFunction) Feed(t *Tuple) error {
 	var row []string
+
 	for _, value := range t.Values {
 		row = append(row, fmt.Sprintf("%v", value))
 	}
@@ -133,6 +179,11 @@ func (f *countSelectFunction) Feed(t *Tuple) error {
 	return nil
 }
 
+func (f *countSelectFunction) FeedVirtualRow(row virtualRow) error {
+	f.Count++
+	return nil
+}
+
 func (f *countSelectFunction) Done() error {
 	err := f.conn.WriteRowHeader(f.alias)
 	if err != nil {
@@ -149,12 +200,13 @@ func (f *countSelectFunction) Done() error {
 
 /*
    |-> WHERE
-       |-> email
-           |-> =
-           |-> foo@bar.com
+	   |-> email
+		   |-> =
+		   |-> foo@bar.com
 */
-func whereExecutor(whereDecl *parser.Decl) ([]Predicate, error) {
+func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, error) {
 	var predicates []Predicate
+	whereDecl.Stringy(0)
 
 	for i := range whereDecl.Decl {
 		var p Predicate
@@ -173,17 +225,29 @@ func whereExecutor(whereDecl *parser.Decl) ([]Predicate, error) {
 
 		// The first element of the list is then the relation of the attribute
 		var err error
+		var op *parser.Decl
+		var val *parser.Decl
+		var relation *parser.Decl
 		if len(cond.Decl) == 3 {
-			p.Operator, err = NewOperator(whereDecl.Decl[i].Decl[1].Token, whereDecl.Decl[i].Decl[2].Lexeme)
+			relation = cond.Decl[0]
+			op = cond.Decl[1]
+			val = cond.Decl[2]
 		} else {
-			p.Operator, err = NewOperator(whereDecl.Decl[i].Decl[0].Token, whereDecl.Decl[i].Decl[0].Lexeme)
+			op = cond.Decl[0]
+			val = cond.Decl[1]
 		}
+
+		p.Operator, err = NewOperator(op.Token, op.Lexeme)
 		if err != nil {
 			return nil, err
 		}
-
-		p.RightValue.lexeme = whereDecl.Decl[i].Decl[1].Lexeme
+		p.RightValue.lexeme = val.Lexeme
 		p.RightValue.valid = true
+		if relation != nil {
+			p.LeftValue.table = relation.Lexeme
+		} else { // The relation is then implicitly the first table named in FROM
+			p.LeftValue.table = fromTableName
+		}
 
 		predicates = append(predicates, p)
 	}
@@ -197,7 +261,7 @@ func whereExecutor(whereDecl *parser.Decl) ([]Predicate, error) {
 
 /*
 |-> FROM
-    |-> account
+	|-> account
 */
 func fromExecutor(fromDecl *parser.Decl) []*Table {
 	var tables []*Table
@@ -208,38 +272,35 @@ func fromExecutor(fromDecl *parser.Decl) []*Table {
 	return tables
 }
 
-func getSelectedAttributes(e *Engine, attr *parser.Decl, tables []*Table) ([]Attribute, error) {
+func getSelectedAttribute(e *Engine, attr *parser.Decl, tables []*Table) ([]Attribute, error) {
 	var attributes []Attribute
 
-	// handle *
-	if attr.Token == parser.StarToken {
+	switch attr.Token {
+	case parser.StarToken:
 		for _, table := range tables {
 			r := e.relation(table.name)
 			if r == nil {
 				return nil, errors.New("Relation " + table.name + " not found")
 			}
-
 			attributes = append(attributes, r.table.attributes...)
 		}
-	}
-
-	// handle COUNT
-	if attr.Token == parser.CountToken {
+	case parser.CountToken:
 		attributes = append(attributes, NewAttribute("COUNT", "int", false))
+	case parser.StringToken:
+		attributes = append(attributes, NewAttribute(attr.Lexeme, "text", false))
 	}
 
 	return attributes, nil
 }
 
 func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.EngineConn, predicates []Predicate, functors []selectFunctor) error {
+	relations := make(map[string]*Relation)
 
-	// get relations and write lock them for reading
-	var relations []*Relation
 	for _, t := range tables {
 		r := e.relation(t.name)
 		r.RLock()
 		defer r.RUnlock()
-		relations = append(relations, r)
+		relations[t.name] = r
 	}
 
 	// Write header
@@ -255,45 +316,41 @@ func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.Engi
 		}
 	}
 
-	// Perform actual check of predicates on every row
-	var ok bool
-	for _, tuple := range relations[0].rows {
-		ok = true
-		// If the row validate all predicates, write it
-		for _, predicate := range predicates {
-			if predicate.Evaluate(tuple, relations[0].table) == false {
-				ok = false
-				continue
-			}
-		}
+	for _, relation := range relations {
 
-		if ok {
-			for i := range functors {
-				err := functors[i].Feed(tuple)
-				if err != nil {
+		// Perform actual check of predicates on every row of tables present in FROM.
+		var ok, res bool
+		var err error
+		for _, tuple := range relation.rows {
+
+			ok = true
+			// If the row validate all predicates, write it
+			for _, predicate := range predicates {
+				if res, err = predicate.Evaluate(tuple, relation.table); err != nil {
 					return err
+				}
+				if res == false {
+					ok = false
+					continue
+				}
+			}
+
+			if ok {
+				for i := range functors {
+					err := functors[i].Feed(tuple)
+					if err != nil {
+						return err
+					}
 				}
 			}
 		}
-	}
 
-	for i := range functors {
-		err := functors[i].Done()
-		if err != nil {
-			return err
+		for i := range functors {
+			err := functors[i].Done()
+			if err != nil {
+				return err
+			}
 		}
 	}
-
 	return nil
-}
-
-func defaultSelectOperation() {
-}
-
-func writeRow(conn protocol.EngineConn, t *Tuple) error {
-	var row []string
-	for _, value := range t.Values {
-		row = append(row, fmt.Sprintf("%s", value))
-	}
-	return conn.WriteRow(row)
 }

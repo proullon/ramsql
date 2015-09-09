@@ -78,7 +78,9 @@ func Warning(format string, values ...interface{}) {
 
 // Critical prints error informations
 func Critical(format string, values ...interface{}) {
+	mu.Lock()
 	logger.Logf("[CRITICAL] "+format, values...)
+	mu.Unlock()
 }
 
 // BaseLogger logs on stdout
@@ -102,5 +104,8 @@ func (l TestLogger) Logf(fmt string, values ...interface{}) {
 
 // UseTestLogger should be used only by unit tests
 func UseTestLogger(t *testing.T) {
+	mu.Lock()
 	logger = t
+	mu.Unlock()
+	SetLevel(WarningLevel)
 }
