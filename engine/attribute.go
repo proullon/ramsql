@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
@@ -50,7 +51,7 @@ func parseAttribute(decl *parser.Decl) (Attribute, error) {
 		}
 	}
 
-	if attr.typeName == "bigserial" {
+	if strings.ToLower(attr.typeName) == "bigserial" {
 		attr.autoIncrement = true
 	}
 
