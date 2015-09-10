@@ -443,15 +443,12 @@ func (p *parser) parseAttribute() (*Decl, error) {
 	if quoted {
 		// Check there is a closing quote
 		if _, err := p.mustHaveNext(DoubleQuoteToken); err != nil {
-			debug("parseAttribute: Missing closing quote")
+			log.Debug("parseAttribute: Missing closing quote")
 			return nil, err
 		}
 	}
 	// If no next token,and not quoted, then is was the atribute name
 	if err := p.next(); err != nil {
-		if quoted {
-			return nil, err
-		}
 		return decl, nil
 	}
 
@@ -517,11 +514,6 @@ func (p *parser) parseCondition() (*Decl, error) {
 		return nil, err
 	}
 
-	// Equal
-	/*if !p.is(EqualityToken) {
-		return nil, p.syntaxError()
-	}
-	equalDecl := NewDecl(p.cur())*/
 	equalDecl, err := p.consumeToken(EqualityToken)
 	if err != nil {
 		return nil, err
@@ -543,11 +535,6 @@ func (p *parser) parseValue() (*Decl, error) {
 	defer debug("~parseValue")
 	quoted := false
 
-	/*if _, err := p.isNext(SimpleQuoteToken, DoubleQuoteToken); err == nil {
-		p.next()
-		quoted = true
-		debug("value is quoted!")
-	}*/
 	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
 		quoted = true
 		debug("value %v is quoted!", p.tokens[p.index])
@@ -557,23 +544,15 @@ func (p *parser) parseValue() (*Decl, error) {
 		}
 	}
 
-	/*t, err := p.mustHaveNext(StringToken, NumberToken)
-	if err != nil {
-		return nil, err
-	}
-	valueDecl := NewDecl(t)*/
 	valueDecl, err := p.consumeToken(StringToken, NumberToken)
 	if err != nil {
 		debug("parseValue: Wasn't expecting %v\n", p.tokens[p.index])
 		return nil, err
 	}
-	debug("Parsing value %v !\n", valueDecl)
+	log.Debug("Parsing value %v !\n", valueDecl)
 
 	if quoted {
-		/*if _, err := p.mustHaveNext(SimpleQuoteToken, DoubleQuoteToken); err != nil {
-			return nil, err
-		}*/
-		debug("consume quote %v\n", p.tokens[p.index])
+		log.Debug("consume quote %v\n", p.tokens[p.index])
 		_, err := p.consumeToken(SimpleQuoteToken, DoubleQuoteToken)
 		if err != nil {
 			debug("uuuh, wasn't a quote")

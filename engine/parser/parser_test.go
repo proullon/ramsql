@@ -88,6 +88,9 @@ func TestSelectOnePredicate(t *testing.T) {
 func TestSelectQuotedTableName(t *testing.T) {
 	query := `SELECT * FROM "account" WHERE 1`
 	parse(query, 1, t)
+
+	query = `SELECT * FROM "account"`
+	parse(query, 1, t)
 }
 
 func TestSelectJoin(t *testing.T) {
