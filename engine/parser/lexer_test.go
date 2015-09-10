@@ -2,6 +2,7 @@ package parser
 
 import (
 	"testing"
+	"time"
 )
 
 func TestLexerSimple(t *testing.T) {
@@ -18,22 +19,12 @@ func TestLexerSimple(t *testing.T) {
 	}
 }
 
-// func TestLexerComplete(t *testing.T) {
-// 	query := `CREATE TABLE user
-// 	(
-//     	id INT PRIMARY KEY NOT NULL,
-// 	    last_name VARCHAR(100),
-// 	    first_name VARCHAR(100),
-// 	    email VARCHAR(255),
-// 	    birth_date DATE,
-// 	    country VARCHAR(255),
-// 	    town VARCHAR(255),
-// 	    zip_code VARCHAR(5)
-// 	)`
+func TestParseDate(t *testing.T) {
+	const long = "2006-01-02 15:04:05.999999999 -0700 MST"
+	data := `2015-09-10 14:03:09.444695269 +0200 CEST`
 
-// 	lexer := lexer{}
-// 	_, err := lexer.lex([]byte(query))
-// 	if err != nil {
-// 		t.Fatalf("Cannot lex <%s> string", query)
-// 	}
-// }
+	_, err := time.Parse(long, data)
+	if err != nil {
+		t.Fatalf("Cannot parse %s: %s", data, err)
+	}
+}

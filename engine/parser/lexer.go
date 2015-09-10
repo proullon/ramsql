@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"time"
 	"unicode"
 
 	"github.com/proullon/ramsql/engine/log"
@@ -66,6 +67,7 @@ const (
 	KeyToken
 	StringToken
 	NumberToken
+	DateToken
 )
 
 // Token struct holds token id and it's lexeme
@@ -134,6 +136,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
+	matchers = append(matchers, l.MatchDateToken)
 	matchers = append(matchers, l.MatchNumberToken)
 	matchers = append(matchers, l.MatchStringToken)
 
@@ -358,6 +361,47 @@ func (l *lexer) MatchStarToken() bool {
 
 func (l *lexer) MatchEqualityToken() bool {
 	return l.MatchSingle('=', EqualityToken)
+}
+
+// 2015-09-10 14:03:09.444695269 +0200 CEST);
+func (l *lexer) MatchDateToken() bool {
+	const long = "2006-01-02 15:04:05.999999999 -0700 MST"
+	const short = "2006-Jan-02"
+
+	i := l.pos
+	for i < l.instructionLen &&
+		l.instruction[i] != ',' &&
+		l.instruction[i] != ')' {
+		i++
+	}
+
+	data := string(l.instruction[l.pos:i])
+	t := Token{
+		Token:  StringToken,
+		Lexeme: data,
+	}
+
+	_, err := time.Parse(long, data)
+	if err == nil {
+		l.tokens = append(l.tokens, t)
+		l.pos = i
+		return true
+	}
+
+	_, err = time.Parse(time.RFC3339, data)
+	if err == nil {
+		l.tokens = append(l.tokens, t)
+		l.pos = i
+		return true
+	}
+	_, err = time.Parse(short, data)
+	if err == nil {
+		l.tokens = append(l.tokens, t)
+		l.pos = i
+		return true
+	}
+
+	return false
 }
 
 func (l *lexer) MatchDoubleQuoteToken() bool {

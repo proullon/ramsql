@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 )
 
 func (p *parser) parseCreate(tokens []Token) (*Instruction, error) {
@@ -133,7 +134,7 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 		}
 
 		// IF timestamp, maybe WITH TIME ZONE ?
-		if newAttributeType.Lexeme == "timestamp" && p.cur().Token == WithToken {
+		if strings.ToLower(newAttributeType.Lexeme) == "timestamp" && p.cur().Token == WithToken {
 			withDecl, err := p.consumeToken(WithToken)
 			if err != nil {
 				return nil, err
