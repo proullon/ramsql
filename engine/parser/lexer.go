@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"time"
 	"unicode"
 
 	"github.com/proullon/ramsql/engine/log"
@@ -365,8 +364,6 @@ func (l *lexer) MatchEqualityToken() bool {
 
 // 2015-09-10 14:03:09.444695269 +0200 CEST);
 func (l *lexer) MatchDateToken() bool {
-	const long = "2006-01-02 15:04:05.999999999 -0700 MST"
-	const short = "2006-Jan-02"
 
 	i := l.pos
 	for i < l.instructionLen &&
@@ -376,32 +373,20 @@ func (l *lexer) MatchDateToken() bool {
 	}
 
 	data := string(l.instruction[l.pos:i])
+
+	_, err := ParseDate(data)
+	if err != nil {
+		return false
+	}
+
 	t := Token{
 		Token:  StringToken,
 		Lexeme: data,
 	}
 
-	_, err := time.Parse(long, data)
-	if err == nil {
-		l.tokens = append(l.tokens, t)
-		l.pos = i
-		return true
-	}
-
-	_, err = time.Parse(time.RFC3339, data)
-	if err == nil {
-		l.tokens = append(l.tokens, t)
-		l.pos = i
-		return true
-	}
-	_, err = time.Parse(short, data)
-	if err == nil {
-		l.tokens = append(l.tokens, t)
-		l.pos = i
-		return true
-	}
-
-	return false
+	l.tokens = append(l.tokens, t)
+	l.pos = i
+	return true
 }
 
 func (l *lexer) MatchDoubleQuoteToken() bool {

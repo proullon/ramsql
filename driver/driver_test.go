@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/proullon/ramsql/engine/log"
 )
@@ -446,7 +447,7 @@ func TestDate(t *testing.T) {
 
 	db, err := sql.Open("ramsql", "TestDate")
 	if err != nil {
-		t.Fatalf("sql.Open : Error : %s\n", err)
+		t.Fatalf("sql.Open : Error : %s", err)
 	}
 	defer db.Close()
 
@@ -457,16 +458,27 @@ func TestDate(t *testing.T) {
 	"tag" text) ;`
 	_, err = db.Exec(create)
 	if err != nil {
-		t.Fatalf("Cannot create table: %s\n", err)
+		t.Fatalf("Cannot create table: %s", err)
 	}
 
 	_, err = db.Exec(`CREATE TABLE token (uuid TEXT PRIMARY KEY, hash_token TEXT, user_id BIGINT, expires TIMESTAMP WITH TIME ZONE)`)
 	if err != nil {
-		t.Fatalf("Cannot create table: %s\n", err)
+		t.Fatalf("Cannot create table: %s", err)
 	}
 
 	_, err = db.Exec(query)
 	if err != nil {
-		t.Fatalf("Cannot insert data: %s\n", err)
+		t.Fatalf("Cannot insert data: %s", err)
+	}
+
+	log.SetLevel(log.DebugLevel)
+	var date time.Time
+	err = db.QueryRow(`SELECT token.expires FROM token WHERE 1`).Scan(&date)
+	if err != nil {
+		t.Fatalf("Cannot select date: %s", err)
+	}
+
+	if fmt.Sprintf("%v", date) != "2015-09-10 14:03:09.444695269 +0200 CEST" {
+		t.Fatalf("Expected specific date, got %v", date)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/proullon/ramsql/engine/log"
+	"github.com/proullon/ramsql/engine/parser"
 )
 
 // Rows implements the sql/driver Rows interface
@@ -69,11 +70,19 @@ func (r *Rows) Next(dest []driver.Value) (err error) {
 		return io.EOF
 	}
 
+	if len(dest) < len(value) {
+		return fmt.Errorf("slice too short (%d slots for %d values)", len(dest), len(value))
+	}
+
 	for i, v := range value {
-		if len(dest) <= i {
-			return fmt.Errorf("slice too short")
+		// TODO: make rowsChannel send virtualRows,
+		// so we have the type and don't blindy try to parse date here
+		if t, err := parser.ParseDate(string(v)); err == nil {
+			dest[i] = *t
+		} else {
+
+			dest[i] = []byte(v)
 		}
-		dest[i] = []byte(v)
 	}
 
 	return nil
