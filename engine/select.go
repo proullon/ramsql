@@ -67,13 +67,7 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 	// Instanciate a new select functor
 	functors, err = getSelectFunctors(selectDecl)
 
-	// and select
-	// TODO: always use generateVirtualRows
-	if len(joiners) != 0 {
-		err = generateVirtualRows(e, attributes, conn, tables[0].name, joiners, predicates, functors)
-	} else {
-		err = selectRows(e, attributes, tables, conn, predicates, functors)
-	}
+	err = generateVirtualRows(e, attributes, conn, tables[0].name, joiners, predicates, functors)
 	if err != nil {
 		return err
 	}
@@ -83,7 +77,6 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 
 type selectFunctor interface {
 	Init(e *Engine, conn protocol.EngineConn, attr []string, alias []string) error
-	Feed(t *Tuple) error
 	FeedVirtualRow(row virtualRow) error
 	Done() error
 }
@@ -144,16 +137,6 @@ func (f *defaultSelectFunction) FeedVirtualRow(vrow virtualRow) error {
 	return f.conn.WriteRow(row)
 }
 
-// TODO Need disappear (see FeedVirtualRow).
-func (f *defaultSelectFunction) Feed(t *Tuple) error {
-	var row []string
-
-	for _, value := range t.Values {
-		row = append(row, fmt.Sprintf("%v", value))
-	}
-	return f.conn.WriteRow(row)
-}
-
 func (f *defaultSelectFunction) Done() error {
 	return f.conn.WriteRowEnd()
 }
@@ -171,11 +154,6 @@ func (f *countSelectFunction) Init(e *Engine, conn protocol.EngineConn, attr []s
 	f.conn = conn
 	f.attributes = attr
 	f.alias = alias
-	return nil
-}
-
-func (f *countSelectFunction) Feed(t *Tuple) error {
-	f.Count++
 	return nil
 }
 
@@ -293,63 +271,25 @@ func getSelectedAttribute(e *Engine, attr *parser.Decl, tables []*Table) ([]Attr
 	return attributes, nil
 }
 
-func selectRows(e *Engine, attr []Attribute, tables []*Table, conn protocol.EngineConn, predicates []Predicate, functors []selectFunctor) error {
-	relations := make(map[string]*Relation)
+// Perform actual check of predicates present in virtualrow.
+func selectRows(row virtualRow, predicates []Predicate, functors []selectFunctor) error {
+	var res bool
+	var err error
 
-	for _, t := range tables {
-		r := e.relation(t.name)
-		r.RLock()
-		defer r.RUnlock()
-		relations[t.name] = r
-	}
-
-	// Write header
-	var header []string
-	for _, a := range attr {
-		header = append(header, a.name)
-	}
-
-	// Initialize functors here
-	for i := range functors {
-		if err := functors[i].Init(e, conn, header, header); err != nil {
+	// If the row validate all predicates, write it
+	for _, predicate := range predicates {
+		if res, err = predicate.Eval(row); err != nil {
 			return err
 		}
+		if res == false {
+			return nil
+		}
 	}
 
-	for _, relation := range relations {
-
-		// Perform actual check of predicates on every row of tables present in FROM.
-		var ok, res bool
-		var err error
-		for _, tuple := range relation.rows {
-
-			ok = true
-			// If the row validate all predicates, write it
-			for _, predicate := range predicates {
-				if res, err = predicate.Evaluate(tuple, relation.table); err != nil {
-					return err
-				}
-				if res == false {
-					ok = false
-					continue
-				}
-			}
-
-			if ok {
-				for i := range functors {
-					err := functors[i].Feed(tuple)
-					if err != nil {
-						return err
-					}
-				}
-			}
-		}
-
-		for i := range functors {
-			err := functors[i].Done()
-			if err != nil {
-				return err
-			}
+	for i := range functors {
+		err := functors[i].FeedVirtualRow(row)
+		if err != nil {
+			return err
 		}
 	}
 	return nil

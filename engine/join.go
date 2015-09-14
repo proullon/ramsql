@@ -87,31 +87,6 @@ func (i *inner) Evaluate(row virtualRow, r *Relation, index int) (bool, error) {
 	return false, nil
 }
 
-// Perform actual check of predicates present in virtualrow.
-// TODO: Should become the only selectRows in here
-func selectRows2(row virtualRow, predicates []Predicate, functors []selectFunctor) error {
-	var res bool
-	var err error
-
-	// If the row validate all predicates, write it
-	for _, predicate := range predicates {
-		if res, err = predicate.Eval(row); err != nil {
-			return err
-		}
-		if res == false {
-			return nil
-		}
-	}
-
-	for i := range functors {
-		err := functors[i].FeedVirtualRow(row)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // The optional WHERE, GROUP BY, and HAVING clauses in the table expression specify a pipeline of successive transformations performed on the table derived in the FROM clause.
 // All these transformations produce a virtual table that provides the rows that are passed to the select list to compute the output rows of the query.
 func generateVirtualRows(e *Engine, attr []Attribute, conn protocol.EngineConn, t1Name string, joinPredicates []joiner, selectPredicates []Predicate, functors []selectFunctor) error {
@@ -188,6 +163,11 @@ func generateVirtualRows(e *Engine, attr []Attribute, conn protocol.EngineConn, 
 // Recursive virtual row creation
 func join(row virtualRow, relations map[string]*Relation, predicates []joiner, predicateIndex int, selectPredicates []Predicate, functors []selectFunctor) error {
 
+	// Skip directly to selectRows if there is no joiner to run
+	if len(predicates) == 0 {
+		return selectRows(row, selectPredicates, functors)
+	}
+
 	// get current predicates
 	predicate := predicates[predicateIndex]
 
@@ -222,10 +202,8 @@ func join(row virtualRow, relations map[string]*Relation, predicates []joiner, p
 
 		// if last predicate
 		if last {
-			// call selectRows
-			err = selectRows2(row, selectPredicates, functors)
+			err = selectRows(row, selectPredicates, functors)
 		} else {
-			// call join recursively with predicateIndex+1
 			err = join(row, relations, predicates, predicateIndex+1, selectPredicates, functors)
 		}
 		if err != nil {

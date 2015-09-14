@@ -7,6 +7,11 @@ import (
 	"testing"
 )
 
+func init() {
+	level = WarningLevel
+	logger = BaseLogger{}
+}
+
 // Level of logging trigger
 type Level int
 
@@ -35,11 +40,6 @@ func SetLevel(lvl Level) {
 	mu.Lock()
 	level = lvl
 	mu.Unlock()
-}
-
-func init() {
-	level = WarningLevel
-	logger = BaseLogger{}
 }
 
 func lvl() Level {
