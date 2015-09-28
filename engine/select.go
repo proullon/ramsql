@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
 )
@@ -21,7 +22,7 @@ import (
 func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn) error {
 	var attributes []Attribute
 	var tables []*Table
-	var predicates []Predicate
+	var predicates []PredicateLinker
 	var functors []selectFunctor
 	var joiners []joiner
 	var err error
@@ -34,10 +35,11 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 			tables = fromExecutor(selectDecl.Decl[i])
 		case parser.WhereToken:
 			// get WHERE declaration
-			predicates, err = whereExecutor(selectDecl.Decl[i], tables[0].name)
+			pred, err := whereExecutor2(selectDecl.Decl[i].Decl, tables[0].name)
 			if err != nil {
 				return err
 			}
+			predicates = []PredicateLinker{pred}
 		case parser.JoinToken:
 			j, err := joinExecutor(selectDecl.Decl[i])
 			if err != nil {
@@ -176,6 +178,137 @@ func (f *countSelectFunction) Done() error {
 	return f.conn.WriteRowEnd()
 }
 
+func inExecutor(inDecl *parser.Decl, p *Predicate) error {
+	inDecl.Stringy(0)
+
+	p.Operator = inOperator
+
+	// Put everything in a []string
+	var values []string
+	for i := range inDecl.Decl {
+		log.Debug("inExecutor: Appending [%s]", inDecl.Decl[i].Lexeme)
+		values = append(values, inDecl.Decl[i].Lexeme)
+	}
+	p.RightValue.v = values
+
+	return nil
+}
+
+func or(left []*parser.Decl, right []*parser.Decl, tableName string) (PredicateLinker, error) {
+	p := &orOperator{}
+
+	if len(left) > 0 {
+		lPred, err := whereExecutor2(left, tableName)
+		if err != nil {
+			return nil, err
+		}
+		p.Add(lPred)
+	}
+
+	if len(right) > 0 {
+		rPred, err := whereExecutor2(right, tableName)
+		if err != nil {
+			return nil, err
+		}
+		p.Add(rPred)
+	}
+
+	return p, nil
+}
+
+func and(left []*parser.Decl, right []*parser.Decl, tableName string) (PredicateLinker, error) {
+	p := &andOperator{}
+
+	if len(left) > 0 {
+		lPred, err := whereExecutor2(left, tableName)
+		if err != nil {
+			return nil, err
+		}
+		p.Add(lPred)
+	}
+
+	if len(right) > 0 {
+		rPred, err := whereExecutor2(right, tableName)
+		if err != nil {
+			return nil, err
+		}
+		p.Add(rPred)
+	}
+
+	return p, nil
+}
+
+func whereExecutor2(decl []*parser.Decl, fromTableName string) (PredicateLinker, error) {
+
+	for i, cond := range decl {
+
+		if cond.Token == parser.AndToken {
+			if i+1 == len(decl) {
+				return nil, fmt.Errorf("query error: AND not followed by any predicate")
+			}
+
+			p, err := and(decl[:i], decl[i+1:], fromTableName)
+			return p, err
+		}
+
+		if cond.Token == parser.OrToken {
+			if i+1 == len(decl) {
+				return nil, fmt.Errorf("query error: OR not followd by any predicate")
+			}
+			p, err := or(decl[:i], decl[i+1:], fromTableName)
+			return p, err
+		}
+	}
+
+	p := &Predicate{}
+	var err error
+	cond := decl[0]
+
+	// 1 PREDICATE
+	if cond.Lexeme == "1" {
+		return &TruePredicate, nil
+	}
+
+	switch cond.Decl[0].Token {
+	case parser.InToken, parser.EqualityToken, parser.LeftDipleToken, parser.RightDipleToken:
+		break
+	default:
+		fromTableName = cond.Decl[0].Lexeme
+		cond.Decl = cond.Decl[1:]
+		break
+	}
+
+	p.LeftValue.lexeme = cond.Lexeme
+
+	// Handle IN keyword
+	if cond.Decl[0].Token == parser.InToken {
+		err := inExecutor(cond.Decl[0], p)
+		if err != nil {
+			return nil, err
+		}
+		p.LeftValue.table = fromTableName
+		return p, nil
+	}
+
+	if len(cond.Decl) < 2 {
+		return nil, fmt.Errorf("Malformed predicate \"%s\"", cond.Lexeme)
+	}
+
+	// The first element of the list is then the relation of the attribute
+	op := cond.Decl[0]
+	val := cond.Decl[1]
+
+	p.Operator, err = NewOperator(op.Token, op.Lexeme)
+	if err != nil {
+		return nil, err
+	}
+	p.RightValue.lexeme = val.Lexeme
+	p.RightValue.valid = true
+
+	p.LeftValue.table = fromTableName
+	return p, nil
+}
+
 /*
    |-> WHERE
 	   |-> email
@@ -184,36 +317,59 @@ func (f *countSelectFunction) Done() error {
 */
 func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, error) {
 	var predicates []Predicate
+	var err error
 	whereDecl.Stringy(0)
 
 	for i := range whereDecl.Decl {
 		var p Predicate
+		tableName := fromTableName
 		cond := whereDecl.Decl[i]
 
 		// 1 PREDICATE
-		if whereDecl.Decl[i].Lexeme == "1" {
+		if cond.Lexeme == "1" {
 			predicates = append(predicates, TruePredicate)
 			continue
 		}
 
+		if len(cond.Decl) == 0 {
+			log.Debug("whereExecutor: HUm hum you must be AND or OR: %v", cond)
+			continue
+		}
+
+		switch cond.Decl[0].Token {
+		case parser.EqualityToken, parser.LeftDipleToken, parser.RightDipleToken:
+			log.Debug("whereExecutor: it's = < >")
+			break
+		case parser.InToken:
+			log.Debug("whereExecutor: it's IN")
+			break
+		default:
+			log.Debug("it's the table name ! -> %s", cond.Decl[0].Lexeme)
+			tableName = cond.Decl[0].Lexeme
+			cond.Decl = cond.Decl[1:]
+			break
+		}
+
 		p.LeftValue.lexeme = whereDecl.Decl[i].Lexeme
-		if len(whereDecl.Decl[i].Decl) < 2 {
-			return nil, fmt.Errorf("Malformed predicate \"%s\"", whereDecl.Decl[i].Lexeme)
+
+		// Handle IN keyword
+		if cond.Decl[0].Token == parser.InToken {
+			err := inExecutor(cond.Decl[0], &p)
+			if err != nil {
+				return nil, err
+			}
+			p.LeftValue.table = tableName
+			predicates = append(predicates, p)
+			continue
+		}
+
+		if len(cond.Decl) < 2 {
+			return nil, fmt.Errorf("Malformed predicate \"%s\"", cond.Lexeme)
 		}
 
 		// The first element of the list is then the relation of the attribute
-		var err error
-		var op *parser.Decl
-		var val *parser.Decl
-		var relation *parser.Decl
-		if len(cond.Decl) == 3 {
-			relation = cond.Decl[0]
-			op = cond.Decl[1]
-			val = cond.Decl[2]
-		} else {
-			op = cond.Decl[0]
-			val = cond.Decl[1]
-		}
+		op := cond.Decl[0]
+		val := cond.Decl[1]
 
 		p.Operator, err = NewOperator(op.Token, op.Lexeme)
 		if err != nil {
@@ -221,11 +377,8 @@ func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, e
 		}
 		p.RightValue.lexeme = val.Lexeme
 		p.RightValue.valid = true
-		if relation != nil {
-			p.LeftValue.table = relation.Lexeme
-		} else { // The relation is then implicitly the first table named in FROM
-			p.LeftValue.table = fromTableName
-		}
+
+		p.LeftValue.table = tableName
 
 		predicates = append(predicates, p)
 	}
@@ -272,7 +425,7 @@ func getSelectedAttribute(e *Engine, attr *parser.Decl, tables []*Table) ([]Attr
 }
 
 // Perform actual check of predicates present in virtualrow.
-func selectRows(row virtualRow, predicates []Predicate, functors []selectFunctor) error {
+func selectRows(row virtualRow, predicates []PredicateLinker, functors []selectFunctor) error {
 	var res bool
 	var err error
 

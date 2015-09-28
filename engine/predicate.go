@@ -4,6 +4,57 @@ import (
 	"fmt"
 )
 
+// PredicateLinker referes to AND and OR operators.
+type PredicateLinker interface {
+	Eval(v virtualRow) (bool, error)
+}
+
+type andOperator struct {
+	pred []PredicateLinker
+}
+
+func (o *andOperator) Add(p PredicateLinker) {
+	o.pred = append(o.pred, p)
+}
+
+func (o *andOperator) Eval(v virtualRow) (bool, error) {
+
+	for i := range o.pred {
+		ok, err := o.pred[i].Eval(v)
+		if err != nil {
+			return false, err
+		}
+		if !ok {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+type orOperator struct {
+	pred []PredicateLinker
+}
+
+func (o *orOperator) Add(p PredicateLinker) {
+	o.pred = append(o.pred, p)
+}
+
+func (o *orOperator) Eval(v virtualRow) (bool, error) {
+
+	for i := range o.pred {
+		ok, err := o.pred[i].Eval(v)
+		if err != nil {
+			return false, err
+		}
+		if ok {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // TruePredicate is a predicate wich return always true
 var TruePredicate = Predicate{
 	True: true,
@@ -66,6 +117,7 @@ func (p *Predicate) Eval(row virtualRow) (bool, error) {
 }
 
 // Evaluate is deprecated (see Eval). It calls operators and use tuple as operand
+// TODO: Delete that
 func (p *Predicate) Evaluate(t *Tuple, table *Table) (bool, error) {
 
 	if p.True {
