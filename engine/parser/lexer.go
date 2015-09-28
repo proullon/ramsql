@@ -16,6 +16,8 @@ const (
 	CommaToken
 	BracketOpeningToken
 	BracketClosingToken
+	LeftDipleToken
+	RightDipleToken
 
 	// QuoteToken
 
@@ -57,6 +59,9 @@ const (
 	TimeToken
 	ZoneToken
 	ReturningToken
+	InToken
+	AndToken
+	OrToken
 
 	// Type Token
 
@@ -104,6 +109,8 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchEqualityToken)
 	matchers = append(matchers, l.MatchPeriodToken)
 	matchers = append(matchers, l.MatchDoubleQuoteToken)
+	matchers = append(matchers, l.MatchLeftDipleToken)
+	matchers = append(matchers, l.MatchRightDipleToken)
 	// First order Matcher
 	matchers = append(matchers, l.MatchCreateToken)
 	matchers = append(matchers, l.MatchSelectToken)
@@ -132,6 +139,9 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchTimeToken)
 	matchers = append(matchers, l.MatchZoneToken)
 	matchers = append(matchers, l.MatchReturningToken)
+	matchers = append(matchers, l.MatchInToken)
+	matchers = append(matchers, l.MatchAndToken)
+	matchers = append(matchers, l.MatchOrToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -178,6 +188,18 @@ func (l *lexer) MatchSpaceToken() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) MatchAndToken() bool {
+	return l.Match([]byte("and"), AndToken)
+}
+
+func (l *lexer) MatchOrToken() bool {
+	return l.Match([]byte("or"), OrToken)
+}
+
+func (l *lexer) MatchInToken() bool {
+	return l.Match([]byte("in"), InToken)
 }
 
 func (l *lexer) MatchReturningToken() bool {
@@ -360,6 +382,14 @@ func (l *lexer) MatchStarToken() bool {
 
 func (l *lexer) MatchEqualityToken() bool {
 	return l.MatchSingle('=', EqualityToken)
+}
+
+func (l *lexer) MatchLeftDipleToken() bool {
+	return l.MatchSingle('<', LeftDipleToken)
+}
+
+func (l *lexer) MatchRightDipleToken() bool {
+	return l.MatchSingle('>', RightDipleToken)
 }
 
 // 2015-09-10 14:03:09.444695269 +0200 CEST);

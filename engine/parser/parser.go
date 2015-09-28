@@ -377,6 +377,14 @@ func (p *parser) parseWhere(selectDecl *Decl) error {
 		}
 		whereDecl.Add(attributeDecl)
 
+		if p.is(AndToken, OrToken) {
+			linkDecl, err := p.consumeToken(p.cur().Token)
+			if err != nil {
+				return err
+			}
+			whereDecl.Add(linkDecl)
+		}
+
 		// Got at least one clause
 		gotClause = true
 	}
@@ -514,11 +522,22 @@ func (p *parser) parseCondition() (*Decl, error) {
 		return nil, err
 	}
 
-	equalDecl, err := p.consumeToken(EqualityToken)
-	if err != nil {
-		return nil, err
+	switch p.cur().Token {
+	case EqualityToken, LeftDipleToken, RightDipleToken:
+		decl, err := p.consumeToken(p.cur().Token)
+		if err != nil {
+			return nil, err
+		}
+		attributeDecl.Add(decl)
+		break
+	case InToken:
+		inDecl, err := p.parseIn()
+		if err != nil {
+			return nil, err
+		}
+		attributeDecl.Add(inDecl)
+		return attributeDecl, nil
 	}
-	attributeDecl.Add(equalDecl)
 
 	// Value
 	valueDecl, err := p.parseValue()
@@ -526,8 +545,46 @@ func (p *parser) parseCondition() (*Decl, error) {
 		return nil, err
 	}
 	attributeDecl.Add(valueDecl)
-
 	return attributeDecl, nil
+}
+
+func (p *parser) parseIn() (*Decl, error) {
+	inDecl, err := p.consumeToken(InToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// bracket opening
+	_, err = p.consumeToken(BracketOpeningToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// list of value
+	gotList := false
+	for {
+		v, err := p.parseValue()
+		if err != nil {
+			return nil, err
+		}
+		inDecl.Add(v)
+		gotList = true
+
+		if p.is(BracketClosingToken) {
+			if gotList == false {
+				return nil, fmt.Errorf("IN clause: empty list of value")
+			}
+			p.consumeToken(BracketClosingToken)
+			break
+		}
+
+		_, err = p.consumeToken(CommaToken)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return inDecl, nil
 }
 
 func (p *parser) parseValue() (*Decl, error) {
