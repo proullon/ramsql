@@ -31,6 +31,7 @@ func TestJoin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sql.Open failed: %s", err)
 	}
+	defer db.Close()
 
 	// construct a gorp DbMap
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}

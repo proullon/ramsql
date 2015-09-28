@@ -18,10 +18,14 @@ type Conn struct {
 	// Socket is the network connection to RamSQL engine
 	conn protocol.DriverConn
 	// socket net.Conn
+
+	// This conn belongs to this server
+	parent *Server
 }
 
-func newConn(conn protocol.DriverConn) driver.Conn {
-	return &Conn{conn: conn}
+func newConn(conn protocol.DriverConn, parent *Server) driver.Conn {
+	parent.openingConn()
+	return &Conn{conn: conn, parent: parent}
 }
 
 // Prepare returns a prepared statement, bound to this connection.
@@ -43,6 +47,11 @@ func (c *Conn) Prepare(query string) (driver.Stmt, error) {
 func (c *Conn) Close() error {
 	log.Debug("Conn.Close")
 	c.conn.Close()
+
+	if c.parent != nil {
+		c.parent.closingConn()
+	}
+
 	return nil
 }
 

@@ -25,6 +25,10 @@ func init() {
 type Server struct {
 	endpoint protocol.DriverEndpoint
 	server   *engine.Engine
+
+	// Kill server on last connection closing
+	sync.Mutex
+	connCount int64
 }
 
 // Driver is the driver entrypoint,
@@ -87,11 +91,11 @@ func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
 		}
 		rs.servers[dsn] = s
 
-		return newConn(driverConn), nil
+		return newConn(driverConn, &s), nil
 	}
 
 	driverConn, err := dsnServer.endpoint.New(dsn)
-	return newConn(driverConn), nil
+	return newConn(driverConn, &dsnServer), err
 }
 
 func endpoints(conf *connConf) (protocol.DriverEndpoint, protocol.EngineEndpoint, error) {
@@ -175,4 +179,21 @@ func parseConnectionURI(uri string) (*connConf, error) {
 	c.User = dup[1]
 	c.Password = dup[2]
 	return c, nil
+}
+
+func (s *Server) openingConn() {
+
+	s.Lock()
+	defer s.Unlock()
+	s.connCount++
+}
+
+func (s *Server) closingConn() {
+	s.Lock()
+	defer s.Unlock()
+	s.connCount--
+
+	if s.connCount == 0 {
+		s.server.Stop()
+	}
 }
