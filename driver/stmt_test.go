@@ -89,6 +89,31 @@ func TestReplaceEndODBC(t *testing.T) {
 	testReplaceArguments(t, query, args, wantedQuery)
 }
 
+func TestReplaceALot(t *testing.T) {
+	query := `INSERT INTO "human" ("id","birth_date","first_name","middle_name","last_name","size","weight","gender","version","goal","hair_color","foo","bar","team") values ($1, $2, $3, $4, $5, $6, $7, $8, $9 ,$10,$11,$12,$13,$14)`
+
+	wantedQuery := `INSERT INTO "human" ("id","birth_date","first_name","middle_name","last_name","size","weight","gender","version","goal","hair_color","foo","bar","team") values ('1', '2', '3', '4', '5', '6', '7', '8', '9' ,'10','11','12','13','14')`
+
+	args := []driver.Value{
+		driver.Value("1"),
+		driver.Value("2"),
+		driver.Value("3"),
+		driver.Value("4"),
+		driver.Value("5"),
+		driver.Value("6"),
+		driver.Value("7"),
+		driver.Value("8"),
+		driver.Value("9"),
+		driver.Value("10"),
+		driver.Value("11"),
+		driver.Value("12"),
+		driver.Value("13"),
+		driver.Value("14"),
+	}
+
+	testReplaceArguments(t, query, args, wantedQuery)
+}
+
 func testReplaceArguments(t *testing.T, query string, args []driver.Value, wantedQuery string) {
 	finalQuery := replaceArguments(query, args)
 	if finalQuery != wantedQuery {

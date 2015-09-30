@@ -3,6 +3,8 @@ package ramsql
 import (
 	"database/sql/driver"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/proullon/ramsql/engine/log"
@@ -118,34 +120,40 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 
 // replace $* by arguments in query string
 func replaceArguments(query string, args []driver.Value) string {
+	holder := regexp.MustCompile(`\$[0-9]+`)
 
 	if strings.Count(query, "?") == len(args) {
 		return replaceArgumentsODBC(query, args)
 	}
 
-	for argumentIndex := 1; ; argumentIndex++ {
-		queryParts := strings.Split(query, fmt.Sprintf("$%d", argumentIndex))
-		if len(queryParts) == 1 {
+	var loc []int
+	loc = holder.FindIndex([]byte(query))
+	for loc != nil {
+		queryB := []byte(query)
+		match := queryB[loc[0]:loc[1]]
+
+		index, err := strconv.Atoi(string(match[1:]))
+		if err != nil {
+			log.Warning("Matched %s as a placeholder but cannot get index: %s\n", match, err)
 			return query
 		}
 
-		query = ""
-		for i, queryPart := range queryParts {
-			query += queryPart
-			if i != len(queryParts)-1 {
-				// Test if Value is a string, if so, add simple quotes
-				_, ok := args[argumentIndex-1].(string)
-				if ok && !strings.HasSuffix(query, "'") {
-					query += fmt.Sprintf("'%s'", args[argumentIndex-1])
-				} else if ok {
-					query += fmt.Sprintf("%s", args[argumentIndex-1])
-				} else {
-					query += fmt.Sprintf("%v", args[argumentIndex-1])
-				}
-			}
+		var v string
+		_, ok := args[index-1].(string)
+		if ok && !strings.HasSuffix(query, "'") {
+			v = fmt.Sprintf("'%s'", args[index-1])
+		} else if ok {
+			v = fmt.Sprintf("%s", args[index-1])
+		} else {
+			v = fmt.Sprintf("%v", args[index-1])
 		}
+
+		log.Debug("Replacing %s with %s\n", match, v)
+		query = strings.Replace(query, string(match), v, 1)
+		loc = holder.FindIndex([]byte(query))
 	}
 
+	return query
 }
 
 func replaceArgumentsODBC(query string, args []driver.Value) string {
