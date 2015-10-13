@@ -148,6 +148,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchDateToken)
 	matchers = append(matchers, l.MatchNumberToken)
 	matchers = append(matchers, l.MatchStringToken)
+	matchers = append(matchers, l.MatchEscapedStringToken)
 
 	var r bool
 	for l.pos < l.instructionLen {
@@ -444,6 +445,46 @@ func (l *lexer) MatchDoubleQuoteToken() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) MatchEscapedStringToken() bool {
+	i := l.pos
+	if l.instruction[i] != '$' || l.instruction[i+1] != '$' {
+		return false
+	}
+	i += 2
+
+	for i+1 < l.instructionLen && l.instruction[i] != '$' && l.instruction[i+1] != '$' {
+		i++
+	}
+	i++
+
+	if i+1 == l.instructionLen {
+		return false
+	}
+
+	tok := NumberToken
+	escaped := l.instruction[l.pos+2 : i]
+
+	for _, r := range escaped {
+		if unicode.IsDigit(rune(r)) == false {
+			tok = StringToken
+		}
+	}
+
+	_, err := ParseDate(string(escaped))
+	if err == nil {
+		tok = DateToken
+	}
+
+	t := Token{
+		Token:  tok,
+		Lexeme: string(escaped),
+	}
+	l.tokens = append(l.tokens, t)
+	l.pos = i + 2
+
+	return true
 }
 
 func (l *lexer) MatchDoubleQuotedStringToken() bool {

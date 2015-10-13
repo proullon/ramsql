@@ -120,7 +120,7 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 
 // replace $* by arguments in query string
 func replaceArguments(query string, args []driver.Value) string {
-	holder := regexp.MustCompile(`\$[0-9]+`)
+	holder := regexp.MustCompile(`[^\$]\$[0-9]+`)
 
 	if strings.Count(query, "?") == len(args) {
 		return replaceArgumentsODBC(query, args)
@@ -130,7 +130,7 @@ func replaceArguments(query string, args []driver.Value) string {
 	loc = holder.FindIndex([]byte(query))
 	for loc != nil {
 		queryB := []byte(query)
-		match := queryB[loc[0]:loc[1]]
+		match := queryB[loc[0]+1 : loc[1]]
 
 		index, err := strconv.Atoi(string(match[1:]))
 		if err != nil {
@@ -141,7 +141,7 @@ func replaceArguments(query string, args []driver.Value) string {
 		var v string
 		_, ok := args[index-1].(string)
 		if ok && !strings.HasSuffix(query, "'") {
-			v = fmt.Sprintf("'%s'", args[index-1])
+			v = fmt.Sprintf("$$%s$$", args[index-1])
 		} else if ok {
 			v = fmt.Sprintf("%s", args[index-1])
 		} else {
@@ -163,8 +163,9 @@ func replaceArgumentsODBC(query string, args []driver.Value) string {
 	finalQuery = queryParts[0]
 	for i := range args {
 		arg := fmt.Sprintf("%v", args[i])
-		if strings.Count(arg, " ") > 0 {
-			arg = "'" + arg + "'"
+		_, ok := args[i].(string)
+		if ok && !strings.HasSuffix(query, "'") {
+			arg = "$$" + arg + "$$"
 		}
 		finalQuery += arg
 		finalQuery += queryParts[i+1]

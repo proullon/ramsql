@@ -71,7 +71,7 @@ func TestReplaceTwoArgumentsTwice(t *testing.T) {
 
 func TestReplaceEnd(t *testing.T) {
 	query := `SELECT * FROM account WHERE email = $1`
-	wantedQuery := `SELECT * FROM account WHERE email = 'foo@bar.com'`
+	wantedQuery := `SELECT * FROM account WHERE email = $$foo@bar.com$$`
 	args := []driver.Value{
 		driver.Value("foo@bar.com"),
 	}
@@ -81,7 +81,7 @@ func TestReplaceEnd(t *testing.T) {
 
 func TestReplaceEndODBC(t *testing.T) {
 	query := `SELECT * FROM account WHERE email = ?`
-	wantedQuery := `SELECT * FROM account WHERE email = foo@bar.com`
+	wantedQuery := `SELECT * FROM account WHERE email = $$foo@bar.com$$`
 	args := []driver.Value{
 		driver.Value("foo@bar.com"),
 	}
@@ -92,7 +92,7 @@ func TestReplaceEndODBC(t *testing.T) {
 func TestReplaceALot(t *testing.T) {
 	query := `INSERT INTO "human" ("id","birth_date","first_name","middle_name","last_name","size","weight","gender","version","goal","hair_color","foo","bar","team") values ($1, $2, $3, $4, $5, $6, $7, $8, $9 ,$10,$11,$12,$13,$14)`
 
-	wantedQuery := `INSERT INTO "human" ("id","birth_date","first_name","middle_name","last_name","size","weight","gender","version","goal","hair_color","foo","bar","team") values ('1', '2', '3', '4', '5', '6', '7', '8', '9' ,'10','11','12','13','14')`
+	wantedQuery := `INSERT INTO "human" ("id","birth_date","first_name","middle_name","last_name","size","weight","gender","version","goal","hair_color","foo","bar","team") values ($$1$$, $$2$$, $$3$$, $$4$$, $$5$$, $$6$$, $$7$$, $$8$$, $$9$$ ,$$10$$,$$11$$,$$12$$,$$13$$,$$14$$)`
 
 	args := []driver.Value{
 		driver.Value("1"),
