@@ -145,10 +145,10 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
+	matchers = append(matchers, l.MatchEscapedStringToken)
 	matchers = append(matchers, l.MatchDateToken)
 	matchers = append(matchers, l.MatchNumberToken)
 	matchers = append(matchers, l.MatchStringToken)
-	matchers = append(matchers, l.MatchEscapedStringToken)
 
 	var r bool
 	for l.pos < l.instructionLen {
@@ -454,17 +454,17 @@ func (l *lexer) MatchEscapedStringToken() bool {
 	}
 	i += 2
 
-	for i+1 < l.instructionLen && l.instruction[i] != '$' && l.instruction[i+1] != '$' {
+	for i+1 < l.instructionLen && !(l.instruction[i] == '$' && l.instruction[i+1] == '$') {
 		i++
 	}
 	i++
 
-	if i+1 == l.instructionLen {
+	if i == l.instructionLen {
 		return false
 	}
 
 	tok := NumberToken
-	escaped := l.instruction[l.pos+2 : i]
+	escaped := l.instruction[l.pos+2 : i-1]
 
 	for _, r := range escaped {
 		if unicode.IsDigit(rune(r)) == false {
@@ -482,7 +482,7 @@ func (l *lexer) MatchEscapedStringToken() bool {
 		Lexeme: string(escaped),
 	}
 	l.tokens = append(l.tokens, t)
-	l.pos = i + 2
+	l.pos = i + 1
 
 	return true
 }
