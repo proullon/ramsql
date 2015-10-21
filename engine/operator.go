@@ -25,40 +25,53 @@ func NewOperator(token int, lexeme string) (Operator, error) {
 	return nil, fmt.Errorf("Operator '%s' does not exist", lexeme)
 }
 
-func greaterThanOperator(leftValue Value, rightValue Value) bool {
-	log.Critical("LessThanOperator")
+func convToFloat(t interface{}) (float64, error) {
 
-	leftv, ok := leftValue.v.(string)
-	if !ok {
-		log.Critical("GreaterThanOperator: left value value is not a string [%v]", leftValue.v)
+	switch t := t.(type) {
+	default:
+		log.Debug("convToFloat> unexpected type %T\n", t)
+		return 0, fmt.Errorf("unexpected internal type %T", t)
+	case float64:
+		return float64(t), nil
+	case int64:
+		return float64(int64(t)), nil
+	case int:
+		return float64(int(t)), nil
+	case string:
+		return strconv.ParseFloat(string(t), 64)
+	}
+
+}
+
+func greaterThanOperator(leftValue Value, rightValue Value) bool {
+	log.Debug("GreaterThanOperator")
+	var left, right float64
+	var err error
+
+	var rvalue interface{}
+	if rightValue.v != nil {
+		rvalue = rightValue.v
+	} else {
+		rvalue = rightValue.lexeme
+	}
+
+	left, err = convToFloat(leftValue.v)
+	if err != nil {
+		log.Critical("GreateThanOperator> %s\n", err)
 		return false
 	}
 
-	rightv := rightValue.lexeme
-	if rightValue.v != nil {
-		rightv, ok = rightValue.v.(string)
-		if !ok {
-			log.Critical("GreaterThanOperator: right value value is not a string [%v]", rightValue.v)
-			return false
-		}
-	}
-
-	// Let's assume they all are float64
-	left, err := strconv.ParseFloat(leftv, 64)
+	right, err = convToFloat(rvalue)
 	if err != nil {
-		log.Critical("LessThanOperator: %s", err)
-	}
-
-	right, err := strconv.ParseFloat(rightv, 64)
-	if err != nil {
-		log.Critical("LessThanOperator: %s", err)
+		log.Critical("GreateThanOperator> %s\n", err)
+		return false
 	}
 
 	return left > right
 }
 
 func lessThanOperator(leftValue Value, rightValue Value) bool {
-	log.Critical("LessThanOperator")
+	log.Debug("LessThanOperator")
 
 	leftv, ok := leftValue.v.(string)
 	if !ok {
@@ -67,13 +80,6 @@ func lessThanOperator(leftValue Value, rightValue Value) bool {
 	}
 
 	rightv := rightValue.lexeme
-	/*if rightValue.v != nil {
-		rightv, ok = rightValue.v.(string)
-		if !ok {
-			log.Critical("LessThanOperator: right value is not a string [%v]", rightValue.v)
-			return false
-		}
-	}*/
 
 	// Let's assume they all are float64
 	left, err := strconv.ParseFloat(leftv, 64)
