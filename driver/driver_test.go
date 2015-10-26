@@ -538,6 +538,12 @@ func TestAnd(t *testing.T) {
 		t.Fatalf("Expected 1 rows, got %d", nb)
 	}
 
+	query = `UPDATE user SET age = 31 WHERE name = $1 AND surname = $2`
+	_, err = db.Exec(query, "Bruce", "Wayne")
+	if err != nil {
+		t.Fatalf("Cannot run UPDATE query with AND: %s\n", err)
+	}
+
 }
 
 func TestGreaterThanAndLessThan(t *testing.T) {

@@ -184,28 +184,9 @@ func (p *parser) parseUpdate() (*Instruction, error) {
 		gotClause = true
 	}
 
-	// WHERE
-	whereDecl, err := p.consumeToken(WhereToken)
+	err = p.parseWhere(updateDecl)
 	if err != nil {
 		return nil, err
-	}
-	updateDecl.Add(whereDecl)
-
-	// Now should be a list of: Attribute and Operator and Value
-	gotClause = false
-	for {
-		if !p.hasNext() && gotClause {
-			break
-		}
-
-		attributeDecl, err := p.parseCondition()
-		if err != nil {
-			return nil, err
-		}
-		whereDecl.Add(attributeDecl)
-
-		// Got at least one clause
-		gotClause = true
 	}
 
 	return i, nil
