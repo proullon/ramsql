@@ -62,6 +62,8 @@ const (
 	InToken
 	AndToken
 	OrToken
+	AscToken
+	DescToken
 
 	// Type Token
 
@@ -142,6 +144,8 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchInToken)
 	matchers = append(matchers, l.MatchAndToken)
 	matchers = append(matchers, l.MatchOrToken)
+	matchers = append(matchers, l.MatchAscToken)
+	matchers = append(matchers, l.MatchDescToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -189,6 +193,14 @@ func (l *lexer) MatchSpaceToken() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) MatchAscToken() bool {
+	return l.Match([]byte("desc"), DescToken)
+}
+
+func (l *lexer) MatchDescToken() bool {
+	return l.Match([]byte("asc"), AscToken)
 }
 
 func (l *lexer) MatchAndToken() bool {
@@ -582,9 +594,11 @@ func (l *lexer) Match(str []byte, token int) bool {
 
 	// if next character is still a string, it means it doesn't match
 	// ie: COUNT shoulnd match COUNTRY
-	if unicode.IsLetter(rune(l.instruction[l.pos+len(str)])) ||
-		l.instruction[l.pos+len(str)] == '_' {
-		return false
+	if l.instructionLen > l.pos+len(str) {
+		if unicode.IsLetter(rune(l.instruction[l.pos+len(str)])) ||
+			l.instruction[l.pos+len(str)] == '_' {
+			return false
+		}
 	}
 
 	t := Token{

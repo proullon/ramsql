@@ -84,22 +84,28 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 		selectDecl.Add(joinDecl)
 	}
 
-	switch p.cur().Token {
-	case WhereToken:
-		err := p.parseWhere(selectDecl)
-		if err != nil {
-			return nil, err
-		}
-	case OrderToken:
-		// WHERE clause is implicit
-		addImplicitWhereAll(selectDecl)
-		err := p.parseOrderBy(selectDecl)
-		if err != nil {
-			return nil, err
+	hazWhereClause := false
+	for {
+		switch p.cur().Token {
+		case WhereToken:
+			err := p.parseWhere(selectDecl)
+			if err != nil {
+				return nil, err
+			}
+			hazWhereClause = true
+		case OrderToken:
+			if hazWhereClause == false {
+				// WHERE clause is implicit
+				addImplicitWhereAll(selectDecl)
+			}
+			err := p.parseOrderBy(selectDecl)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return i, nil
 		}
 	}
-
-	return i, nil
 }
 
 func addImplicitWhereAll(decl *Decl) {

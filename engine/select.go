@@ -47,7 +47,11 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 			}
 			joiners = append(joiners, j)
 		case parser.OrderToken:
-			// TODO: implement ORDER BY
+			orderFunctor, err := orderbyExecutor(selectDecl.Decl[i], tables)
+			if err != nil {
+				return err
+			}
+			functors = append(functors, orderFunctor)
 		}
 	}
 
@@ -66,8 +70,14 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 		attributes = append(attributes, attr...)
 
 	}
-	// Instanciate a new select functor
-	functors, err = getSelectFunctors(selectDecl)
+
+	if len(functors) == 0 {
+		// Instanciate a new select functor
+		functors, err = getSelectFunctors(selectDecl)
+		if err != nil {
+			return err
+		}
+	}
 
 	err = generateVirtualRows(e, attributes, conn, tables[0].name, joiners, predicates, functors)
 	if err != nil {

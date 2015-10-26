@@ -332,6 +332,14 @@ func (p *parser) parseOrderBy(selectDecl *Decl) error {
 	}
 	orderDecl.Add(attrDecl)
 
+	t := p.cur().Token
+	if t == AscToken || t == DescToken {
+		decl, err := p.consumeToken(AscToken, DescToken)
+		if err != nil {
+			return err
+		}
+		orderDecl.Add(decl)
+	}
 	return nil
 }
 
@@ -349,6 +357,10 @@ func (p *parser) parseWhere(selectDecl *Decl) error {
 	gotClause := false
 	for {
 		if !p.hasNext() && gotClause {
+			break
+		}
+
+		if p.cur().Token == OrderToken {
 			break
 		}
 
