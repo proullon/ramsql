@@ -36,8 +36,8 @@ func TestNumInputPostgreMarker(t *testing.T) {
 }
 
 func TestReplaceArgument(t *testing.T) {
-	query := `SELECT * FROM account WHERE email = '$1'`
-	wantedQuery := `SELECT * FROM account WHERE email = 'foo@bar.com'`
+	query := `SELECT * FROM account WHERE email = $1`
+	wantedQuery := `SELECT * FROM account WHERE email = $$foo@bar.com$$`
 	args := []driver.Value{
 		driver.Value("foo@bar.com"),
 	}
@@ -46,8 +46,8 @@ func TestReplaceArgument(t *testing.T) {
 }
 
 func TestReplaceTwoArguments(t *testing.T) {
-	query := `SELECT * FROM account WHERE email = '$1' AND password = '$2'`
-	wantedQuery := `SELECT * FROM account WHERE email = 'foo@bar.com' AND password = 'ewfewgwewggew'`
+	query := `SELECT * FROM account WHERE email = $1 AND password = $2`
+	wantedQuery := `SELECT * FROM account WHERE email = $$foo@bar.com$$ AND password = $$ewfewgwewggew$$`
 	args := []driver.Value{
 		driver.Value("foo@bar.com"),
 		driver.Value("ewfewgwewggew"),
@@ -57,10 +57,10 @@ func TestReplaceTwoArguments(t *testing.T) {
 }
 
 func TestReplaceTwoArgumentsTwice(t *testing.T) {
-	query := `SELECT * FROM account WHERE email = '$1' OR
-	 email_backup = '$1' AND password = '$2' OR foo = '$2'`
-	wantedQuery := `SELECT * FROM account WHERE email = 'foo@bar.com' OR
-	 email_backup = 'foo@bar.com' AND password = 'ewfewgwewggew' OR foo = 'ewfewgwewggew'`
+	query := `SELECT * FROM account WHERE email = $1 OR
+	 email_backup = $1 AND password = $2 OR foo = $2`
+	wantedQuery := `SELECT * FROM account WHERE email = $$foo@bar.com$$ OR
+	 email_backup = $$foo@bar.com$$ AND password = $$ewfewgwewggew$$ OR foo = $$ewfewgwewggew$$`
 	args := []driver.Value{
 		driver.Value("foo@bar.com"),
 		driver.Value("ewfewgwewggew"),

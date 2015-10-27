@@ -120,16 +120,17 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 
 // replace $* by arguments in query string
 func replaceArguments(query string, args []driver.Value) string {
+
 	holder := regexp.MustCompile(`[^\$]\$[0-9]+`)
+	replacedQuery := ""
 
 	if strings.Count(query, "?") == len(args) {
 		return replaceArgumentsODBC(query, args)
 	}
 
-	var loc []int
-	loc = holder.FindIndex([]byte(query))
-	for loc != nil {
-		queryB := []byte(query)
+	allloc := holder.FindAllIndex([]byte(query), -1)
+	queryB := []byte(query)
+	for i, loc := range allloc {
 		match := queryB[loc[0]+1 : loc[1]]
 
 		index, err := strconv.Atoi(string(match[1:]))
@@ -138,22 +139,18 @@ func replaceArguments(query string, args []driver.Value) string {
 			return query
 		}
 
-		var v string
-		_, ok := args[index-1].(string)
-		if ok && !strings.HasSuffix(query, "'") {
-			v = fmt.Sprintf("$$%s$$", args[index-1])
-		} else if ok {
-			v = fmt.Sprintf("%s", args[index-1])
+		v := fmt.Sprintf("$$%v$$", args[index-1])
+
+		if i == 0 {
+			replacedQuery = fmt.Sprintf("%s%s%s", replacedQuery, string(queryB[:loc[0]+1]), v)
 		} else {
-			v = fmt.Sprintf("%v", args[index-1])
+			replacedQuery = fmt.Sprintf("%s%s%s", replacedQuery, string(queryB[allloc[i-1][1]:loc[0]+1]), v)
 		}
-
-		log.Debug("Replacing %s with %s\n", match, v)
-		query = strings.Replace(query, string(match), v, 1)
-		loc = holder.FindIndex([]byte(query))
 	}
+	// add remaining query
+	replacedQuery = fmt.Sprintf("%s%s", replacedQuery, string(queryB[allloc[len(allloc)-1][1]:]))
 
-	return query
+	return replacedQuery
 }
 
 func replaceArgumentsODBC(query string, args []driver.Value) string {

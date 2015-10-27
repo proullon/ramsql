@@ -109,7 +109,7 @@ func TestSelect(t *testing.T) {
 		t.Fatalf("Cannot insert into table account: %s", err)
 	}
 
-	rows, err := db.Query("SELECT * FROM account WHERE email = '$1'", "foo@bar.com")
+	rows, err := db.Query("SELECT * FROM account WHERE email = $1", "foo@bar.com")
 	if err != nil {
 		t.Fatalf("sql.Query error : %s", err)
 	}
@@ -124,7 +124,7 @@ func TestSelect(t *testing.T) {
 		t.Fatalf("Expected 2 columns, got %d", len(columns))
 	}
 
-	row := db.QueryRow("SELECT * FROM account WHERE email = '$1'", "foo@bar.com")
+	row := db.QueryRow("SELECT * FROM account WHERE email = $1", "foo@bar.com")
 	if row == nil {
 		t.Fatalf("sql.QueryRow error")
 	}
