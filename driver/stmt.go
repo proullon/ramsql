@@ -139,8 +139,12 @@ func replaceArguments(query string, args []driver.Value) string {
 			return query
 		}
 
-		v := fmt.Sprintf("$$%v$$", args[index-1])
-
+		var v string
+		if args[index-1] == nil {
+			v = "null"
+		} else {
+			v = fmt.Sprintf("$$%v$$", args[index-1])
+		}
 		if i == 0 {
 			replacedQuery = fmt.Sprintf("%s%s%s", replacedQuery, string(queryB[:loc[0]+1]), v)
 		} else {
