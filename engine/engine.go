@@ -61,7 +61,9 @@ func (e *Engine) start() (err error) {
 
 // Stop shutdown the RamSQL server
 func (e *Engine) Stop() {
-	e.stop <- true
+	go func() {
+		e.stop <- true
+	}()
 }
 
 func (e *Engine) relation(name string) *Relation {
