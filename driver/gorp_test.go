@@ -40,7 +40,6 @@ func TestGorp(t *testing.T) {
 	p2.Title = "Go 1.2 is better than ever"
 	count, err = dbmap.Update(&p2)
 	checkErr(t, err, "Update failed")
-	t.Log("Rows updated:", count)
 
 	// fetch one row - note use of "post_id" instead of "Id" since column is aliased
 	//
@@ -49,21 +48,15 @@ func TestGorp(t *testing.T) {
 	//
 	err = dbmap.SelectOne(&p2, "select * from posts where post_id=?", p2.ID)
 	checkErr(t, err, "SelectOne failed")
-	t.Log("p2 row:", p2)
 
 	// fetch all rows
 	var posts []Post
 	_, err = dbmap.Select(&posts, "select * from posts order by post_id")
 	checkErr(t, err, "Select failed")
-	t.Log("All rows:")
-	for x, p := range posts {
-		t.Logf("    %d: %v\n", x, p)
-	}
 
 	// delete row by PK
 	count, err = dbmap.Delete(&p1)
 	checkErr(t, err, "Delete failed")
-	t.Log("Rows deleted:", count)
 
 	// delete row manually via Exec
 	_, err = dbmap.Exec("delete from posts where post_id=?", p2.ID)
@@ -72,12 +65,10 @@ func TestGorp(t *testing.T) {
 	// confirm count is zero
 	count, err = dbmap.SelectInt("select count(*) from posts")
 	checkErr(t, err, "select count(*) failed")
-	t.Log("Row count - should be zero:", count)
 	if count != 0 {
 		t.Fatalf("Count should be 0, got %d", count)
 	}
 
-	t.Log("Done!")
 }
 
 type Post struct {

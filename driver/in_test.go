@@ -36,7 +36,6 @@ func TestIn(t *testing.T) {
 
 	query := `SELECT * FROM user WHERE user.surname IN ('Doe', 'Simpson')`
 
-	log.SetLevel(log.DebugLevel)
 	rows, err := db.Query(query)
 	if err != nil {
 		t.Fatalf("sql.Query: %s", err)

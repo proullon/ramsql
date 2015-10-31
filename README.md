@@ -1,5 +1,7 @@
 # RamSQL
 
+[![Build Status](https://travis-ci.org/proullon/ramsql.svg)](https://travis-ci.org/proullon/ramsql)
+
 ## Disposable SQL engine
 
 RamSQL has been written to be used in your project's test suite.

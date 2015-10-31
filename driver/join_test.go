@@ -107,7 +107,6 @@ func TestJoin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	log.SetLevel(log.DebugLevel)
 	// Now select all projects for foo
 	var projects []Project
 	query := `SELECT * FROM project

@@ -34,7 +34,6 @@ func TestOrderBy(t *testing.T) {
 		}
 	}
 
-	log.SetLevel(log.DebugLevel)
 	query := `SELECT age FROM user WHERE surname = Wayne OR surname = Doe ORDER BY age DESC`
 	rows, err := db.Query(query)
 	if err != nil {
@@ -52,7 +51,6 @@ func TestOrderBy(t *testing.T) {
 		if age > last {
 			t.Fatalf("Got %d previously and now %d", last, age)
 		}
-		t.Logf("age: %d", age)
 		last = age
 		size++
 	}
@@ -78,7 +76,6 @@ func TestOrderBy(t *testing.T) {
 		if last > age {
 			t.Fatalf("Got %d previously and now %d", last, age)
 		}
-		t.Logf("age: %d", age)
 		last = age
 		size++
 	}

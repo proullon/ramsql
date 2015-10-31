@@ -78,8 +78,7 @@ func TestInsertTable(t *testing.T) {
 		t.Fatalf("Cannot get the number of rows affected: %s", err)
 	}
 
-	t.Logf("%d rows affected\n", aff)
-
+	_ = aff
 	err = db.Close()
 	if err != nil {
 		t.Fatalf("sql.Close : Error : %s\n", err)
@@ -174,7 +173,6 @@ func TestSelectWhereAttribute(t *testing.T) {
 		t.Fatalf("Cannot insert into table account: %s", err)
 	}
 
-	log.SetLevel(log.DebugLevel)
 	rows, err := db.Query(`SELECT * FROM account WHERE "account".id = 1`)
 	if err != nil {
 		t.Fatalf("sql.Query error : %s", err)
@@ -471,7 +469,6 @@ func TestDate(t *testing.T) {
 		t.Fatalf("Cannot insert data: %s", err)
 	}
 
-	log.SetLevel(log.DebugLevel)
 	var date time.Time
 	err = db.QueryRow(`SELECT token.expires FROM token WHERE 1`).Scan(&date)
 	if err != nil {
@@ -514,7 +511,6 @@ func TestAnd(t *testing.T) {
 			WHERE user.surname = Doe
 			AND user.name = Jane`
 
-	log.SetLevel(log.DebugLevel)
 	rows, err := db.Query(query)
 	if err != nil {
 		t.Fatalf("sql.Query: %s", err)
@@ -577,7 +573,6 @@ func TestGreaterThanAndLessThan(t *testing.T) {
 			WHERE user.age < 40
 			AND age > 25`
 
-	log.SetLevel(log.DebugLevel)
 	rows, err := db.Query(query)
 	if err != nil {
 		t.Fatalf("sql.Query: %s", err)
@@ -634,7 +629,6 @@ func TestOr(t *testing.T) {
 			WHERE user.name = Homer
 			OR user.name = Marge`
 
-	log.SetLevel(log.DebugLevel)
 	rows, err := db.Query(query)
 	if err != nil {
 		t.Fatalf("sql.Query: %s", err)

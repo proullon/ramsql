@@ -20,7 +20,7 @@ func TestQuery(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			t.Log(st)
+			_ = st
 			err = engineConn.WriteRowHeader([]string{"foo", "bar"})
 			if err != nil {
 				t.Fatal(err)
@@ -104,7 +104,7 @@ func TestExecAndResult(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			t.Log(st)
+			_ = st
 			engineConn.WriteResult(3, 4)
 		}
 	}()
@@ -147,8 +147,7 @@ func TestError(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-
-			t.Log(st)
+			_ = st
 			engineConn.WriteError(errMessage)
 		}
 	}()

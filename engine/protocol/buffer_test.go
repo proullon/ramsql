@@ -43,7 +43,7 @@ func TestBufferChannel(t *testing.T) {
 			}
 			break
 		}
-		t.Logf("Val is %v", m)
+		_ = m
 		count++
 	}
 }
