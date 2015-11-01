@@ -61,10 +61,10 @@ type connConf struct {
 // After first instantiation of the server,
 func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
 	rs.Lock()
-	defer rs.Unlock()
 
 	connConf, err := parseConnectionURI(dsn)
 	if err != nil {
+		rs.Unlock()
 		return nil, err
 	}
 
@@ -72,16 +72,19 @@ func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
 	if !exist {
 		driverEndpoint, engineEndpoint, err := endpoints(connConf)
 		if err != nil {
+			rs.Unlock()
 			return nil, err
 		}
 
 		server, err := engine.New(engineEndpoint)
 		if err != nil {
+			rs.Unlock()
 			return nil, err
 		}
 
 		driverConn, err := driverEndpoint.New(dsn)
 		if err != nil {
+			rs.Unlock()
 			return nil, err
 		}
 
@@ -91,9 +94,11 @@ func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
 		}
 		rs.servers[dsn] = s
 
+		rs.Unlock()
 		return newConn(driverConn, &s), nil
 	}
 
+	rs.Unlock()
 	driverConn, err := dsnServer.endpoint.New(dsn)
 	return newConn(driverConn, &dsnServer), err
 }

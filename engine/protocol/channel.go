@@ -33,14 +33,22 @@ type ChannelDriverEndpoint struct {
 
 // Close method closes the connection to RamSQL server
 func (cdc *ChannelDriverConn) Close() {
+	if cdc.conn == nil {
+		return
+	}
 	close(cdc.conn)
+	cdc.conn = nil
 }
 
 // New method creates a new DriverConn from DriverEndpoint
 func (cde *ChannelDriverEndpoint) New(uri string) (DriverConn, error) {
+
+	if cde.newConnChannel == nil {
+		return nil, fmt.Errorf("connection closed")
+	}
+
 	channel := make(chan message)
 	cdc := &ChannelDriverConn{conn: channel}
-
 	cde.newConnChannel <- channel
 	return cdc, nil
 }
@@ -100,6 +108,7 @@ func NewChannelEngineConn(newConn chan message) EngineConn {
 func (cec *ChannelEngineConn) ReadStatement() (string, error) {
 	message, ok := <-cec.conn
 	if !ok {
+		cec.conn = nil
 		return "", io.EOF
 	}
 
@@ -164,26 +173,39 @@ func (cec *ChannelEngineConn) WriteRowEnd() error {
 
 // WriteQuery allows client to query the RamSQL server
 func (cdc *ChannelDriverConn) WriteQuery(query string) error {
+	if cdc.conn == nil {
+		return fmt.Errorf("connection closed")
+	}
+
 	m := message{
 		Type:  queryMessage,
 		Value: []string{query},
 	}
+
 	cdc.conn <- m
 	return nil
 }
 
 // WriteExec allows client to manipulate the RamSQL server
 func (cdc *ChannelDriverConn) WriteExec(statement string) error {
+	if cdc.conn == nil {
+		return fmt.Errorf("connection closed")
+	}
+
 	m := message{
 		Type:  execMessage,
 		Value: []string{statement},
 	}
+
 	cdc.conn <- m
 	return nil
 }
 
 // ReadResult when Exec has been used
 func (cdc *ChannelDriverConn) ReadResult() (lastInsertedID int64, rowsAffected int64, err error) {
+	if cdc.conn == nil {
+		return 0, 0, fmt.Errorf("connection closed")
+	}
 
 	m := <-cdc.conn
 	if m.Type != resultMessage {
@@ -199,6 +221,9 @@ func (cdc *ChannelDriverConn) ReadResult() (lastInsertedID int64, rowsAffected i
 
 // ReadRows when Query has been used
 func (cdc *ChannelDriverConn) ReadRows() (chan []string, error) {
+	if cdc.conn == nil {
+		return nil, fmt.Errorf("connection closed")
+	}
 
 	m := <-cdc.conn
 	if m.Type == errMessage {

@@ -61,8 +61,14 @@ func (e *Engine) start() (err error) {
 
 // Stop shutdown the RamSQL server
 func (e *Engine) Stop() {
+	if e.stop == nil {
+		// already stopped
+		return
+	}
 	go func() {
 		e.stop <- true
+		close(e.stop)
+		e.stop = nil
 	}()
 }
 
