@@ -2,6 +2,7 @@ package engine
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/proullon/ramsql/engine/log"
@@ -136,9 +137,16 @@ func (e *Engine) handleConnection(conn protocol.EngineConn) {
 	}
 }
 
-func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol.EngineConn) error {
+func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol.EngineConn) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("fatal error: %s", r)
+			return
+		}
+	}()
+
 	for _, i := range instructions {
-		err := e.executeQuery(i, conn)
+		err = e.executeQuery(i, conn)
 		if err != nil {
 			return err
 		}
