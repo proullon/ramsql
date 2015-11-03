@@ -63,7 +63,7 @@ func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates
 			case lenRows - 1:
 				r.rows = r.rows[:lenRows-1]
 			default:
-				r.rows = append(r.rows[:i-1], r.rows[i+1:]...)
+				r.rows = append(r.rows[:i], r.rows[i+1:]...)
 				i--
 			}
 			lenRows--
