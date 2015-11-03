@@ -228,60 +228,6 @@ func TestSelectSimplePredicate(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
-	log.UseTestLogger(t)
-	db, err := sql.Open("ramsql", "TestDelete")
-	if err != nil {
-		t.Fatalf("sql.Open : Error : %s\n", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec("CREATE TABLE account (id INT, email TEXT)")
-	if err != nil {
-		t.Fatalf("sql.Exec: Error: %s\n", err)
-	}
-
-	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (2, 'bar@bar.com')")
-	if err != nil {
-		t.Fatalf("Cannot insert into table account: %s", err)
-	}
-
-	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (1, 'foo@bar.com')")
-	if err != nil {
-		t.Fatalf("Cannot insert into table account: %s", err)
-	}
-
-	rows, err := db.Query("SELECT * FROM account WHERE 1")
-	if err != nil {
-		t.Fatalf("sql.Query error : %s", err)
-	}
-
-	columns, err := rows.Columns()
-	if err != nil {
-		t.Fatalf("rows.Column : %s", err)
-		return
-	}
-
-	if len(columns) != 2 {
-		t.Fatalf("Expected 2 columns, got %d", len(columns))
-	}
-
-	res, err := db.Exec("DELETE FROM account")
-	if err != nil {
-		t.Fatalf("Cannot truncate table: %s", err)
-	}
-
-	affectedRows, err := res.RowsAffected()
-	if err != nil {
-		t.Fatalf("Cannot fetch affected rows: %s", err)
-	}
-
-	if affectedRows != 2 {
-		t.Fatalf("Expected 2 rows affected, got %d", affectedRows)
-	}
-
-}
-
 func TestCount(t *testing.T) {
 	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "TestCount")
