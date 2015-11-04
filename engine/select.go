@@ -493,6 +493,10 @@ func getSelectedAttribute(e *Engine, attr *parser.Decl, tables []*Table) ([]Attr
 			attributes = append(attributes, r.table.attributes...)
 		}
 	case parser.CountToken:
+		err := attributesExistInTables(e, []Attribute{NewAttribute(attr.Decl[0].Lexeme, "", false)}, t)
+		if err != nil && attr.Decl[0].Lexeme != "*" {
+			return nil, err
+		}
 		attributes = append(attributes, NewAttribute("COUNT", "int", false))
 	case parser.StringToken:
 		attribute := attr.Lexeme

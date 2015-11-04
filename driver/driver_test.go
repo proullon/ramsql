@@ -85,71 +85,6 @@ func TestInsertTable(t *testing.T) {
 	}
 }
 
-func TestSelect(t *testing.T) {
-	log.UseTestLogger(t)
-	db, err := sql.Open("ramsql", "TestSelect")
-	if err != nil {
-		t.Fatalf("sql.Open : Error : %s\n", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec("CREATE TABLE account (id INT, email TEXT)")
-	if err != nil {
-		t.Fatalf("sql.Exec: Error: %s\n", err)
-	}
-
-	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (2, 'bar@bar.com')")
-	if err != nil {
-		t.Fatalf("Cannot insert into table account: %s", err)
-	}
-
-	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (1, 'foo@bar.com')")
-	if err != nil {
-		t.Fatalf("Cannot insert into table account: %s", err)
-	}
-
-	rows, err := db.Query("SELECT * FROM account WHERE email = $1", "foo@bar.com")
-	if err != nil {
-		t.Fatalf("sql.Query error : %s", err)
-	}
-
-	columns, err := rows.Columns()
-	if err != nil {
-		t.Fatalf("rows.Column : %s", err)
-		return
-	}
-
-	if len(columns) != 2 {
-		t.Fatalf("Expected 2 columns, got %d", len(columns))
-	}
-
-	row := db.QueryRow("SELECT * FROM account WHERE email = $1", "foo@bar.com")
-	if row == nil {
-		t.Fatalf("sql.QueryRow error")
-	}
-
-	var email string
-	var id int
-	err = row.Scan(&id, &email)
-	if err != nil {
-		t.Fatalf("row.Scan: %s", err)
-	}
-
-	if id != 1 {
-		t.Fatalf("Expected id = 1, got %d", id)
-	}
-
-	if email != "foo@bar.com" {
-		t.Fatalf("Expected email = <foo@bar.com>, got <%s>", email)
-	}
-
-	err = db.Close()
-	if err != nil {
-		t.Fatalf("sql.Close : Error : %s\n", err)
-	}
-
-}
-
 func TestSelectWhereAttribute(t *testing.T) {
 	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "TestSelectWhereAttribute")
@@ -225,45 +160,6 @@ func TestSelectSimplePredicate(t *testing.T) {
 
 	if len(columns) != 2 {
 		t.Fatalf("Expected 2 columns, got %d", len(columns))
-	}
-}
-
-func TestCount(t *testing.T) {
-	log.UseTestLogger(t)
-	db, err := sql.Open("ramsql", "TestCount")
-	if err != nil {
-		t.Fatalf("sql.Open : Error : %s\n", err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec("CREATE TABLE account (id INT, email TEXT)")
-	if err != nil {
-		t.Fatalf("sql.Exec: Error: %s\n", err)
-	}
-
-	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (2, 'bar@bar.com')")
-	if err != nil {
-		t.Fatalf("Cannot insert into table account: %s", err)
-	}
-
-	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (1, 'foo@bar.com')")
-	if err != nil {
-		t.Fatalf("Cannot insert into table account: %s", err)
-	}
-
-	rows, err := db.Query("SELECT COUNT(*) FROM account WHERE 1")
-	if err != nil {
-		t.Fatalf("sql.Query error : %s", err)
-	}
-
-	if !rows.Next() {
-		t.Fatal("No rows :(")
-	}
-
-	var count int64
-	rows.Scan(&count)
-	if count != 2 {
-		t.Fatalf("Expected count = 2, got %d", count)
 	}
 }
 
