@@ -506,6 +506,14 @@ func (p *parser) parseCondition() (*Decl, error) {
 	if t := p.cur(); t.Token == NumberToken && t.Lexeme == "1" {
 		attributeDecl := NewDecl(t)
 		p.next()
+		// in case of 1 = 1
+		if p.cur().Token == EqualityToken {
+			t, err := p.isNext(NumberToken)
+			if err == nil && t.Lexeme == "1" {
+				p.consumeToken(EqualityToken)
+				p.consumeToken(NumberToken)
+			}
+		}
 		return attributeDecl, nil
 	}
 
