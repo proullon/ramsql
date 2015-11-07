@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
@@ -21,6 +22,8 @@ type Engine struct {
 	// Any value send to this channel (through Engine.stop)
 	// Will stop the listening loop
 	stop chan bool
+
+	sync.Mutex
 }
 
 // New initialize a new RamSQL server
@@ -43,6 +46,7 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 		parser.NotToken:      notExecutor,
 		parser.ExistsToken:   existsExecutor,
 		parser.TruncateToken: truncateExecutor,
+		parser.DropToken:     dropExecutor,
 	}
 
 	e.relations = make(map[string]*Relation)
@@ -79,6 +83,12 @@ func (e *Engine) relation(name string) *Relation {
 	// Unlock ?
 
 	return r
+}
+
+func (e *Engine) drop(name string) {
+	e.Lock()
+	delete(e.relations, name)
+	e.Unlock()
 }
 
 func (e *Engine) listen() {
