@@ -57,13 +57,13 @@ func greaterThanOperator(leftValue Value, rightValue Value) bool {
 
 	left, err = convToFloat(leftValue.v)
 	if err != nil {
-		log.Critical("GreateThanOperator> %s\n", err)
+		log.Debug("GreateThanOperator> %s\n", err)
 		return false
 	}
 
 	right, err = convToFloat(rvalue)
 	if err != nil {
-		log.Critical("GreateThanOperator> %s\n", err)
+		log.Debug("GreateThanOperator> %s\n", err)
 		return false
 	}
 
@@ -72,24 +72,26 @@ func greaterThanOperator(leftValue Value, rightValue Value) bool {
 
 func lessThanOperator(leftValue Value, rightValue Value) bool {
 	log.Debug("LessThanOperator")
+	var left, right float64
+	var err error
 
-	leftv, ok := leftValue.v.(string)
-	if !ok {
-		log.Critical("LessThanOperator: left value value is not a string: %v", leftValue.v)
+	var rvalue interface{}
+	if rightValue.v != nil {
+		rvalue = rightValue.v
+	} else {
+		rvalue = rightValue.lexeme
+	}
+
+	left, err = convToFloat(leftValue.v)
+	if err != nil {
+		log.Debug("lessThanOperator> %s\n", err)
 		return false
 	}
 
-	rightv := rightValue.lexeme
-
-	// Let's assume they all are float64
-	left, err := strconv.ParseFloat(leftv, 64)
+	right, err = convToFloat(rvalue)
 	if err != nil {
-		log.Critical("LessThanOperator: %s", err)
-	}
-
-	right, err := strconv.ParseFloat(rightv, 64)
-	if err != nil {
-		log.Critical("LessThanOperator: %s", err)
+		log.Debug("lessThanOperator> %s\n", err)
+		return false
 	}
 
 	return left < right
