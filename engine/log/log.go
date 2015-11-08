@@ -103,7 +103,7 @@ func (l TestLogger) Logf(fmt string, values ...interface{}) {
 }
 
 // UseTestLogger should be used only by unit tests
-func UseTestLogger(t *testing.T) {
+func UseTestLogger(t testing.TB) {
 	mu.Lock()
 	logger = t
 	mu.Unlock()
