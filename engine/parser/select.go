@@ -102,6 +102,18 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 			if err != nil {
 				return nil, err
 			}
+		case LimitToken:
+			limitDecl, err := p.consumeToken(LimitToken)
+			if err != nil {
+				return nil, err
+			}
+			selectDecl.Add(limitDecl)
+			numDecl, err := p.consumeToken(NumberToken)
+			if err != nil {
+				return nil, err
+			}
+			limitDecl.Add(numDecl)
+
 		default:
 			return i, nil
 		}

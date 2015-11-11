@@ -65,6 +65,7 @@ const (
 	OrToken
 	AscToken
 	DescToken
+	LimitToken
 
 	// Type Token
 
@@ -148,6 +149,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchOrToken)
 	matchers = append(matchers, l.MatchAscToken)
 	matchers = append(matchers, l.MatchDescToken)
+	matchers = append(matchers, l.MatchLimitToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -239,6 +241,10 @@ func (l *lexer) MatchTimeToken() bool {
 
 func (l *lexer) MatchZoneToken() bool {
 	return l.Match([]byte("zone"), ZoneToken)
+}
+
+func (l *lexer) MatchLimitToken() bool {
+	return l.Match([]byte("limit"), LimitToken)
 }
 
 func (l *lexer) MatchOrderToken() bool {

@@ -3,6 +3,7 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/proullon/ramsql/engine/log"
@@ -110,6 +111,12 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 				return err
 			}
 			functors = append(functors, orderFunctor)
+		case parser.LimitToken:
+			limit, err := strconv.Atoi(selectDecl.Decl[i].Decl[0].Lexeme)
+			if err != nil {
+				return fmt.Errorf("wrong limit value: %s", err)
+			}
+			conn = limitedConn(conn, limit)
 		}
 	}
 
