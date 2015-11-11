@@ -72,8 +72,15 @@ func (s *Stmt) NumInput() int {
 
 // Exec executes a query that doesn't return rows, such
 // as an INSERT or UPDATE.
-func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
+func (s *Stmt) Exec(args []driver.Value) (r driver.Result, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("fatalf error: %s", r)
+			return
+		}
+	}()
 	defer s.conn.mutex.Unlock()
+
 	var finalQuery string
 
 	// replace $* by arguments in query string
@@ -81,7 +88,7 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	log.Info("Exec <%s>\n", finalQuery)
 
 	// Send query to server
-	err := s.conn.conn.WriteExec(finalQuery)
+	err = s.conn.conn.WriteExec(finalQuery)
 	if err != nil {
 		log.Warning("Exec: Cannot send query to server: %s", err)
 		return nil, fmt.Errorf("Cannot send query to server: %s", err)
@@ -99,12 +106,18 @@ func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 
 // Query executes a query that may return rows, such as a
 // SELECT.
-func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
+func (s *Stmt) Query(args []driver.Value) (r driver.Rows, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("fatalf error: %s", r)
+			return
+		}
+	}()
 	defer s.conn.mutex.Unlock()
 
 	finalQuery := replaceArguments(s.query, args)
 	log.Info("Query <%s>\n", finalQuery)
-	err := s.conn.conn.WriteQuery(finalQuery)
+	err = s.conn.conn.WriteQuery(finalQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +127,7 @@ func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 		return nil, err
 	}
 
-	r := newRows(rowsChannel)
+	r = newRows(rowsChannel)
 	return r, nil
 }
 
