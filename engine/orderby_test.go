@@ -7,7 +7,7 @@ import (
 	"github.com/proullon/ramsql/engine/log"
 )
 
-func TestOrderBy(t *testing.T) {
+func TestOrderByInt(t *testing.T) {
 	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestOrderBy")
@@ -155,7 +155,6 @@ func TestOrderByLimit(t *testing.T) {
 		}
 	}
 
-	log.SetLevel(log.DebugLevel)
 	query := `SELECT age FROM user WHERE 1=1 ORDER BY age DESC LIMIT 2`
 	rows, err := db.Query(query)
 	if err != nil {
