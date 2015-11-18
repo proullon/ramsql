@@ -133,10 +133,10 @@ func initOrderer(val Value, attr []string) (orderer, error) {
 	 * Is the key an integer, a string or a date ?
 	 */
 	switch v := val.v.(type) {
-	/*case string:
-	s := stringOrderer{}
-	s.init()
-	return s*/
+	case string:
+		s := &stringOrderer{}
+		s.init(attr)
+		return s, nil
 	case int, int64:
 		i := &intOrderer{}
 		i.init(attr)
@@ -151,7 +151,72 @@ func initOrderer(val Value, attr []string) (orderer, error) {
 }
 
 type stringOrderer struct {
-	buffer map[string][][]string
+	buffer     map[string][][]string
+	attributes []string
+	keys       []string
+}
+
+func (i *stringOrderer) init(attr []string) {
+	i.buffer = make(map[string][][]string)
+	i.attributes = attr
+}
+
+func (i *stringOrderer) Feed(val Value, vrow virtualRow) error {
+	var row []string
+
+	key, ok := val.v.(string)
+	if !ok {
+		return fmt.Errorf("error ordering because of value %v", val.v)
+	}
+
+	for _, attr := range i.attributes {
+		val, ok := vrow[attr]
+		if !ok {
+			return fmt.Errorf("could not select attribute %s", attr)
+		}
+		row = append(row, fmt.Sprintf("%v", val.v))
+	}
+
+	// now instead of writing row, we will find the ordering key and put in in our buffer
+	i.buffer[key] = append(i.buffer[key], row)
+	return nil
+}
+
+func (i *stringOrderer) Sort() error {
+	// now we have to sort our key
+	i.keys = make([]string, len(i.buffer))
+	var index int64
+	for k := range i.buffer {
+		i.keys[index] = k
+		index++
+	}
+
+	sort.Sort(sort.StringSlice(i.keys))
+	return nil
+}
+
+func (i *stringOrderer) SortReverse() error {
+	// now we have to sort our key
+	i.keys = make([]string, len(i.buffer))
+	var index int64
+	for k := range i.buffer {
+		i.keys[index] = k
+		index++
+	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(i.keys)))
+	return nil
+}
+
+func (i *stringOrderer) Write(conn protocol.EngineConn) error {
+	// now write ordered rows
+	for _, key := range i.keys {
+		rows := i.buffer[key]
+		for index := range rows {
+			conn.WriteRow(rows[index])
+		}
+	}
+	return nil
 }
 
 type intOrderer struct {

@@ -112,20 +112,42 @@ func TestOrderByString(t *testing.T) {
 		}
 	}
 
-	query := `SELECT name, surname FROM user WHERE 1=1 ORDER BY surname ASC`
-	rows, err := db.Query(query)
+	query := `SELECT name, surname FROM user WHERE surname = $1 ORDER BY name ASC`
+	rows, err := db.Query(query, "Doe")
 	if err != nil {
 		t.Fatalf("Cannot select and order by age: %s", err)
 	}
 
+	var names []string
 	var name, surname string
 	for rows.Next() {
 		err = rows.Scan(&name, &surname)
 		if err != nil {
 			t.Fatalf("Cannot scan row: %s\n", err)
 		}
+		if surname != "Doe" {
+			t.Fatalf("Didn't expect surname beeing %s", surname)
+		}
 		t.Logf("Current order: %s %s\n", name, surname)
+		names = append(names, name)
 	}
+
+	if len(names) != 3 {
+		t.Fatalf("Expected 3 rows, not %d", len(names))
+	}
+
+	if names[0] != "Jane" {
+		t.Fatalf("Wanted Jane, got %s", names[0])
+	}
+
+	if names[1] != "Joe" {
+		t.Fatalf("Wanted Joe, got %s", names[1])
+	}
+
+	if names[2] != "John" {
+		t.Fatalf("Wanted John, got %s", names[2])
+	}
+
 }
 
 func TestOrderByLimit(t *testing.T) {
