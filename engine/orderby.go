@@ -84,6 +84,11 @@ func (f *orderbyFunctor) FeedVirtualRow(vrow virtualRow) error {
 func (f *orderbyFunctor) Done() error {
 	log.Debug("orderByFunctor.Done\n")
 
+	// No row in result set, orderer hasn't been initialized
+	if f.order == nil {
+		return f.conn.WriteRowEnd()
+	}
+
 	if f.asc {
 		f.order.Sort()
 	} else {
@@ -213,7 +218,10 @@ func (i *stringOrderer) Write(conn protocol.EngineConn) error {
 	for _, key := range i.keys {
 		rows := i.buffer[key]
 		for index := range rows {
-			conn.WriteRow(rows[index])
+			err := conn.WriteRow(rows[index])
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
