@@ -129,3 +129,11 @@ func inOperator(leftValue Value, rightValue Value) bool {
 
 	return false
 }
+
+func isNullOperator(leftValue Value, rightValue Value) bool {
+	return leftValue.v == nil
+}
+
+func isNotNullOperator(leftValue Value, rightValue Value) bool {
+	return leftValue.v != nil
+}

@@ -21,4 +21,4 @@ _cgo_export.*
 _testmain.go
 
 *.exe
-engine/parser/log.go
+examples/

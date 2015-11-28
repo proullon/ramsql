@@ -447,7 +447,6 @@ func (p *parser) parseAttribute() (*Decl, error) {
 		return nil, p.syntaxError()
 	}
 	decl := NewDecl(p.cur())
-	log.Debug("Decl is %v", decl)
 
 	if quoted {
 		// Check there is a closing quote
@@ -545,6 +544,30 @@ func (p *parser) parseCondition() (*Decl, error) {
 			return nil, err
 		}
 		attributeDecl.Add(inDecl)
+		return attributeDecl, nil
+	case IsToken:
+		log.Debug("parseCondition: IsToken\n")
+		decl, err := p.consumeToken(IsToken)
+		if err != nil {
+			return nil, err
+		}
+		attributeDecl.Add(decl)
+		if p.cur().Token == NotToken {
+			log.Debug("parseCondition: NotToken\n")
+			notDecl, err := p.consumeToken(NotToken)
+			if err != nil {
+				return nil, err
+			}
+			decl.Add(notDecl)
+		}
+		if p.cur().Token == NullToken {
+			log.Debug("parseCondition: NullToken\n")
+			nullDecl, err := p.consumeToken(NullToken)
+			if err != nil {
+				return nil, err
+			}
+			decl.Add(nullDecl)
+		}
 		return attributeDecl, nil
 	}
 

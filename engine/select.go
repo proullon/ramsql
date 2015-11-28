@@ -15,7 +15,7 @@ func attributeExistsInTable(e *Engine, attr string, table string) error {
 
 	r := e.relation(table)
 	if r == nil {
-		return fmt.Errorf("table %s does not exist", table)
+		return fmt.Errorf("table \"%s\" does not exist", table)
 	}
 
 	found := false
@@ -269,6 +269,18 @@ func inExecutor(inDecl *parser.Decl, p *Predicate) error {
 	return nil
 }
 
+func isExecutor(isDecl *parser.Decl, p *Predicate) error {
+	isDecl.Stringy(0)
+
+	if isDecl.Decl[0].Token == parser.NullToken {
+		p.Operator = isNullOperator
+	} else {
+		p.Operator = isNotNullOperator
+	}
+
+	return nil
+}
+
 func or(e *Engine, left []*parser.Decl, right []*parser.Decl, tableName string) (PredicateLinker, error) {
 	p := &orOperator{}
 
@@ -345,7 +357,7 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, fromTableName string) (Predi
 	}
 
 	switch cond.Decl[0].Token {
-	case parser.InToken, parser.EqualityToken, parser.LeftDipleToken, parser.RightDipleToken:
+	case parser.IsToken, parser.InToken, parser.EqualityToken, parser.LeftDipleToken, parser.RightDipleToken:
 		break
 	default:
 		fromTableName = cond.Decl[0].Lexeme
@@ -362,6 +374,16 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, fromTableName string) (Predi
 	// Handle IN keyword
 	if cond.Decl[0].Token == parser.InToken {
 		err := inExecutor(cond.Decl[0], p)
+		if err != nil {
+			return nil, err
+		}
+		p.LeftValue.table = fromTableName
+		return p, nil
+	}
+
+	// Handle IS NULL and IS NOT NULL
+	if cond.Decl[0].Token == parser.IsToken {
+		err := isExecutor(cond.Decl[0], p)
 		if err != nil {
 			return nil, err
 		}
@@ -417,10 +439,14 @@ func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, e
 
 		switch cond.Decl[0].Token {
 		case parser.EqualityToken, parser.LeftDipleToken, parser.RightDipleToken:
-			log.Debug("whereExecutor: it's = < >")
+			log.Debug("whereExecutor: it's = < >\n")
 			break
 		case parser.InToken:
-			log.Debug("whereExecutor: it's IN")
+			log.Debug("whereExecutor: it's IN\n")
+			break
+		case parser.IsToken:
+			log.Debug("whereExecutor: it's IS token\n")
+			log.Debug("whereExecutor: %+v\n", cond.Decl[0])
 			break
 		default:
 			log.Debug("it's the table name ! -> %s", cond.Decl[0].Lexeme)
@@ -434,6 +460,17 @@ func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, e
 		// Handle IN keyword
 		if cond.Decl[0].Token == parser.InToken {
 			err := inExecutor(cond.Decl[0], &p)
+			if err != nil {
+				return nil, err
+			}
+			p.LeftValue.table = tableName
+			predicates = append(predicates, p)
+			continue
+		}
+
+		// Handle IS NULL and IS NOT NULL
+		if cond.Decl[0].Token == parser.IsToken {
+			err := isExecutor(cond.Decl[0], &p)
 			if err != nil {
 				return nil, err
 			}

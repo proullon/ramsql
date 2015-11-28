@@ -10,7 +10,7 @@ import (
 func TestOrderByInt(t *testing.T) {
 	log.UseTestLogger(t)
 
-	db, err := sql.Open("ramsql", "TestOrderBy")
+	db, err := sql.Open("ramsql", "TestOrderByInt")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
@@ -39,6 +39,7 @@ func TestOrderByInt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Cannot select and order by age: %s", err)
 	}
+	defer rows.Close()
 
 	var age, last, size int64
 	last = 4000
@@ -201,4 +202,33 @@ func TestOrderByLimit(t *testing.T) {
 	if size != 2 {
 		t.Fatalf("Expecting 2 rows here, got %d", size)
 	}
+}
+
+func TestOrderByIntEmpty(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestOrderByIntEmpty")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	batch := []string{
+		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
+	}
+
+	for _, b := range batch {
+		_, err = db.Exec(b)
+		if err != nil {
+			t.Fatalf("sql.Exec: Error: %s", err)
+		}
+	}
+
+	query := `SELECT age FROM user WHERE surname = Wayne OR surname = Doe ORDER BY age DESC`
+	rows, err := db.Query(query)
+	if err != nil {
+		t.Fatalf("Cannot select and order by age: %s", err)
+	}
+	defer rows.Close()
+
 }
