@@ -27,8 +27,11 @@ func orderbyExecutor(attr *parser.Decl, tables []*Table) (selectFunctor, error) 
 	if len(tables) < 1 {
 		return nil, fmt.Errorf("cannot guess the table of attribute %s for order", attr.Decl[0].Lexeme)
 	}
-	f.orderby = tables[0].name + "." + attr.Decl[0].Lexeme
-
+	if len(attr.Decl[0].Decl) > 0 {
+		f.orderby = attr.Decl[0].Decl[0].Lexeme + "." + attr.Decl[0].Lexeme
+	} else {
+		f.orderby = tables[0].name + "." + attr.Decl[0].Lexeme
+	}
 	// if second subdecl is present, it's either asc or desc
 	// default is asc anyway
 	if len(attr.Decl) == 2 && attr.Decl[1].Token == parser.AscToken {
