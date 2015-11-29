@@ -32,27 +32,9 @@ func (p *parser) parseDelete() (*Instruction, error) {
 		return i, nil
 	}
 
-	whereDecl, err := p.consumeToken(WhereToken)
+	err = p.parseWhere(deleteDecl)
 	if err != nil {
 		return nil, err
-	}
-	deleteDecl.Add(whereDecl)
-
-	// Now should be a list of: Attribute and Operator and Value
-	gotClause := false
-	for {
-		if !p.hasNext() && gotClause {
-			break
-		}
-
-		attributeDecl, err := p.parseCondition()
-		if err != nil {
-			return nil, err
-		}
-		whereDecl.Add(attributeDecl)
-
-		// Got at least one clause
-		gotClause = true
 	}
 
 	return i, nil

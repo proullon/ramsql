@@ -118,3 +118,47 @@ func TestDelete(t *testing.T) {
 		t.Fatalf("cannot delete last row in table: %s", err)
 	}
 }
+
+func TestDeleteAnd(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestDeleteAnd")
+	if err != nil {
+		t.Fatalf("sql.Open: %s", err)
+	}
+	defer db.Close()
+
+	init := []string{
+		`CREATE TABLE foo (id BIGSERIAL, bar_id INT, toto_id INT)`,
+		`INSERT INTO foo (bar_id, toto_id) VALUES (2, 3)`,
+		`INSERT INTO foo (bar_id, toto_id) VALUES (4, 32)`,
+		`INSERT INTO foo (bar_id, toto_id) VALUES (5, 33)`,
+		`INSERT INTO foo (bar_id, toto_id) VALUES (6, 4)`,
+	}
+	for _, q := range init {
+		_, err := db.Exec(q)
+		if err != nil {
+			t.Fatalf("Cannot initialize test: %s", err)
+		}
+	}
+
+	query := `DELETE FROM foo WHERE bar_id = $1 AND toto_id = $2`
+	log.SetLevel(log.DebugLevel)
+	_, err = db.Exec(query, 4, 32)
+	if err != nil {
+		t.Fatalf("cannot delete: %s", err)
+	}
+
+	n := 0
+	query = `SELECT bar_id FROM foo WHERE 1=1`
+	rows, err := db.Query(query)
+	if err != nil {
+		t.Fatalf("cannot query foo: %s", err)
+	}
+	for rows.Next() {
+		n++
+	}
+	if n != 3 {
+		t.Fatalf("Expected 3 values, got %d", n)
+	}
+}
