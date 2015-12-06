@@ -76,7 +76,7 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 	}
 
 	// JOIN OR ...?
-	if p.is(JoinToken) {
+	for p.is(JoinToken) {
 		joinDecl, err := p.parseJoin()
 		if err != nil {
 			return nil, err
