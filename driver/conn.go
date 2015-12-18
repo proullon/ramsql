@@ -2,7 +2,6 @@ package ramsql
 
 import (
 	"database/sql/driver"
-	"fmt"
 	"sync"
 
 	"github.com/proullon/ramsql/engine/log"
@@ -57,6 +56,10 @@ func (c *Conn) Close() error {
 
 // Begin starts and returns a new transaction.
 func (c *Conn) Begin() (driver.Tx, error) {
-	log.Debug("Conn.Begin")
-	return &Tx{}, fmt.Errorf("Not implemented.")
+
+	tx := Tx{
+		conn: c,
+	}
+
+	return &tx, nil
 }

@@ -6,11 +6,13 @@ import (
 
 // Tx implements SQL transaction method
 type Tx struct {
+	conn *Conn
 }
 
 // Commit the transaction on server
 func (t *Tx) Commit() error {
-	return fmt.Errorf("Not implemented")
+	// TODO: Not implemented
+	return nil
 }
 
 // Rollback all changes
