@@ -340,6 +340,22 @@ func (p *parser) parseOrderBy(selectDecl *Decl) error {
 	}
 	orderDecl.Add(attrDecl)
 
+	// Parse multiple ordering
+	for p.cur().Token == CommaToken {
+		_, err := p.consumeToken(CommaToken)
+		if err != nil {
+			return nil
+		}
+
+		// parse attribute now
+		attrDecl, err := p.parseAttribute()
+		if err != nil {
+			return err
+		}
+		orderDecl.Add(attrDecl)
+	}
+
+	// ASC ? DESC ? nothing ?
 	t := p.cur().Token
 	if t == AscToken || t == DescToken {
 		decl, err := p.consumeToken(AscToken, DescToken)
@@ -348,6 +364,7 @@ func (p *parser) parseOrderBy(selectDecl *Decl) error {
 		}
 		orderDecl.Add(decl)
 	}
+
 	return nil
 }
 
@@ -462,14 +479,17 @@ func (p *parser) parseAttribute() (*Decl, error) {
 
 	// Now, is it a point ?
 	if p.is(PeriodToken) {
-		// if so, next must be the attribute name or a star
-		t, err := p.mustHaveNext(StringToken, StarToken)
+		_, err := p.consumeToken(PeriodToken)
 		if err != nil {
 			return nil, err
 		}
-		attributeDecl := NewDecl(t)
+		// if so, next must be the attribute name or a star
+		attributeDecl, err := p.consumeToken(StringToken, StarToken)
+		if err != nil {
+			return nil, err
+		}
 		attributeDecl.Add(decl)
-		return attributeDecl, p.next()
+		return attributeDecl, nil
 	}
 
 	// Then the first string token was the naked attribute name

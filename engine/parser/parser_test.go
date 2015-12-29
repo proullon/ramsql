@@ -155,6 +155,11 @@ func TestParseMultipleJoin(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestParseMultipleOrderBy(t *testing.T) {
+	query := `SELECT group.id, user.username FROM group JOIN group_user ON group_user.group_id = group.id JOIN user ON user.id = group_user.user_id WHERE group.name = 1 ORDER BY group.name, user.username ASC`
+	parse(query, 1, t)
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)
 
