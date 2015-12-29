@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
@@ -14,6 +15,8 @@ import (
 type Rows struct {
 	rowsChannel chan []string
 	columns     []string
+
+	sync.Mutex
 }
 
 func newRows(channel chan []string) *Rows {
@@ -38,6 +41,8 @@ func (r *Rows) Columns() []string {
 
 // Close closes the rows iterator.
 func (r *Rows) Close() error {
+	r.Lock()
+	defer r.Unlock()
 
 	if r.rowsChannel == nil {
 		return nil
@@ -49,7 +54,8 @@ func (r *Rows) Close() error {
 	}
 
 	// Tels UnlimitedRowsChannel to close itself
-	r.rowsChannel <- []string{}
+	//r.rowsChannel <- []string{}
+	r.rowsChannel = nil
 	return nil
 }
 
@@ -63,6 +69,12 @@ func (r *Rows) Close() error {
 //
 // Next should return io.EOF when there are no more rows.
 func (r *Rows) Next(dest []driver.Value) (err error) {
+	r.Lock()
+	defer r.Unlock()
+
+	if r.rowsChannel == nil {
+		return io.EOF
+	}
 
 	value, ok := <-r.rowsChannel
 	if !ok {
