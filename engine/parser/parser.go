@@ -722,6 +722,15 @@ func (p *parser) parseJoin() (*Decl, error) {
 func (p *parser) parseListElement() (*Decl, error) {
 	quoted := false
 
+	// In case of INSERT, can be DEFAULT here
+	if p.is(DefaultToken) {
+		v, err := p.consumeToken(DefaultToken)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	}
+
 	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
 		quoted = true
 		p.next()

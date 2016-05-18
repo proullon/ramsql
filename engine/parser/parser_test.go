@@ -166,6 +166,12 @@ func TestSelectForUpdate(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestCreateDefault(t *testing.T) {
+	query := `CREATE TABLE foo (bar BIGINT, riri TEXT, fifi BOOLEAN NOT NULL DEFAULT false)`
+
+	parse(query, 1, t)
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)
 

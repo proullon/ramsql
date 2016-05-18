@@ -68,6 +68,7 @@ const (
 	LimitToken
 	IsToken
 	ForToken
+	DefaultToken
 
 	// Type Token
 
@@ -154,6 +155,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchLimitToken)
 	matchers = append(matchers, l.MatchIsToken)
 	matchers = append(matchers, l.MatchForToken)
+	matchers = append(matchers, l.MatchDefaultToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -201,6 +203,10 @@ func (l *lexer) MatchSpaceToken() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) MatchDefaultToken() bool {
+	return l.Match([]byte("default"), DefaultToken)
 }
 
 func (l *lexer) MatchAscToken() bool {

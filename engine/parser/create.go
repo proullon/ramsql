@@ -107,6 +107,20 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 			notDecl.Add(nullDecl)
 		}
 
+		// is it default ?
+		if p.is(DefaultToken) {
+			dDecl, err := p.consumeToken(DefaultToken)
+			if err != nil {
+				return nil, err
+			}
+			newAttribute.Add(dDecl)
+			vDecl, err := p.consumeToken(StringToken)
+			if err != nil {
+				return nil, err
+			}
+			dDecl.Add(vDecl)
+		}
+
 		// Is it a primary key ?
 		if tokens[p.index].Token == PrimaryToken && p.hasNext() && tokens[p.index+1].Token == KeyToken {
 			newPrimary := NewDecl(tokens[p.index])
