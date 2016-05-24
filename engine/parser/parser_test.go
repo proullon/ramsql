@@ -172,6 +172,12 @@ func TestCreateDefault(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestCreateDefaultNumerical(t *testing.T) {
+	query := `CREATE TABLE foo (bar BIGINT, riri TEXT, fifi BIGINT NOT NULL DEFAULT 0)`
+
+	parse(query, 1, t)
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)
 
