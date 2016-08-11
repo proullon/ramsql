@@ -87,6 +87,11 @@ func (r *Rows) Next(dest []driver.Value) (err error) {
 	}
 
 	for i, v := range value {
+		if v == "<nil>" {
+			dest[i] = nil
+			continue
+		}
+
 		// TODO: make rowsChannel send virtualRows,
 		// so we have the type and don't blindy try to parse date here
 		if t, err := parser.ParseDate(string(v)); err == nil {
