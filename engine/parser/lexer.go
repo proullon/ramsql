@@ -37,6 +37,7 @@ const (
 	ExplainToken
 	TruncateToken
 	DropToken
+	GrantToken
 
 	// Second order Token
 
@@ -70,6 +71,8 @@ const (
 	ForToken
 	DefaultToken
 	LocalTimestampToken
+	FalseToken
+	UniqueToken
 
 	// Type Token
 
@@ -127,6 +130,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchDeleteToken)
 	matchers = append(matchers, l.MatchTruncateToken)
 	matchers = append(matchers, l.MatchDropToken)
+	matchers = append(matchers, l.MatchGrantToken)
 	// Second order Matcher
 	matchers = append(matchers, l.MatchTableToken)
 	matchers = append(matchers, l.MatchFromToken)
@@ -158,6 +162,8 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchForToken)
 	matchers = append(matchers, l.MatchDefaultToken)
 	matchers = append(matchers, l.MatchLocalTimestampToken)
+	matchers = append(matchers, l.MatchFalseToken)
+	matchers = append(matchers, l.MatchUniqueToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -207,12 +213,20 @@ func (l *lexer) MatchSpaceToken() bool {
 	return false
 }
 
+func (l *lexer) MatchUniqueToken() bool {
+	return l.Match([]byte("unique"), UniqueToken)
+}
+
 func (l *lexer) MatchLocalTimestampToken() bool {
 	return l.Match([]byte("localtimestamp"), LocalTimestampToken)
 }
 
 func (l *lexer) MatchDefaultToken() bool {
 	return l.Match([]byte("default"), DefaultToken)
+}
+
+func (l *lexer) MatchFalseToken() bool {
+	return l.Match([]byte("false"), FalseToken)
 }
 
 func (l *lexer) MatchAscToken() bool {
@@ -245,6 +259,10 @@ func (l *lexer) MatchTruncateToken() bool {
 
 func (l *lexer) MatchDropToken() bool {
 	return l.Match([]byte("drop"), DropToken)
+}
+
+func (l *lexer) MatchGrantToken() bool {
+	return l.Match([]byte("grant"), GrantToken)
 }
 
 func (l *lexer) MatchWithToken() bool {

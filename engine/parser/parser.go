@@ -141,6 +141,11 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 			break
 		case ExplainToken:
 			break
+		case GrantToken:
+			i := &Instruction{}
+			i.Decls = append(i.Decls, NewDecl(Token{Token: GrantToken}))
+			p.i = append(p.i, *i)
+			return p.i, nil
 		default:
 			return nil, fmt.Errorf("Parsing error near <%s>", tokens[p.index].Lexeme)
 		}

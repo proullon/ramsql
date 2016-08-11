@@ -80,6 +80,23 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 	p.index++
 
 	for p.index < len(tokens) {
+
+		switch p.cur().Token {
+		case PrimaryToken:
+			_, err := p.parsePrimaryKey()
+			if err != nil {
+				return nil, err
+			}
+			continue
+		default:
+		}
+
+		// Closing bracket ?
+		if tokens[p.index].Token == BracketClosingToken {
+			p.consumeToken(BracketClosingToken)
+			break
+		}
+
 		// New attribute name
 		newAttribute, err := p.parseQuotedToken()
 		if err != nil {
@@ -105,6 +122,11 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 				return nil, err
 			}
 			notDecl.Add(nullDecl)
+		}
+
+		// unique ?
+		if tokens[p.index].Token == UniqueToken {
+			p.consumeToken(UniqueToken)
 		}
 
 		// Is it a primary key ?
@@ -159,7 +181,7 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 				return nil, err
 			}
 			newAttribute.Add(dDecl)
-			vDecl, err := p.consumeToken(StringToken, NumberToken, LocalTimestampToken)
+			vDecl, err := p.consumeToken(FalseToken, StringToken, NumberToken, LocalTimestampToken)
 			if err != nil {
 				return nil, err
 			}
@@ -180,4 +202,39 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 	}
 
 	return tableDecl, nil
+}
+
+func (p *parser) parsePrimaryKey() (*Decl, error) {
+	primaryDecl, err := p.consumeToken(PrimaryToken)
+	if err != nil {
+		return nil, err
+	}
+
+	keyDecl, err := p.consumeToken(KeyToken)
+	if err != nil {
+		return nil, err
+	}
+	primaryDecl.Add(keyDecl)
+
+	_, err = p.consumeToken(BracketOpeningToken)
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		d, err := p.parseQuotedToken()
+		if err != nil {
+			return nil, err
+		}
+
+		d, err = p.consumeToken(CommaToken, BracketClosingToken)
+		if err != nil {
+			return nil, err
+		}
+		if d.Token == BracketClosingToken {
+			break
+		}
+	}
+
+	return primaryDecl, nil
 }

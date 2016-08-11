@@ -47,6 +47,7 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 		parser.ExistsToken:   existsExecutor,
 		parser.TruncateToken: truncateExecutor,
 		parser.DropToken:     dropExecutor,
+		parser.GrantToken:    grantExecutor,
 	}
 
 	e.relations = make(map[string]*Relation)
@@ -185,4 +186,8 @@ func createExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn
 	}
 
 	return errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
+}
+
+func grantExecutor(e *Engine, decl *parser.Decl, conn protocol.EngineConn) error {
+	return conn.WriteResult(0, 0)
 }
