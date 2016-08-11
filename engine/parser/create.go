@@ -107,20 +107,6 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 			notDecl.Add(nullDecl)
 		}
 
-		// is it default ?
-		if p.is(DefaultToken) {
-			dDecl, err := p.consumeToken(DefaultToken)
-			if err != nil {
-				return nil, err
-			}
-			newAttribute.Add(dDecl)
-			vDecl, err := p.consumeToken(StringToken, NumberToken)
-			if err != nil {
-				return nil, err
-			}
-			dDecl.Add(vDecl)
-		}
-
 		// Is it a primary key ?
 		if tokens[p.index].Token == PrimaryToken && p.hasNext() && tokens[p.index+1].Token == KeyToken {
 			newPrimary := NewDecl(tokens[p.index])
@@ -164,6 +150,20 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 			newAttributeType.Add(withDecl)
 			withDecl.Add(timeDecl)
 			timeDecl.Add(zoneDecl)
+		}
+
+		// is it default ?
+		if p.is(DefaultToken) {
+			dDecl, err := p.consumeToken(DefaultToken)
+			if err != nil {
+				return nil, err
+			}
+			newAttribute.Add(dDecl)
+			vDecl, err := p.consumeToken(StringToken, NumberToken, LocalTimestampToken)
+			if err != nil {
+				return nil, err
+			}
+			dDecl.Add(vDecl)
 		}
 
 		// Closing bracket ?

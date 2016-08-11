@@ -69,6 +69,7 @@ const (
 	IsToken
 	ForToken
 	DefaultToken
+	LocalTimestampToken
 
 	// Type Token
 
@@ -156,6 +157,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchIsToken)
 	matchers = append(matchers, l.MatchForToken)
 	matchers = append(matchers, l.MatchDefaultToken)
+	matchers = append(matchers, l.MatchLocalTimestampToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -203,6 +205,10 @@ func (l *lexer) MatchSpaceToken() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) MatchLocalTimestampToken() bool {
+	return l.Match([]byte("localtimestamp"), LocalTimestampToken)
 }
 
 func (l *lexer) MatchDefaultToken() bool {
