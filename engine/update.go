@@ -2,7 +2,10 @@ package engine
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
 )
@@ -94,8 +97,18 @@ func updateValues(r *Relation, row int, values map[string]interface{}) error {
 		if !ok {
 			continue
 		}
-
-		r.rows[row].Values[i] = fmt.Sprintf("%v", val)
+		log.Debug("Type of '%s' is '%s'\n", r.table.attributes[i].name, r.table.attributes[i].typeName)
+		switch strings.ToLower(r.table.attributes[i].typeName) {
+		case "timestamp", "localtimestamp":
+			s, ok := val.(string)
+			if ok && s == "current_timestamp" {
+				r.rows[row].Values[i] = fmt.Sprintf("%s", time.Now())
+			} else {
+				r.rows[row].Values[i] = fmt.Sprintf("%v", val)
+			}
+		default:
+			r.rows[row].Values[i] = fmt.Sprintf("%v", val)
+		}
 	}
 
 	return nil
