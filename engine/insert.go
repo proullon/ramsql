@@ -85,6 +85,8 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 	return r, intoDecl.Decl[0].Decl, nil
 }
 
+type f func() interface{}
+
 func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, returnedID string) (int64, error) {
 	var assigned = false
 	var id int64
@@ -117,7 +119,16 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 		}
 		// If values was not explictly given, set default value
 		if assigned == false {
-			t.Append(attr.defaultValue)
+			switch val := attr.defaultValue.(type) {
+			case func() interface{}:
+				//mynewfunclol := val.(func())
+				v := (func() interface{})(val)()
+				log.Debug("Setting func value '%v' to %s\n", v, attr.name)
+				t.Append(v)
+			default:
+				log.Debug("Setting default value '%v' to %s\n", val, attr.name)
+				t.Append(attr.defaultValue)
+			}
 		}
 	}
 

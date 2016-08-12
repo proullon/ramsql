@@ -495,3 +495,40 @@ func TestOr(t *testing.T) {
 	}
 
 }
+
+func TestDefaultTimestamp(t *testing.T) {
+	log.UseTestLogger(t)
+
+	batch := []string{
+		`CREATE TABLE pokemon (name TEXT, type TEXT, seen TIMESTAMP WITH TIME ZONE DEFAULT LOCALTIMESTAMP)`,
+		`INSERT INTO pokemon (name, type) VALUES ('Charmander', 'fire')`,
+	}
+
+	db, err := sql.Open("ramsql", "TestDefaultTimestamp")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	log.SetLevel(log.InfoLevel)
+	for _, b := range batch {
+		_, err = db.Exec(b)
+		if err != nil {
+			t.Fatalf("sql.Exec: Error: %s\n", err)
+		}
+	}
+	log.SetLevel(log.WarningLevel)
+
+	query := `SELECT * FROM pokemon WHERE name = 'Charmander'`
+	var name, montype string
+	var seen time.Time
+	err = db.QueryRow(query).Scan(&name, &montype, &seen)
+	if err != nil {
+		t.Fatalf("cannot load charmander: %s\n", err)
+	}
+
+	if seen.IsZero() {
+		t.Fatalf("expected localtimestamp, got 0")
+	}
+	t.Logf("Last seen charmander: %s\n", seen)
+}

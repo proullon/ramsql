@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
@@ -49,6 +50,19 @@ func parseAttribute(decl *parser.Decl) (Attribute, error) {
 		if typeDecl[i].Token == parser.AutoincrementToken {
 			attr.autoIncrement = true
 		}
+
+		if typeDecl[i].Token == parser.DefaultToken {
+			log.Debug("we get a default value for %s: %s!\n", attr.name, typeDecl[i].Decl[0].Lexeme)
+			switch typeDecl[i].Decl[0].Token {
+			case parser.LocalTimestampToken:
+				log.Debug("Setting default value to NOW() func !\n")
+				attr.defaultValue = func() interface{} { return time.Now() }
+			default:
+				log.Debug("Setting default value to '%v'\n", typeDecl[i].Decl[0].Lexeme)
+				attr.defaultValue = typeDecl[i].Decl[0].Lexeme
+			}
+		}
+
 	}
 
 	if strings.ToLower(attr.typeName) == "bigserial" {
