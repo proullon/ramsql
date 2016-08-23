@@ -101,7 +101,7 @@ func updateValues(r *Relation, row int, values map[string]interface{}) error {
 		switch strings.ToLower(r.table.attributes[i].typeName) {
 		case "timestamp", "localtimestamp":
 			s, ok := val.(string)
-			if ok && s == "current_timestamp" {
+			if ok && (s == "current_timestamp" || s == "now()") {
 				r.rows[row].Values[i] = fmt.Sprintf("%s", time.Now())
 			} else {
 				r.rows[row].Values[i] = fmt.Sprintf("%v", val)

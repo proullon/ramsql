@@ -73,6 +73,7 @@ const (
 	LocalTimestampToken
 	FalseToken
 	UniqueToken
+	NowToken
 
 	// Type Token
 
@@ -164,6 +165,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchLocalTimestampToken)
 	matchers = append(matchers, l.MatchFalseToken)
 	matchers = append(matchers, l.MatchUniqueToken)
+	matchers = append(matchers, l.MatchNowToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -211,6 +213,10 @@ func (l *lexer) MatchSpaceToken() bool {
 	}
 
 	return false
+}
+
+func (l *lexer) MatchNowToken() bool {
+	return l.Match([]byte("now()"), NowToken)
 }
 
 func (l *lexer) MatchUniqueToken() bool {
@@ -640,8 +646,7 @@ func (l *lexer) Match(str []byte, token int) bool {
 
 	// Check for lowercase and uppercase
 	for i := range str {
-		if l.instruction[l.pos+i] != str[i] &&
-			l.instruction[l.pos+i] != byte(str[i]-32) {
+		if unicode.ToLower(rune(l.instruction[l.pos+i])) != unicode.ToLower(rune(str[i])) {
 			return false
 		}
 	}

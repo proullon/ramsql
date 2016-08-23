@@ -534,7 +534,7 @@ func TestDefaultTimestamp(t *testing.T) {
 	query = `UPDATE pokemon SET seen = current_timestamp WHERE name = 'Charmander'`
 	_, err = db.Exec(query)
 	if err != nil {
-		t.Fatal("cannot update timestamp: %s\n", err)
+		t.Fatalf("cannot update timestamp: %s\n", err)
 	}
 
 	query = `SELECT seen FROM pokemon WHERE name = 'Charmander'`
@@ -551,4 +551,26 @@ func TestDefaultTimestamp(t *testing.T) {
 		t.Fatalf("expected different value after update")
 	}
 	t.Logf("Last seen charmander: %s\n", seen2)
+
+	// Check with NOW()
+	query = `UPDATE pokemon SET seen = NOW() WHERE name = 'Charmander'`
+	_, err = db.Exec(query)
+	if err != nil {
+		t.Fatalf("cannot update timestamp: %s\n", err)
+	}
+
+	query = `SELECT seen FROM pokemon WHERE name = 'Charmander'`
+	var seen3 time.Time
+	err = db.QueryRow(query).Scan(&seen3)
+	if err != nil {
+		t.Fatalf("cannot load charmander: %s\n", err)
+	}
+
+	if seen3.IsZero() {
+		t.Fatalf("expected localtimestamp, got 0")
+	}
+	if seen3 == seen2 {
+		t.Fatalf("expected different value after update")
+	}
+	t.Logf("Last seen charmander: %s\n", seen3)
 }
