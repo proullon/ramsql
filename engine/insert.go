@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
@@ -99,7 +100,14 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 		for x, decl := range attributes {
 
 			if attr.name == decl.Lexeme && attr.autoIncrement == false {
-				t.Append(values[x].Lexeme)
+				// Before adding value in tuple, check it's not a builtin func or arithmetic operation
+				switch values[x].Token {
+				case parser.NowToken:
+					t.Append(time.Now())
+				default:
+					t.Append(values[x].Lexeme)
+
+				}
 				assigned = true
 				if returnedID == attr.name {
 					var err error
@@ -121,7 +129,6 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 		if assigned == false {
 			switch val := attr.defaultValue.(type) {
 			case func() interface{}:
-				//mynewfunclol := val.(func())
 				v := (func() interface{})(val)()
 				log.Debug("Setting func value '%v' to %s\n", v, attr.name)
 				t.Append(v)

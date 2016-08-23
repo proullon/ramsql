@@ -742,7 +742,7 @@ func (p *parser) parseListElement() (*Decl, error) {
 	}
 
 	var valueDecl *Decl
-	valueDecl, err := p.consumeToken(StringToken, NumberToken, NullToken, DateToken)
+	valueDecl, err := p.consumeToken(StringToken, NumberToken, NullToken, DateToken, NowToken)
 	if err != nil {
 		return nil, err
 	}

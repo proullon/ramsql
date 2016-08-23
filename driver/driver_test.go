@@ -510,7 +510,6 @@ func TestDefaultTimestamp(t *testing.T) {
 	}
 	defer db.Close()
 
-	log.SetLevel(log.InfoLevel)
 	for _, b := range batch {
 		_, err = db.Exec(b)
 		if err != nil {
@@ -573,4 +572,20 @@ func TestDefaultTimestamp(t *testing.T) {
 		t.Fatalf("expected different value after update")
 	}
 	t.Logf("Last seen charmander: %s\n", seen3)
+
+	query = `INSERT INTO pokemon (name, type, seen) VALUES ('Squirtle', 'water', NOW())`
+	_, err = db.Exec(query)
+	if err != nil {
+		t.Fatalf("Cannot insert row using NOW(): %s\n", err)
+	}
+	query = `SELECT seen FROM pokemon WHERE name = 'Squirtle'`
+	var s time.Time
+	err = db.QueryRow(query).Scan(&s)
+	if err != nil {
+		t.Fatalf("cannot load new row: %s\n", err)
+	}
+
+	if s.IsZero() {
+		t.Fatalf("expected localtimestamp, got 0")
+	}
 }
