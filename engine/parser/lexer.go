@@ -391,7 +391,9 @@ func (l *lexer) MatchStringToken() bool {
 
 	i := l.pos
 	for i < l.instructionLen &&
-		(unicode.IsLetter(rune(l.instruction[i])) || l.instruction[i] == '_' ||
+		(unicode.IsLetter(rune(l.instruction[i])) ||
+			unicode.IsDigit(rune(l.instruction[i])) ||
+			l.instruction[i] == '_' ||
 			l.instruction[i] == '@' /* || l.instruction[i] == '.'*/) {
 		i++
 	}

@@ -190,6 +190,12 @@ func TestCreateDefaultTimestamp(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestCreateNumberInNames(t *testing.T) {
+	query := `CREATE TABLE IF NOT EXISTS "pokemon" (id BIGSERIAL PRIMARY KEY, name TEXT, type TEXT, md5sum TEXT)`
+
+	parse(query, 1, t)
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)
 
