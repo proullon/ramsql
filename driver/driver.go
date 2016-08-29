@@ -37,12 +37,12 @@ type Driver struct {
 	// Mutex protect the map of Server
 	sync.Mutex
 	// Holds all matching sql.DB instances of RamSQL engine
-	servers map[string]Server
+	servers map[string]*Server
 }
 
 func newDriver() *Driver {
 	d := &Driver{}
-	d.servers = make(map[string]Server)
+	d.servers = make(map[string]*Server)
 	return d
 }
 
@@ -88,19 +88,19 @@ func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
 			return nil, err
 		}
 
-		s := Server{
+		s := &Server{
 			endpoint: driverEndpoint,
 			server:   server,
 		}
 		rs.servers[dsn] = s
 
 		rs.Unlock()
-		return newConn(driverConn, &s), nil
+		return newConn(driverConn, s), nil
 	}
 
 	rs.Unlock()
 	driverConn, err := dsnServer.endpoint.New(dsn)
-	return newConn(driverConn, &dsnServer), err
+	return newConn(driverConn, dsnServer), err
 }
 
 func endpoints(conf *connConf) (protocol.DriverEndpoint, protocol.EngineEndpoint, error) {
