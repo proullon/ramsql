@@ -116,7 +116,7 @@ func (s *Stmt) Query(args []driver.Value) (r driver.Rows, err error) {
 	defer s.conn.mutex.Unlock()
 
 	finalQuery := replaceArguments(s.query, args)
-	log.Info("Query <%s>\n", finalQuery)
+	log.Info("Query < %s >\n", finalQuery)
 	err = s.conn.conn.WriteQuery(finalQuery)
 	if err != nil {
 		return nil, err

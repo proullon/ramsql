@@ -80,7 +80,6 @@ func TestUpdateIsNull(t *testing.T) {
 		t.Fatalf("Cannot insert into table account: %s", err)
 	}
 
-	log.SetLevel(log.DebugLevel)
 	res, err := db.Exec("UPDATE account SET email = 'roger@gmail.com', creation_date = $1 WHERE id = 2 AND creation_date IS NULL", time.Now())
 	if err != nil {
 		t.Fatalf("Cannot update table account: %s", err)

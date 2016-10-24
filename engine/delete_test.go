@@ -143,7 +143,6 @@ func TestDeleteAnd(t *testing.T) {
 	}
 
 	query := `DELETE FROM foo WHERE bar_id = $1 AND toto_id = $2`
-	log.SetLevel(log.DebugLevel)
 	_, err = db.Exec(query, 4, 32)
 	if err != nil {
 		t.Fatalf("cannot delete: %s", err)

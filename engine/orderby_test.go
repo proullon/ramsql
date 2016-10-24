@@ -129,7 +129,6 @@ func TestOrderByString(t *testing.T) {
 		if surname != "Doe" {
 			t.Fatalf("Didn't expect surname beeing %s", surname)
 		}
-		t.Logf("Current order: %s %s\n", name, surname)
 		names = append(names, name)
 	}
 

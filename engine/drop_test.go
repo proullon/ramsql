@@ -22,7 +22,6 @@ func TestDrop(t *testing.T) {
 		t.Fatalf("%s", err)
 	}
 
-	log.SetLevel(log.DebugLevel)
 	_, err = db.Exec("DROP TABLE account")
 	if err != nil {
 		t.Fatalf("cannot drop table: %s", err)

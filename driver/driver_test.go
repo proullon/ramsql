@@ -528,7 +528,6 @@ func TestDefaultTimestamp(t *testing.T) {
 	if seen.IsZero() {
 		t.Fatalf("expected localtimestamp, got 0")
 	}
-	t.Logf("Last seen charmander: %s\n", seen)
 
 	query = `UPDATE pokemon SET seen = current_timestamp WHERE name = 'Charmander'`
 	_, err = db.Exec(query)
@@ -549,7 +548,6 @@ func TestDefaultTimestamp(t *testing.T) {
 	if seen2 == seen {
 		t.Fatalf("expected different value after update")
 	}
-	t.Logf("Last seen charmander: %s\n", seen2)
 
 	// Check with NOW()
 	query = `UPDATE pokemon SET seen = NOW() WHERE name = 'Charmander'`
@@ -571,7 +569,6 @@ func TestDefaultTimestamp(t *testing.T) {
 	if seen3 == seen2 {
 		t.Fatalf("expected different value after update")
 	}
-	t.Logf("Last seen charmander: %s\n", seen3)
 
 	query = `INSERT INTO pokemon (name, type, seen) VALUES ('Squirtle', 'water', NOW())`
 	_, err = db.Exec(query)
