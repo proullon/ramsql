@@ -81,6 +81,10 @@ func (s *Stmt) Exec(args []driver.Value) (r driver.Result, err error) {
 	}()
 	defer s.conn.mutex.Unlock()
 
+	if s.query == "" {
+		return nil, fmt.Errorf("empty statement")
+	}
+
 	var finalQuery string
 
 	// replace $* by arguments in query string
@@ -114,6 +118,10 @@ func (s *Stmt) Query(args []driver.Value) (r driver.Rows, err error) {
 		}
 	}()
 	defer s.conn.mutex.Unlock()
+
+	if s.query == "" {
+		return nil, fmt.Errorf("empty statement")
+	}
 
 	finalQuery := replaceArguments(s.query, args)
 	log.Info("Query < %s >\n", finalQuery)
