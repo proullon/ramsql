@@ -196,6 +196,12 @@ func TestCreateNumberInNames(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestOffset(t *testing.T) {
+	query := `SELECT * FROM mytable LIMIT 1 OFFSET 0`
+
+	parse(query, 1, t)
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)
 

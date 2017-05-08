@@ -74,6 +74,7 @@ const (
 	FalseToken
 	UniqueToken
 	NowToken
+	OffsetToken
 
 	// Type Token
 
@@ -166,6 +167,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchFalseToken)
 	matchers = append(matchers, l.MatchUniqueToken)
 	matchers = append(matchers, l.MatchNowToken)
+	matchers = append(matchers, l.MatchOffsetToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -385,6 +387,10 @@ func (l *lexer) MatchJoinToken() bool {
 
 func (l *lexer) MatchOnToken() bool {
 	return l.Match([]byte("on"), OnToken)
+}
+
+func (l *lexer) MatchOffsetToken() bool {
+	return l.Match([]byte("offset"), OffsetToken)
 }
 
 func (l *lexer) MatchStringToken() bool {

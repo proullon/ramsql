@@ -113,6 +113,17 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 				return nil, err
 			}
 			limitDecl.Add(numDecl)
+		case OffsetToken:
+			offsetDecl, err := p.consumeToken(OffsetToken)
+			if err != nil {
+				return nil, err
+			}
+			selectDecl.Add(offsetDecl)
+			offsetValue, err := p.consumeToken(NumberToken)
+			if err != nil {
+				return nil, err
+			}
+			offsetDecl.Add(offsetValue)
 		case ForToken:
 			err := p.parseForUpdate(selectDecl)
 			if err != nil {
