@@ -117,6 +117,12 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 				return fmt.Errorf("wrong limit value: %s", err)
 			}
 			conn = limitedConn(conn, limit)
+		case parser.OffsetToken:
+			offset, err := strconv.Atoi(selectDecl.Decl[i].Decl[0].Lexeme)
+			if err != nil {
+				return fmt.Errorf("wrong offset value: %s", err)
+			}
+			conn = offsetedConn(conn, offset)
 		}
 	}
 

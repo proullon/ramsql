@@ -586,3 +586,48 @@ func TestDefaultTimestamp(t *testing.T) {
 		t.Fatalf("expected localtimestamp, got 0")
 	}
 }
+
+func TestOffset(t *testing.T) {
+	log.UseTestLogger(t)
+
+	batch := []string{
+		`CREATE TABLE pokemon (name TEXT)`,
+		`INSERT INTO pokemon (name) VALUES ('Charmander')`,
+		`INSERT INTO pokemon (name) VALUES ('Bulbasaur')`,
+		`INSERT INTO pokemon (name) VALUES ('Squirtle')`,
+	}
+
+	db, err := sql.Open("ramsql", "TestOffset")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	for _, b := range batch {
+		_, err = db.Exec(b)
+		if err != nil {
+			t.Fatalf("sql.Exec: %s", err)
+		}
+	}
+
+	query := `SELECT * FROM pokemon OFFSET 2`
+	rows, err := db.Query(query)
+	if err != nil {
+		t.Fatalf("sql.Query: %s", err)
+	}
+	defer rows.Close()
+
+	var count int
+	for rows.Next() {
+		var name string
+		err = rows.Scan(&name)
+		if err != nil {
+			t.Fatalf("rows.Scan: %s", err)
+		}
+		count++
+	}
+
+	if count != 1 {
+		t.Fatalf("Expected offset of 2 on 3 rows, got %d rows", count)
+	}
+}
