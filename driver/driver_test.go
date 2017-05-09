@@ -631,3 +631,33 @@ func TestOffset(t *testing.T) {
 		t.Fatalf("Expected offset of 2 on 3 rows, got %d rows", count)
 	}
 }
+
+func TestUnique(t *testing.T) {
+	log.UseTestLogger(t)
+
+	batch := []string{
+		`CREATE TABLE pokemon (id BIGSERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL)`,
+		`INSERT INTO pokemon (name) VALUES ('Charmander')`,
+		`INSERT INTO pokemon (name) VALUES ('Bulbasaur')`,
+		`INSERT INTO pokemon (name) VALUES ('Squirtle')`,
+	}
+
+	db, err := sql.Open("ramsql", "TestUnique")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	for _, b := range batch {
+		_, err = db.Exec(b)
+		if err != nil {
+			t.Fatalf("sql.Exec: %s", err)
+		}
+	}
+
+	query := `INSERT INTO pokemon (name) VALUES ('Charmander')`
+	_, err = db.Exec(query)
+	if err == nil {
+		t.Fatalf("Expected error with UNIQUE violation")
+	}
+}

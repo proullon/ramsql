@@ -23,6 +23,7 @@ type Attribute struct {
 	defaultValue  interface{}
 	domain        Domain
 	autoIncrement bool
+	unique        bool
 }
 
 func parseAttribute(decl *parser.Decl) (Attribute, error) {
@@ -61,6 +62,11 @@ func parseAttribute(decl *parser.Decl) (Attribute, error) {
 				log.Debug("Setting default value to '%v'\n", typeDecl[i].Decl[0].Lexeme)
 				attr.defaultValue = typeDecl[i].Decl[0].Lexeme
 			}
+		}
+
+		// Check if attribute is unique
+		if typeDecl[i].Token == parser.UniqueToken {
+			attr.unique = true
 		}
 
 	}

@@ -91,10 +91,11 @@ type f func() interface{}
 func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, returnedID string) (int64, error) {
 	var assigned = false
 	var id int64
+	var valuesindex int
 
 	// Create tuple
 	t := NewTuple()
-	for _, attr := range r.table.attributes {
+	for attrindex, attr := range r.table.attributes {
 		assigned = false
 
 		for x, decl := range attributes {
@@ -108,6 +109,7 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 					t.Append(values[x].Lexeme)
 
 				}
+				valuesindex = x
 				assigned = true
 				if returnedID == attr.name {
 					var err error
@@ -125,6 +127,16 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 			id = int64(len(r.rows) + 1)
 			t.Append(id)
 		}
+
+		// Do we have a UNIQUE attribute ? if so
+		if attr.unique {
+			for i := range r.rows { // check all value already in relation (yup, no index tree)
+				if r.rows[i].Values[attrindex].(string) == string(values[valuesindex].Lexeme) {
+					return 0, fmt.Errorf("UNIQUE constraint violation")
+				}
+			}
+		}
+
 		// If values was not explictly given, set default value
 		if assigned == false {
 			switch val := attr.defaultValue.(type) {
