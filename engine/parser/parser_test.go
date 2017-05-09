@@ -202,6 +202,12 @@ func TestOffset(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestUnique(t *testing.T) {
+	query := `CREATE TABLE pokemon (id BIGSERIAL, name TEXT UNIQUE NOT NULL)`
+
+	parse(query, 1, t)
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)
 

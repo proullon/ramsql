@@ -110,6 +110,15 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 		}
 		newAttribute.Add(newAttributeType)
 
+		// unique ?
+		if p.is(UniqueToken) {
+			uniqueDecl, err := p.consumeToken(UniqueToken)
+			if err != nil {
+				return nil, err
+			}
+			newAttribute.Add(uniqueDecl)
+		}
+
 		// Is it not null ?
 		if _, err = p.isNext(NullToken); p.is(NotToken) && err == nil {
 			notDecl, err := p.consumeToken(NotToken)
@@ -122,11 +131,6 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 				return nil, err
 			}
 			notDecl.Add(nullDecl)
-		}
-
-		// unique ?
-		if tokens[p.index].Token == UniqueToken {
-			p.consumeToken(UniqueToken)
 		}
 
 		// Is it a primary key ?
