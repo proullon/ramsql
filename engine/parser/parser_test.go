@@ -203,9 +203,15 @@ func TestOffset(t *testing.T) {
 }
 
 func TestUnique(t *testing.T) {
-	query := `CREATE TABLE pokemon (id BIGSERIAL, name TEXT UNIQUE NOT NULL)`
+	queries := []string{
+		`CREATE TABLE pokemon (id BIGSERIAL, name TEXT UNIQUE NOT NULL)`,
+		`CREATE TABLE pokemon (id BIGSERIAL, name TEXT NOT NULL UNIQUE)`,
+		`CREATE TABLE pokemon_name (id BIGINT, name VARCHAR(255) PRIMARY KEY NOT NULL UNIQUE)`,
+	}
 
-	parse(query, 1, t)
+	for _, q := range queries {
+		parse(q, 1, t)
+	}
 }
 
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
