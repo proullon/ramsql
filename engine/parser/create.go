@@ -110,98 +110,95 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 		}
 		newAttribute.Add(newAttributeType)
 
-		// unique ?
-		if p.is(UniqueToken) {
-			uniqueDecl, err := p.consumeToken(UniqueToken)
-			if err != nil {
-				return nil, err
+		// All the following tokens until bracket or comma are column constraints.
+		// Column constraints can be listed in any order.
+		for p.isNot(BracketClosingToken, CommaToken) {
+			switch p.cur().Token {
+			case UniqueToken: // UNIQUE
+				uniqueDecl, err := p.consumeToken(UniqueToken)
+				if err != nil {
+					return nil, err
+				}
+				newAttribute.Add(uniqueDecl)
+			case NotToken: // NOT NULL
+				if _, err = p.isNext(NullToken); err == nil {
+					notDecl, err := p.consumeToken(NotToken)
+					if err != nil {
+						return nil, err
+					}
+					newAttribute.Add(notDecl)
+					nullDecl, err := p.consumeToken(NullToken)
+					if err != nil {
+						return nil, err
+					}
+					notDecl.Add(nullDecl)
+				}
+			case PrimaryToken: // PRIMARY KEY
+				if _, err = p.isNext(KeyToken); err == nil {
+					newPrimary := NewDecl(tokens[p.index])
+					newAttribute.Add(newPrimary)
+
+					if err = p.next(); err != nil {
+						return nil, fmt.Errorf("Unexpected end")
+					}
+
+					newKey := NewDecl(tokens[p.index])
+					newPrimary.Add(newKey)
+
+					if err = p.next(); err != nil {
+						return nil, fmt.Errorf("Unexpected end")
+					}
+				}
+			case AutoincrementToken:
+				autoincDecl, err := p.consumeToken(AutoincrementToken)
+				if err != nil {
+					return nil, err
+				}
+				newAttribute.Add(autoincDecl)
+			case WithToken: // WITH TIME ZONE
+				if strings.ToLower(newAttributeType.Lexeme) == "timestamp" {
+					withDecl, err := p.consumeToken(WithToken)
+					if err != nil {
+						return nil, err
+					}
+					timeDecl, err := p.consumeToken(TimeToken)
+					if err != nil {
+						return nil, err
+					}
+					zoneDecl, err := p.consumeToken(ZoneToken)
+					if err != nil {
+						return nil, err
+					}
+					newAttributeType.Add(withDecl)
+					withDecl.Add(timeDecl)
+					timeDecl.Add(zoneDecl)
+				}
+			case DefaultToken: // DEFAULT
+				dDecl, err := p.consumeToken(DefaultToken)
+				if err != nil {
+					return nil, err
+				}
+				newAttribute.Add(dDecl)
+				vDecl, err := p.consumeToken(FalseToken, StringToken, NumberToken, LocalTimestampToken)
+				if err != nil {
+					return nil, err
+				}
+				dDecl.Add(vDecl)
+			default:
+				// Unknown column constraint
+				return nil, p.syntaxError()
 			}
-			newAttribute.Add(uniqueDecl)
 		}
 
-		// Is it not null ?
-		if _, err = p.isNext(NullToken); p.is(NotToken) && err == nil {
-			notDecl, err := p.consumeToken(NotToken)
-			if err != nil {
-				return nil, err
-			}
-			newAttribute.Add(notDecl)
-			nullDecl, err := p.consumeToken(NullToken)
-			if err != nil {
-				return nil, err
-			}
-			notDecl.Add(nullDecl)
-		}
+		// The current token is either closing bracked or comma.
 
-		// Is it a primary key ?
-		if tokens[p.index].Token == PrimaryToken && p.hasNext() && tokens[p.index+1].Token == KeyToken {
-			newPrimary := NewDecl(tokens[p.index])
-			newAttribute.Add(newPrimary)
-
-			if err = p.next(); err != nil {
-				return nil, fmt.Errorf("Unexpected end")
-			}
-
-			newKey := NewDecl(tokens[p.index])
-			newPrimary.Add(newKey)
-
-			if err = p.next(); err != nil {
-				return nil, fmt.Errorf("Unexpected end")
-			}
-		}
-
-		// ANOTHER PROPERTY FFS ! Autoincrement ?
-		if p.is(AutoincrementToken) {
-			autoincDecl, err := p.consumeToken(AutoincrementToken)
-			if err != nil {
-				return nil, err
-			}
-			newAttribute.Add(autoincDecl)
-		}
-
-		// IF timestamp, maybe WITH TIME ZONE ?
-		if strings.ToLower(newAttributeType.Lexeme) == "timestamp" && p.cur().Token == WithToken {
-			withDecl, err := p.consumeToken(WithToken)
-			if err != nil {
-				return nil, err
-			}
-			timeDecl, err := p.consumeToken(TimeToken)
-			if err != nil {
-				return nil, err
-			}
-			zoneDecl, err := p.consumeToken(ZoneToken)
-			if err != nil {
-				return nil, err
-			}
-			newAttributeType.Add(withDecl)
-			withDecl.Add(timeDecl)
-			timeDecl.Add(zoneDecl)
-		}
-
-		// is it default ?
-		if p.is(DefaultToken) {
-			dDecl, err := p.consumeToken(DefaultToken)
-			if err != nil {
-				return nil, err
-			}
-			newAttribute.Add(dDecl)
-			vDecl, err := p.consumeToken(FalseToken, StringToken, NumberToken, LocalTimestampToken)
-			if err != nil {
-				return nil, err
-			}
-			dDecl.Add(vDecl)
-		}
-
-		// Closing bracket ?
+		// Closing bracket means table parsing stops.
 		if tokens[p.index].Token == BracketClosingToken {
 			p.index++
 			break
 		}
 
-		// Then comma ?
-		if tokens[p.index].Token != CommaToken {
-			return nil, p.syntaxError()
-		}
+		// Comma means continue on next table column.
 		p.index++
 	}
 

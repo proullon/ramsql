@@ -782,6 +782,10 @@ func (p *parser) is(tokenTypes ...int) bool {
 	return false
 }
 
+func (p *parser) isNot(tokenTypes ...int) bool {
+	return !p.is(tokenTypes...)
+}
+
 func (p *parser) isNext(tokenTypes ...int) (t Token, err error) {
 
 	if !p.hasNext() {
