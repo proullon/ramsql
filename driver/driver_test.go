@@ -2,6 +2,7 @@ package ramsql
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -659,5 +660,69 @@ func TestUnique(t *testing.T) {
 	_, err = db.Exec(query)
 	if err == nil {
 		t.Fatalf("Expected error with UNIQUE violation")
+	}
+}
+
+func TestJSON(t *testing.T) {
+	log.UseTestLogger(t)
+
+	batch := []string{
+		`CREATE TABLE test (sequence_number BIGSERIAL PRIMARY KEY, data JSON)`,
+		`INSERT INTO test (data) VALUES ('{"id":"c05d13bd-9d9b-4ea1-95f2-9b11ed3a7d38","name":"test"}')`,
+	}
+
+	db, err := sql.Open("ramsql", "TestJSON")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	for _, b := range batch {
+		_, err = db.Exec(b)
+		if err != nil {
+			t.Fatalf("sql.Exec: %s", err)
+		}
+	}
+
+	query := `SELECT data FROM test`
+	var data string
+	err = db.QueryRow(query).Scan(&data)
+	if err != nil {
+		t.Fatalf("sql.QueryRow: %s", err)
+	}
+	t.Logf("Result: %s\n", data)
+
+	s := struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}{}
+
+	err = json.Unmarshal([]byte(data), &s)
+	if err != nil {
+		t.Fatalf("json.Unmarshal 1: %s", err)
+	}
+	if s.ID != "c05d13bd-9d9b-4ea1-95f2-9b11ed3a7d38" || s.Name != "test" {
+		t.Fatalf("Unexpected values (first unmarshal): %+v\n", s)
+	}
+
+	query = `INSERT INTO test (data) VALUES ($1)`
+	_, err = db.Exec(query, data)
+	if err != nil {
+		t.Fatalf("db.Exec: %s", err)
+	}
+
+	query = `SELECT data FROM test WHERE sequence_number = 2`
+	err = db.QueryRow(query).Scan(&data)
+	if err != nil {
+		t.Fatalf("sql.QueryRow: %s", err)
+	}
+	t.Logf("Result: %s\n", data)
+
+	err = json.Unmarshal([]byte(data), &s)
+	if err != nil {
+		t.Fatalf("json.Unmarshal 2: %s", err)
+	}
+	if s.ID != "c05d13bd-9d9b-4ea1-95f2-9b11ed3a7d38" || s.Name != "test" {
+		t.Fatalf("Unexpected values (second unmarshal): %+v\n", s)
 	}
 }
