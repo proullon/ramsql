@@ -27,6 +27,8 @@ type Attribute struct {
 }
 
 func parseAttribute(decl *parser.Decl) (Attribute, error) {
+	const timeLongFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
+
 	attr := Attribute{}
 
 	// Attribute name
@@ -57,7 +59,7 @@ func parseAttribute(decl *parser.Decl) (Attribute, error) {
 			switch typeDecl[i].Decl[0].Token {
 			case parser.LocalTimestampToken, parser.NowToken:
 				log.Debug("Setting default value to NOW() func !\n")
-				attr.defaultValue = func() interface{} { return time.Now() }
+				attr.defaultValue = func() interface{} { return time.Now().Format(timeLongFormat) }
 			default:
 				log.Debug("Setting default value to '%v'\n", typeDecl[i].Decl[0].Lexeme)
 				attr.defaultValue = typeDecl[i].Decl[0].Lexeme
