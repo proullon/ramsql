@@ -91,8 +91,6 @@ func setExecutor(setDecl *parser.Decl) (map[string]interface{}, error) {
 }
 
 func updateValues(r *Relation, row int, values map[string]interface{}) error {
-	const timeLongFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
-
 	for i := range r.table.attributes {
 		val, ok := values[r.table.attributes[i].name]
 		if !ok {
@@ -103,11 +101,11 @@ func updateValues(r *Relation, row int, values map[string]interface{}) error {
 		case "timestamp", "localtimestamp":
 			s, ok := val.(string)
 			if ok && (s == "current_timestamp" || s == "now()") {
-				val = time.Now().Format(timeLongFormat)
+				val = time.Now()
 			}
 			// format time.Time into parsable string
 			if t, ok := val.(time.Time); ok {
-				val = t.Format(timeLongFormat)
+				val = t.Format(parser.DateLongFormat)
 			}
 		}
 		r.rows[row].Values[i] = fmt.Sprintf("%v", val)
