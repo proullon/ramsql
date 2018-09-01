@@ -89,6 +89,7 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 type f func() interface{}
 
 func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, returnedID string) (int64, error) {
+	const timeLongFormat = "2006-01-02 15:04:05.999999999 -0700 MST"
 	var assigned = false
 	var id int64
 	var valuesindex int
@@ -104,7 +105,7 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 				// Before adding value in tuple, check it's not a builtin func or arithmetic operation
 				switch values[x].Token {
 				case parser.NowToken:
-					t.Append(time.Now())
+					t.Append(time.Now().Format(timeLongFormat))
 				default:
 					t.Append(values[x].Lexeme)
 
