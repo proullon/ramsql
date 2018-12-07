@@ -41,6 +41,21 @@ func TestParserComplete(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestParserCompleteWithBacktickQuotes(t *testing.T) {
+	query := `CREATE TABLE `+"`"+`user`+"`"+`
+	(
+		`+"`"+`id`+"`"+` INT PRIMARY KEY,
+		`+"`"+`last_name`+"`"+` TEXT,
+		`+"`"+`first_name`+"`"+` TEXT,
+		`+"`"+`email`+"`"+` TEXT,
+		`+"`"+`birth_date`+"`"+` DATE,
+		`+"`"+`country`+"`"+` TEXT,
+		`+"`"+`town`+"`"+` TEXT,
+		`+"`"+`zip_code`+"`"+` TEXT
+	)`
+	parse(query, 1, t)
+}
+
 // func TestParserCreateTableWithVarchar(t *testing.T) {
 // 	query := `CREATE TABLE user
 // 	(
@@ -75,6 +90,11 @@ func TestSelectAttributeWithQuotedTable(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestSelectAttributeWithBacktickQuotedTable(t *testing.T) {
+	query := `SELECT `+"`"+`account`+"`"+`.id FROM account WHERE email = 'foo@bar.com'`
+	parse(query, 1, t)
+}
+
 func TestSelectAllFromTable(t *testing.T) {
 	query := `SELECT "account".* FROM account WHERE email = 'foo@bar.com'`
 	parse(query, 1, t)
@@ -90,6 +110,14 @@ func TestSelectQuotedTableName(t *testing.T) {
 	parse(query, 1, t)
 
 	query = `SELECT * FROM "account"`
+	parse(query, 1, t)
+}
+
+func TestSelectBacktickQuotedTableName(t *testing.T) {
+	query := `SELECT * FROM `+"`"+`account`+"`"+` WHERE 1`
+	parse(query, 1, t)
+
+	query = `SELECT * FROM `+"`"+`account`+"`"+``
 	parse(query, 1, t)
 }
 
@@ -112,6 +140,11 @@ func TestInsertNumber(t *testing.T) {
 
 func TestInsertNumberWithQuote(t *testing.T) {
 	query := `INSERT INTO "account" ('email', 'password', 'age') VALUES ('foo@bar.com', 'tititoto', 4)`
+	parse(query, 1, t)
+}
+
+func TestInsertNumberWithBacktickQuote(t *testing.T) {
+	query := `INSERT INTO `+"`"+`account`+"`"+` ('email', 'password', 'age') VALUES ('foo@bar.com', 'tititoto', 4)`
 	parse(query, 1, t)
 }
 

@@ -9,7 +9,7 @@ import (
 
 // SQL Tokens
 const (
-	// Ponctuation token
+	// Punctuation token
 
 	SpaceToken = iota
 	SemicolonToken
@@ -18,6 +18,7 @@ const (
 	BracketClosingToken
 	LeftDipleToken
 	RightDipleToken
+	BacktickToken
 
 	// QuoteToken
 
@@ -111,7 +112,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	securityPos := 0
 
 	var matchers []Matcher
-	// Ponctuation Matcher
+	// Punctuation Matcher
 	matchers = append(matchers, l.MatchSpaceToken)
 	matchers = append(matchers, l.MatchSemicolonToken)
 	matchers = append(matchers, l.MatchCommaToken)
@@ -124,6 +125,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchDoubleQuoteToken)
 	matchers = append(matchers, l.MatchLeftDipleToken)
 	matchers = append(matchers, l.MatchRightDipleToken)
+	matchers = append(matchers, l.MatchBacktickToken)
 	// First order Matcher
 	matchers = append(matchers, l.MatchCreateToken)
 	matchers = append(matchers, l.MatchSelectToken)
@@ -193,7 +195,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 		}
 
 		if l.pos == securityPos {
-			log.Warning("Cannor lex <%s>, stuck at pos %d -> [%c]", l.instruction, l.pos, l.instruction[l.pos])
+			log.Warning("Cannot lex <%s>, stuck at pos %d -> [%c]", l.instruction, l.pos, l.instruction[l.pos])
 			return nil, fmt.Errorf("Cannot lex instruction. Syntax error near %s", instruction[l.pos:])
 		}
 		securityPos = l.pos
@@ -471,6 +473,10 @@ func (l *lexer) MatchLeftDipleToken() bool {
 
 func (l *lexer) MatchRightDipleToken() bool {
 	return l.MatchSingle('>', RightDipleToken)
+}
+
+func (l *lexer) MatchBacktickToken() bool {
+	return l.MatchSingle('`', BacktickToken)
 }
 
 // 2015-09-10 14:03:09.444695269 +0200 CEST);
