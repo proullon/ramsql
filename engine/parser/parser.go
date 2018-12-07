@@ -454,8 +454,10 @@ func (p *parser) parseBuiltinFunc() (*Decl, error) {
 // foo
 func (p *parser) parseAttribute() (*Decl, error) {
 	quoted := false
+	quoteToken := DoubleQuoteToken
 
-	if p.is(DoubleQuoteToken) {
+	if p.is(DoubleQuoteToken) || p.is(BacktickToken) {
+		quoteToken = p.cur().Token
 		quoted = true
 		if err := p.next(); err != nil {
 			return nil, err
@@ -472,7 +474,7 @@ func (p *parser) parseAttribute() (*Decl, error) {
 
 	if quoted {
 		// Check there is a closing quote
-		if _, err := p.mustHaveNext(DoubleQuoteToken); err != nil {
+		if _, err := p.mustHaveNext(quoteToken); err != nil {
 			log.Debug("parseAttribute: Missing closing quote")
 			return nil, err
 		}
@@ -506,9 +508,11 @@ func (p *parser) parseAttribute() (*Decl, error) {
 // "table"
 func (p *parser) parseQuotedToken() (*Decl, error) {
 	quoted := false
+	quoteToken := DoubleQuoteToken
 
-	if p.is(DoubleQuoteToken) {
+	if p.is(DoubleQuoteToken) || p.is(BacktickToken){
 		quoted = true
+		quoteToken = p.cur().Token
 		if err := p.next(); err != nil {
 			return nil, err
 		}
@@ -523,7 +527,7 @@ func (p *parser) parseQuotedToken() (*Decl, error) {
 	if quoted {
 
 		// Check there is a closing quote
-		if _, err := p.mustHaveNext(DoubleQuoteToken); err != nil {
+		if _, err := p.mustHaveNext(quoteToken); err != nil {
 			return nil, err
 		}
 	}

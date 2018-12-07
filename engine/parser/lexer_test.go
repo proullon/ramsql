@@ -6,7 +6,7 @@ import (
 )
 
 func TestLexerSimple(t *testing.T) {
-	query := `CREATE TABLE account`
+	query := `CREATE TABLE `+"`"+`account`+"`"+``
 
 	lexer := lexer{}
 	decls, err := lexer.lex([]byte(query))
@@ -14,8 +14,8 @@ func TestLexerSimple(t *testing.T) {
 		t.Fatalf("Cannot lex <%s> string", query)
 	}
 
-	if len(decls) != 5 {
-		t.Fatalf("Lexing failed, expected 5 tokens, got %d", len(decls))
+	if len(decls) != 7 {
+		t.Fatalf("Lexing failed, expected 7 tokens, got %d", len(decls))
 	}
 }
 
