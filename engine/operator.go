@@ -2,10 +2,10 @@ package engine
 
 import (
 	"fmt"
-	"strconv"
-
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
+	"strconv"
+	"time"
 )
 
 // Operator compares 2 values and return a boolean
@@ -23,6 +23,23 @@ func NewOperator(token int, lexeme string) (Operator, error) {
 	}
 
 	return nil, fmt.Errorf("Operator '%s' does not exist", lexeme)
+}
+
+func convToDate(t interface{}) (time.Time, error) {
+
+	switch t := t.(type) {
+	default:
+		log.Debug("convToDate> unexpected type %T\n", t)
+		return time.Time{}, fmt.Errorf("unexpected internal type %T", t)
+	case string:
+		d, err :=parser.ParseDate(string(t))
+		if err != nil {
+			return time.Time{}, fmt.Errorf("cannot parse date %v", t)
+		}
+
+		return *d, nil
+	}
+
 }
 
 func convToFloat(t interface{}) (float64, error) {
@@ -55,19 +72,36 @@ func greaterThanOperator(leftValue Value, rightValue Value) bool {
 		rvalue = rightValue.lexeme
 	}
 
+	var leftDate time.Time
+	var isDate bool
+
 	left, err = convToFloat(leftValue.v)
 	if err != nil {
-		log.Debug("GreateThanOperator> %s\n", err)
-		return false
+		leftDate, err = convToDate(leftValue.v)
+		if err != nil {
+			log.Debug("GreaterThanOperator> %s\n", err)
+			return false
+		}
+		isDate = true
 	}
 
-	right, err = convToFloat(rvalue)
+	if !isDate {
+		right, err = convToFloat(rvalue)
+		if err != nil {
+			log.Debug("GreaterThanOperator> %s\n", err)
+			return false
+		}
+
+		return left > right
+	}
+
+	rightDate, err := convToDate(rvalue)
 	if err != nil {
-		log.Debug("GreateThanOperator> %s\n", err)
+		log.Debug("GreaterThanOperator> %s\n", err)
 		return false
 	}
 
-	return left > right
+	return leftDate.After(rightDate)
 }
 
 func lessThanOperator(leftValue Value, rightValue Value) bool {
@@ -82,19 +116,36 @@ func lessThanOperator(leftValue Value, rightValue Value) bool {
 		rvalue = rightValue.lexeme
 	}
 
+	var leftDate time.Time
+	var isDate bool
+
 	left, err = convToFloat(leftValue.v)
 	if err != nil {
-		log.Debug("lessThanOperator> %s\n", err)
-		return false
+		leftDate, err = convToDate(leftValue.v)
+		if err != nil {
+			log.Debug("LessThanOperator> %s\n", err)
+			return false
+		}
+		isDate = true
 	}
 
-	right, err = convToFloat(rvalue)
+	if !isDate {
+		right, err = convToFloat(rvalue)
+		if err != nil {
+			log.Debug("LessThanOperator> %s\n", err)
+			return false
+		}
+
+		return left < right
+	}
+
+	rightDate, err := convToDate(rvalue)
 	if err != nil {
-		log.Debug("lessThanOperator> %s\n", err)
+		log.Debug("LessThanOperator> %s\n", err)
 		return false
 	}
 
-	return left < right
+	return leftDate.Before(rightDate)
 }
 
 // EqualityOperator checks if given value are equal
