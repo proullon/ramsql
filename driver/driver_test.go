@@ -276,6 +276,120 @@ func TestBatch(t *testing.T) {
 
 }
 
+func TestCompareDateGT(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestCompareDateGT")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE comp (dat DATE);")
+	if err != nil {
+		t.Fatalf("Cannot create table: %s", err)
+	}
+
+	_, err = db.Exec("INSERT INTO comp (dat) VALUES ('2018-01-01')")
+	if err != nil {
+		t.Fatal("Cannot insert value")
+	}
+	_, err = db.Exec("INSERT INTO comp (dat) VALUES ('2019-01-01')")
+	if err != nil {
+		t.Fatal("Cannot insert value")
+	}
+	_, err = db.Exec("INSERT INTO comp (dat) VALUES ('2020-01-01')")
+	if err != nil {
+		t.Fatal("Cannot insert value")
+	}
+
+	query := "SELECT dat FROM comp WHERE dat > '2018-03-03'"
+
+	rows, err := db.Query(query, )
+	if err != nil {
+		t.Fatalf("sql.Query: %s", err)
+	}
+
+	var nb int
+	for rows.Next() {
+		var dat time.Time
+		if err := rows.Scan(&dat); err != nil {
+			t.Fatalf("Cannot scan row: %s", err)
+		}
+		unwantedDate, err := time.Parse("2006-01-02", "2018-01-01")
+		if err != nil {
+			t.Fatal("Cannot parse unwanted date", err)
+		}
+		if dat.Equal(unwantedDate) {
+			t.Fatalf("Unwanted row: %v", dat)
+		}
+
+		nb++
+	}
+
+	if nb != 2 {
+		t.Fatalf("Unwanted number of rows %d", nb)
+	}
+
+}
+
+func TestCompareDateLT(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestCompareDateLT")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE comp (dat DATE);")
+	if err != nil {
+		t.Fatalf("Cannot create table: %s", err)
+	}
+
+	_, err = db.Exec("INSERT INTO comp (dat) VALUES ('2018-01-01')")
+	if err != nil {
+		t.Fatal("Cannot insert value")
+	}
+	_, err = db.Exec("INSERT INTO comp (dat) VALUES ('2019-01-01')")
+	if err != nil {
+		t.Fatal("Cannot insert value")
+	}
+	_, err = db.Exec("INSERT INTO comp (dat) VALUES ('2020-01-01')")
+	if err != nil {
+		t.Fatal("Cannot insert value")
+	}
+
+	query := "SELECT dat FROM comp WHERE dat < '2019-03-03'"
+
+	rows, err := db.Query(query, )
+	if err != nil {
+		t.Fatalf("sql.Query: %s", err)
+	}
+
+	var nb int
+	for rows.Next() {
+		var dat time.Time
+		if err := rows.Scan(&dat); err != nil {
+			t.Fatalf("Cannot scan row: %s", err)
+		}
+		unwantedDate, err := time.Parse("2006-01-02", "2020-01-01")
+		if err != nil {
+			t.Fatal("Cannot parse unwanted date", err)
+		}
+		if dat.Equal(unwantedDate) {
+			t.Fatalf("Unwanted row: %v", dat)
+		}
+
+		nb++
+	}
+
+	if nb != 2 {
+		t.Fatalf("Unwanted number of rows %d", nb)
+	}
+
+}
+
 func TestDate(t *testing.T) {
 	log.UseTestLogger(t)
 
