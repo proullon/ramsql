@@ -28,3 +28,17 @@ func TestParseDate(t *testing.T) {
 		t.Fatalf("Cannot parse %s: %s", data, err)
 	}
 }
+
+func TestLexerWithGTOEandLTOEOperator(t *testing.T) {
+	query := `SELECT FROM foo WHERE 1 >= 1 AND 2 <= 3`
+
+	lexer := lexer{}
+	decls, err := lexer.lex([]byte(query))
+	if err != nil {
+		t.Fatalf("Cannot lex <%s> string", query)
+	}
+
+	if len(decls) != 21 {
+		t.Fatalf("Lexing failed, expected 21 tokens, got %d", len(decls))
+	}
+}

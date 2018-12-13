@@ -18,6 +18,8 @@ const (
 	BracketClosingToken
 	LeftDipleToken
 	RightDipleToken
+	LessOrEqualToken
+	GreaterOrEqualToken
 	BacktickToken
 
 	// QuoteToken
@@ -123,6 +125,8 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchEqualityToken)
 	matchers = append(matchers, l.MatchPeriodToken)
 	matchers = append(matchers, l.MatchDoubleQuoteToken)
+	matchers = append(matchers, l.MatchLessOrEqualToken)
+	matchers = append(matchers, l.MatchGreaterOrEqualToken)
 	matchers = append(matchers, l.MatchLeftDipleToken)
 	matchers = append(matchers, l.MatchRightDipleToken)
 	matchers = append(matchers, l.MatchBacktickToken)
@@ -473,6 +477,14 @@ func (l *lexer) MatchLeftDipleToken() bool {
 
 func (l *lexer) MatchRightDipleToken() bool {
 	return l.MatchSingle('>', RightDipleToken)
+}
+
+func (l *lexer) MatchLessOrEqualToken() bool {
+	return l.Match([]byte("<="), LessOrEqualToken)
+}
+
+func (l *lexer) MatchGreaterOrEqualToken() bool {
+	return l.Match([]byte(">="), GreaterOrEqualToken)
 }
 
 func (l *lexer) MatchBacktickToken() bool {
