@@ -20,6 +20,10 @@ func NewOperator(token int, lexeme string) (Operator, error) {
 		return lessThanOperator, nil
 	case parser.RightDipleToken:
 		return greaterThanOperator, nil
+	case parser.LessOrEqualToken:
+		return lessOrEqualOperator, nil
+	case parser.GreaterOrEqualToken:
+		return greaterOrEqualOperator, nil
 	}
 
 	return nil, fmt.Errorf("Operator '%s' does not exist", lexeme)
@@ -102,6 +106,14 @@ func greaterThanOperator(leftValue Value, rightValue Value) bool {
 	}
 
 	return leftDate.After(rightDate)
+}
+
+func lessOrEqualOperator(leftValue Value, rightValue Value) bool {
+	return lessThanOperator(leftValue, rightValue) || equalityOperator(leftValue, rightValue)
+}
+
+func greaterOrEqualOperator(leftValue Value, rightValue Value) bool {
+	return greaterThanOperator(leftValue, rightValue) || equalityOperator(leftValue, rightValue)
 }
 
 func lessThanOperator(leftValue Value, rightValue Value) bool {
