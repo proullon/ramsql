@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	sql.Register("ramsql", newDriver())
+	sql.Register("ramsql", NewDriver())
 	log.SetLevel(log.WarningLevel)
 }
 
@@ -40,7 +40,8 @@ type Driver struct {
 	servers map[string]*Server
 }
 
-func newDriver() *Driver {
+// NewDriver creates a driver object
+func NewDriver() *Driver {
 	d := &Driver{}
 	d.servers = make(map[string]*Server)
 	return d
