@@ -28,6 +28,7 @@ const (
 	SimpleQuoteToken
 	StarToken
 	EqualityToken
+	DistinctnessToken
 	PeriodToken
 
 	// First order Token
@@ -123,6 +124,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchStarToken)
 	matchers = append(matchers, l.MatchSimpleQuoteToken)
 	matchers = append(matchers, l.MatchEqualityToken)
+	matchers = append(matchers, l.MatchDistinctnessToken)
 	matchers = append(matchers, l.MatchPeriodToken)
 	matchers = append(matchers, l.MatchDoubleQuoteToken)
 	matchers = append(matchers, l.MatchLessOrEqualToken)
@@ -469,6 +471,10 @@ func (l *lexer) MatchStarToken() bool {
 
 func (l *lexer) MatchEqualityToken() bool {
 	return l.MatchSingle('=', EqualityToken)
+}
+
+func (l *lexer) MatchDistinctnessToken() bool {
+	return l.Match([]byte("<>"), DistinctnessToken)
 }
 
 func (l *lexer) MatchLeftDipleToken() bool {
