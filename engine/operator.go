@@ -16,6 +16,8 @@ func NewOperator(token int, lexeme string) (Operator, error) {
 	switch token {
 	case parser.EqualityToken:
 		return equalityOperator, nil
+	case parser.DistinctnessToken:
+		return distinctnessOperator, nil
 	case parser.LeftDipleToken:
 		return lessThanOperator, nil
 	case parser.RightDipleToken:
@@ -164,6 +166,16 @@ func lessThanOperator(leftValue Value, rightValue Value) bool {
 func equalityOperator(leftValue Value, rightValue Value) bool {
 
 	if fmt.Sprintf("%v", leftValue.v) == rightValue.lexeme {
+		return true
+	}
+
+	return false
+}
+
+// DistinctnessOperator checks if given value are distinct
+func distinctnessOperator(leftValue Value, rightValue Value) bool {
+
+	if fmt.Sprintf("%v", leftValue.v) != rightValue.lexeme {
 		return true
 	}
 
