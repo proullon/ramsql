@@ -161,3 +161,57 @@ func TestUpdateNotNull(t *testing.T) {
 	}
 
 }
+
+func TestUpdateToNull(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestUpdateToNull")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE account (id INT AUTOINCREMENT, email TEXT, creation_date TIMESTAMP WITH TIME ZONE)")
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	_, err = db.Exec("INSERT INTO account ('email') VALUES ('foo@bar.com')")
+	if err != nil {
+		t.Fatalf("Cannot insert into table account: %s", err)
+	}
+
+	row1 := db.QueryRow("SELECT email FROM account WHERE id = 1")
+	if row1 == nil {
+		t.Fatalf("sql.Query failed")
+	}
+
+	var email1 *string
+	err = row1.Scan(&email1)
+	if err != nil {
+		t.Fatalf("row.Scan: %s", err)
+	}
+	if email1 == nil {
+		t.Fatalf("expected 'foo@bar.com' email, but got NULL")
+	}
+
+	_, err = db.Exec("UPDATE account SET email = NULL WHERE id = 1")
+	if err != nil {
+		t.Fatalf("Cannot update table account: %s", err)
+	}
+
+	row2 := db.QueryRow("SELECT email FROM account WHERE id = 1")
+	if row2 == nil {
+		t.Fatalf("sql.Query failed")
+	}
+
+	var email2 *string
+	err = row2.Scan(&email2)
+	if err != nil {
+		t.Fatalf("row.Scan: %s", err)
+	}
+	if email2 != nil {
+		t.Fatalf("expected NULL email, but got '%v'", *email2)
+	}
+
+}

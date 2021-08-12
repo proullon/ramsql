@@ -186,7 +186,7 @@ func (p *parser) parseUpdate() (*Instruction, error) {
 			break
 		}
 
-		attributeDecl, err := p.parseCondition()
+		attributeDecl, err := p.parseAttribution()
 		if err != nil {
 			return nil, err
 		}
@@ -510,7 +510,7 @@ func (p *parser) parseQuotedToken() (*Decl, error) {
 	quoted := false
 	quoteToken := DoubleQuoteToken
 
-	if p.is(DoubleQuoteToken) || p.is(BacktickToken){
+	if p.is(DoubleQuoteToken) || p.is(BacktickToken) {
 		quoted = true
 		quoteToken = p.cur().Token
 		if err := p.next(); err != nil {
@@ -534,6 +534,42 @@ func (p *parser) parseQuotedToken() (*Decl, error) {
 
 	p.next()
 	return decl, nil
+}
+
+func (p *parser) parseAttribution() (*Decl, error) {
+
+	// Attribute
+	attributeDecl, err := p.parseAttribute()
+	if err != nil {
+		return nil, err
+	}
+
+	// Equals operator
+	if p.cur().Token == EqualityToken {
+		decl, err := p.consumeToken(p.cur().Token)
+		if err != nil {
+			return nil, err
+		}
+		attributeDecl.Add(decl)
+	}
+
+	// Value
+	if p.cur().Token == NullToken {
+		log.Debug("parseAttribution: NullToken\n")
+		nullDecl, err := p.consumeToken(NullToken)
+		if err != nil {
+			return nil, err
+		}
+		attributeDecl.Add(nullDecl)
+	} else {
+		valueDecl, err := p.parseValue()
+		if err != nil {
+			return nil, err
+		}
+		attributeDecl.Add(valueDecl)
+	}
+
+	return attributeDecl, nil
 }
 
 func (p *parser) parseCondition() (*Decl, error) {

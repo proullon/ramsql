@@ -84,7 +84,11 @@ func setExecutor(setDecl *parser.Decl) (map[string]interface{}, error) {
 	values := make(map[string]interface{})
 
 	for _, attr := range setDecl.Decl {
-		values[attr.Lexeme] = attr.Decl[1].Lexeme
+		if attr.Decl[1].Token == parser.NullToken {
+			values[attr.Lexeme] = nil
+		} else {
+			values[attr.Lexeme] = attr.Decl[1].Lexeme
+		}
 	}
 
 	return values, nil
