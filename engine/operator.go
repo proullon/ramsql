@@ -38,7 +38,7 @@ func convToDate(t interface{}) (time.Time, error) {
 		log.Debug("convToDate> unexpected type %T\n", t)
 		return time.Time{}, fmt.Errorf("unexpected internal type %T", t)
 	case string:
-		d, err :=parser.ParseDate(string(t))
+		d, err := parser.ParseDate(string(t))
 		if err != nil {
 			return time.Time{}, fmt.Errorf("cannot parse date %v", t)
 		}
@@ -203,6 +203,10 @@ func inOperator(leftValue Value, rightValue Value) bool {
 	}
 
 	return false
+}
+
+func notInOperator(leftValue Value, rightValue Value) bool {
+	return !inOperator(leftValue, rightValue)
 }
 
 func isNullOperator(leftValue Value, rightValue Value) bool {

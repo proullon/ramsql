@@ -601,6 +601,24 @@ func (p *parser) parseCondition() (*Decl, error) {
 		}
 		attributeDecl.Add(inDecl)
 		return attributeDecl, nil
+	case NotToken:
+		notDecl, err := p.consumeToken(p.cur().Token)
+		if err != nil {
+			return nil, err
+		}
+
+		if p.cur().Token != InToken {
+			return nil, fmt.Errorf("expected IN after NOT")
+		}
+
+		inDecl, err := p.parseIn()
+		if err != nil {
+			return nil, err
+		}
+		notDecl.Add(inDecl)
+
+		attributeDecl.Add(notDecl)
+		return attributeDecl, nil
 	case IsToken:
 		log.Debug("parseCondition: IsToken\n")
 		decl, err := p.consumeToken(IsToken)
