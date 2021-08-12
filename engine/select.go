@@ -275,6 +275,22 @@ func inExecutor(inDecl *parser.Decl, p *Predicate) error {
 	return nil
 }
 
+func notInExecutor(inDecl *parser.Decl, p *Predicate) error {
+	inDecl.Stringy(0)
+
+	p.Operator = notInOperator
+
+	// Put everything in a []string
+	var values []string
+	for i := range inDecl.Decl {
+		log.Debug("notIinExecutor: Appending [%s]", inDecl.Decl[i].Lexeme)
+		values = append(values, inDecl.Decl[i].Lexeme)
+	}
+	p.RightValue.v = values
+
+	return nil
+}
+
 func isExecutor(isDecl *parser.Decl, p *Predicate) error {
 	isDecl.Stringy(0)
 
@@ -387,6 +403,16 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, fromTableName string) (Predi
 		return p, nil
 	}
 
+	// Handle NOT IN keywords
+	if cond.Decl[0].Token == parser.NotToken && cond.Decl[0].Decl[0].Token == parser.InToken {
+		err := notInExecutor(cond.Decl[0].Decl[0], p)
+		if err != nil {
+			return nil, err
+		}
+		p.LeftValue.table = fromTableName
+		return p, nil
+	}
+
 	// Handle IS NULL and IS NOT NULL
 	if cond.Decl[0].Token == parser.IsToken {
 		err := isExecutor(cond.Decl[0], p)
@@ -450,6 +476,9 @@ func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, e
 		case parser.InToken:
 			log.Debug("whereExecutor: it's IN\n")
 			break
+		case parser.NotToken:
+			log.Debug("whereExecutor: it's NOT\n")
+			break
 		case parser.IsToken:
 			log.Debug("whereExecutor: it's IS token\n")
 			log.Debug("whereExecutor: %+v\n", cond.Decl[0])
@@ -466,6 +495,17 @@ func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, e
 		// Handle IN keyword
 		if cond.Decl[0].Token == parser.InToken {
 			err := inExecutor(cond.Decl[0], &p)
+			if err != nil {
+				return nil, err
+			}
+			p.LeftValue.table = tableName
+			predicates = append(predicates, p)
+			continue
+		}
+
+		// Handle NOT IN keywords
+		if cond.Decl[0].Token == parser.NotToken && cond.Decl[0].Decl[0].Token == parser.InToken {
+			err := notInExecutor(cond.Decl[0].Decl[0], &p)
 			if err != nil {
 				return nil, err
 			}
