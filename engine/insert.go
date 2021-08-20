@@ -20,13 +20,18 @@ import (
             |-> first_name
             |-> email
     |-> VALUES
-        |-> Roullon
-        |-> Pierre
-        |-> pierre.roullon@gmail.com
+        |-> (
+            |-> Roullon
+            |-> Pierre
+            |-> pierre.roullon@gmail.com
+    |-> RETURNING
+            |-> email
+
 */
 func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.EngineConn) error {
 	// Get table and concerned attributes and write lock it
-	r, attributes, err := getRelation(e, insertDecl.Decl[0])
+	intoDecl := insertDecl.Decl[0]
+	r, attributes, err := getRelation(e, intoDecl)
 	if err != nil {
 		return err
 	}
@@ -38,25 +43,35 @@ func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.E
 	if len(insertDecl.Decl) > 2 {
 		for i := range insertDecl.Decl {
 			if insertDecl.Decl[i].Token == parser.ReturningToken {
-				returnedID = insertDecl.Decl[i].Lexeme
+				returningDecl := insertDecl.Decl[i]
+				returnedID = returningDecl.Lexeme
 				break
 			}
 		}
 	}
 
 	// Create a new tuple with values
-	id, err := insert(r, attributes, insertDecl.Decl[1].Decl, returnedID)
-	if err != nil {
-		return err
+	ids := []int64{}
+	valuesDecl := insertDecl.Decl[1]
+	for _, valueListDecl := range valuesDecl.Decl {
+		// TODO handle all inserts atomically
+		id, err := insert(r, attributes, valueListDecl.Decl, returnedID)
+		if err != nil {
+			return err
+		}
+
+		ids = append(ids, id)
 	}
 
 	// if RETURNING decl is not present
 	if returnedID != "" {
 		conn.WriteRowHeader([]string{returnedID})
-		conn.WriteRow([]string{fmt.Sprintf("%v", id)})
+		for _, id := range ids {
+			conn.WriteRow([]string{fmt.Sprintf("%v", id)})
+		}
 		conn.WriteRowEnd()
 	} else {
-		conn.WriteResult(id, 1)
+		conn.WriteResult(ids[len(ids)-1], (int64)(len(ids)))
 	}
 	return nil
 }
