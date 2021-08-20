@@ -205,6 +205,22 @@ func (p *parser) parseUpdate() (*Instruction, error) {
 	return i, nil
 }
 
+// Parses an INSERT statement.
+//
+// The generated AST is as follows:
+//
+//  |-> "INSERT" (InsertToken)
+//      |-> "INTO" (IntoToken)
+//          |-> table name
+//              |-> column name
+//              |-> (...)
+//      |-> "VALUES" (ValuesToken)
+//          |-> "(" (BracketOpeningToken)
+//              |-> value
+//              |-> (...)
+//          |-> (...)
+//      |-> "RETURNING" (ReturningToken) (optional)
+//          |-> column name
 func (p *parser) parseInsert() (*Instruction, error) {
 	i := &Instruction{}
 
@@ -263,10 +279,12 @@ func (p *parser) parseInsert() (*Instruction, error) {
 	}
 	insertDecl.Add(valuesDecl)
 
-	_, err = p.consumeToken(BracketOpeningToken)
+	for {
+		openingBracketDecl, err := p.consumeToken(BracketOpeningToken)
 	if err != nil {
 		return nil, err
 	}
+		valuesDecl.Add(openingBracketDecl)
 
 	// should be a list of values for specified attributes
 	for {
@@ -274,7 +292,7 @@ func (p *parser) parseInsert() (*Instruction, error) {
 		if err != nil {
 			return nil, err
 		}
-		valuesDecl.Add(decl)
+			openingBracketDecl.Add(decl)
 
 		if p.is(BracketClosingToken) {
 			p.consumeToken(BracketClosingToken)
@@ -285,11 +303,21 @@ func (p *parser) parseInsert() (*Instruction, error) {
 		if err != nil {
 			return nil, err
 		}
+		}
+
+		if p.is(CommaToken) {
+			p.consumeToken(CommaToken)
+			continue
+		}
+
+		break
 	}
 
 	// we may have `returning "something"` here
 	if retDecl, err := p.consumeToken(ReturningToken); err == nil {
 		insertDecl.Add(retDecl)
+
+		// returned attribute
 		attrDecl, err := p.parseAttribute()
 		if err != nil {
 			return nil, err
