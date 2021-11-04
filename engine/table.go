@@ -85,6 +85,7 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 		if err != nil {
 			return err
 		}
+
 		i++
 	}
 
