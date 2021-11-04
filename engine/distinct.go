@@ -37,7 +37,8 @@ func (l *distinct) WriteError(err error) error {
 
 func (l *distinct) WriteRowHeader(header []string) error {
 	if l.len > 0 {
-		return l.realConn.WriteRowHeader(header[:l.len])
+		// Postgres returns only columns outside of DISTINCT ON
+		return l.realConn.WriteRowHeader(header[l.len:])
 	}
 	return l.realConn.WriteRowHeader(header)
 }
@@ -47,12 +48,12 @@ func (l *distinct) WriteRow(row []string) error {
 		if l.seen.exists(row[:l.len]) {
 			return nil
 		}
-		return l.realConn.WriteRow(row[:l.len])
+		// Postgres returns only columns outside of DISTINCT ON
+		return l.realConn.WriteRow(row[l.len:])
 	} else {
 		if l.seen.exists(row) {
 			return nil
 		}
-		//l.seen = append(l.seen, row)
 		return l.realConn.WriteRow(row)
 	}
 }
