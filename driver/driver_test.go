@@ -979,7 +979,7 @@ func TestDistinct(t *testing.T) {
 		}
 	}
 
-	testDistinct := func(t *testing.T, query string, exp int) {
+	testDistinct := func(t *testing.T, query string, exp int, dest ...interface{}) {
 		rows, err := db.Query(query)
 		if err != nil {
 			t.Fatalf("sql.Query: %s", err)
@@ -988,6 +988,12 @@ func TestDistinct(t *testing.T) {
 		var got int
 		for rows.Next() {
 			got++
+			if err := rows.Scan(dest...); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := rows.Err(); err != nil {
+			t.Fatal(err)
 		}
 
 		if got != exp {
@@ -996,9 +1002,11 @@ func TestDistinct(t *testing.T) {
 	}
 
 	t.Run("distinct", func(t *testing.T) {
-		testDistinct(t, `SELECT DISTINCT surname FROM user`, 4)
+		var surname string
+		testDistinct(t, `SELECT DISTINCT surname FROM user`, 4, &surname)
 	})
 	t.Run("distinct-on", func(t *testing.T) {
-		testDistinct(t, `SELECT DISTINCT ON (surname, age) name FROM user`, 6)
+		var name string
+		testDistinct(t, `SELECT DISTINCT ON (surname, age) name FROM user`, 6, &name)
 	})
 }
