@@ -42,6 +42,7 @@ const (
 	TruncateToken
 	DropToken
 	GrantToken
+	DistinctToken
 
 	// Second order Token
 
@@ -141,6 +142,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchTruncateToken)
 	matchers = append(matchers, l.MatchDropToken)
 	matchers = append(matchers, l.MatchGrantToken)
+	matchers = append(matchers, l.MatchDistinctToken)
 	// Second order Matcher
 	matchers = append(matchers, l.MatchTableToken)
 	matchers = append(matchers, l.MatchFromToken)
@@ -327,6 +329,10 @@ func (l *lexer) MatchCreateToken() bool {
 
 func (l *lexer) MatchSelectToken() bool {
 	return l.Match([]byte("select"), SelectToken)
+}
+
+func (l *lexer) MatchDistinctToken() bool {
+	return l.Match([]byte("distinct"), DistinctToken)
 }
 
 func (l *lexer) MatchInsertToken() bool {

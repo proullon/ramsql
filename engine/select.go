@@ -123,6 +123,8 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 				return fmt.Errorf("wrong offset value: %s", err)
 			}
 			conn = offsetedConn(conn, offset)
+		case parser.DistinctToken:
+			conn = distinctedConn(conn, len(selectDecl.Decl[i].Decl))
 		}
 	}
 
@@ -143,7 +145,7 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 	}
 
 	if len(functors) == 0 {
-		// Instanciate a new select functor
+		// Instantiate a new select functor
 		functors, err = getSelectFunctors(selectDecl)
 		if err != nil {
 			return err
@@ -164,7 +166,7 @@ type selectFunctor interface {
 	Done() error
 }
 
-// getSelectFunctors instanciate new functors for COUNT, MAX, MIN, AVG, ... and default select functor that return rows to client
+// getSelectFunctors instantiate new functors for COUNT, MAX, MIN, AVG, ... and default select functor that return rows to client
 // If a functor is specified, no attribute can be selected ?
 func getSelectFunctors(attr *parser.Decl) ([]selectFunctor, error) {
 	var functors []selectFunctor

@@ -464,7 +464,7 @@ func (p *parser) parseAttribute() (*Decl, error) {
 		}
 	}
 
-	// shoud be a StringToken here
+	// should be a StringToken here
 	// If there is a point after, it's a table name,
 	// if not, it's the attribute
 	if !p.is(StringToken, StarToken) {
