@@ -20,28 +20,65 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 		return nil, fmt.Errorf("SELECT token must be followed by attributes to select")
 	}
 
+	var (
+		distinctDecl *Decl
+		distinctOpen bool
+	)
+	if p.is(DistinctToken) {
+		distinctDecl, err = p.consumeToken(DistinctToken)
+		if err != nil {
+			return nil, err
+		}
+
+		if p.is(OnToken) {
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+			if !p.is(BracketOpeningToken) {
+				return nil, fmt.Errorf("Syntax error near %v, opening bracket expected\n", tokens[p.index])
+			}
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+			distinctOpen = true
+		}
+
+		selectDecl.Add(distinctDecl)
+	}
+
 	for {
-		if p.is(CountToken) {
+		switch {
+		case p.is(CountToken):
 			attrDecl, err := p.parseBuiltinFunc()
 			if err != nil {
 				return nil, err
 			}
 			selectDecl.Add(attrDecl)
-		} else {
+		default:
 			attrDecl, err := p.parseAttribute()
 			if err != nil {
 				return nil, err
 			}
+			if distinctOpen {
+				distinctDecl.Add(attrDecl)
+			}
 			selectDecl.Add(attrDecl)
 		}
 
-		// If comma, loop again.
-		if p.is(CommaToken) {
+		switch {
+		case distinctOpen && p.is(BracketClosingToken):
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+			distinctOpen = false
+			continue
+		case p.is(CommaToken):
 			if err := p.next(); err != nil {
 				return nil, err
 			}
 			continue
 		}
+
 		break
 	}
 

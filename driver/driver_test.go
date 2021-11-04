@@ -305,7 +305,7 @@ func TestCompareDateGT(t *testing.T) {
 
 	query := "SELECT dat FROM comp WHERE dat > '2018-03-03'"
 
-	rows, err := db.Query(query, )
+	rows, err := db.Query(query)
 	if err != nil {
 		t.Fatalf("sql.Query: %s", err)
 	}
@@ -362,7 +362,7 @@ func TestCompareDateLT(t *testing.T) {
 
 	query := "SELECT dat FROM comp WHERE dat < '2019-03-03'"
 
-	rows, err := db.Query(query, )
+	rows, err := db.Query(query)
 	if err != nil {
 		t.Fatalf("sql.Query: %s", err)
 	}
@@ -552,7 +552,6 @@ func TestEqualAndDistinct(t *testing.T) {
 	if nb != 2 {
 		t.Fatalf("Expected 2 rows, got %d", nb)
 	}
-
 }
 
 func TestGreaterThanOrEqualAndLessThanOrEqual(t *testing.T) {
@@ -951,4 +950,55 @@ func TestJSON(t *testing.T) {
 	if s.ID != "c05d13bd-9d9b-4ea1-95f2-9b11ed3a7d38" || s.Name != "test" {
 		t.Fatalf("Unexpected values (second unmarshal): %+v\n", s)
 	}
+}
+
+func TestDistinct(t *testing.T) {
+	log.UseTestLogger(t)
+
+	batch := []string{
+		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Foo', 'Bar', 20);`,
+		`INSERT INTO user (name, surname, age) VALUES ('John', 'Doe', 20);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Jane', 'Doe', 40);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Joe', 'Doe', 10);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Homer', 'Simpson', 40);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Marge', 'Simpson', 40);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Bruce', 'Wayne', 3333);`,
+	}
+
+	db, err := sql.Open("ramsql", "TestDistinct")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	for _, b := range batch {
+		_, err = db.Exec(b)
+		if err != nil {
+			t.Fatalf("sql.Exec: Error: %s\n", err)
+		}
+	}
+
+	testDistinct := func(t *testing.T, query string, exp int) {
+		rows, err := db.Query(query)
+		if err != nil {
+			t.Fatalf("sql.Query: %s", err)
+		}
+
+		var got int
+		for rows.Next() {
+			got++
+		}
+
+		if got != exp {
+			t.Fatalf("Expected %d rows, got %d", exp, got)
+		}
+	}
+
+	t.Run("distinct", func(t *testing.T) {
+		testDistinct(t, `SELECT DISTINCT surname FROM user`, 4)
+	})
+	t.Run("distinct-on", func(t *testing.T) {
+		testDistinct(t, `SELECT DISTINCT ON (surname, age) name FROM user`, 6)
+	})
 }
