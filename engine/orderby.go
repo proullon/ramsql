@@ -2,13 +2,10 @@ package engine
 
 import (
 	"fmt"
-	"sort"
-	"strconv"
-	"time"
-
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
+	"sort"
 )
 
 //    |-> order
@@ -16,7 +13,6 @@ import (
 //        |-> desc
 func orderbyExecutor(attr *parser.Decl, tables []*Table) (selectFunctor, error) {
 	f := &orderbyFunctor{}
-	f.buffer = make(map[int64][][]string)
 
 	// first subdecl should be attribute
 	if len(attr.Decl) < 1 {
@@ -27,19 +23,26 @@ func orderbyExecutor(attr *parser.Decl, tables []*Table) (selectFunctor, error) 
 	if len(tables) < 1 {
 		return nil, fmt.Errorf("cannot guess the table of attribute %s for order", attr.Decl[0].Lexeme)
 	}
-	if len(attr.Decl[0].Decl) > 0 {
-		f.orderby = attr.Decl[0].Decl[0].Lexeme + "." + attr.Decl[0].Lexeme
-	} else {
-		f.orderby = tables[0].name + "." + attr.Decl[0].Lexeme
-	}
-	// if second subdecl is present, it's either asc or desc
-	// default is asc anyway
-	if len(attr.Decl) == 2 && attr.Decl[1].Token == parser.AscToken {
-		f.asc = true
+
+	for _, d := range attr.Decl {
+		var desc bool
+		if len(d.Decl) >= 1 && d.Decl[0].Lexeme == "desc" {
+			desc = true
+		}
+
+		f.orderBy = append(f.orderBy, &orderBy{
+			column: tables[0].name + "." + d.Lexeme,
+			desc:   desc,
+		})
 	}
 
-	log.Debug("orderbyExecutor> you must order by '%s', asc: %v\n", f.orderby, f.asc)
 	return f, nil
+}
+
+type orderBy struct {
+	column     string
+	desc       bool
+	comparator comparator
 }
 
 // ok so our buffer is a map of INDEX -> slice of ROW
@@ -50,10 +53,8 @@ type orderbyFunctor struct {
 	conn       protocol.EngineConn
 	attributes []string
 	alias      []string
-	orderby    string
-	asc        bool
-	buffer     map[int64][][]string
 	order      orderer
+	orderBy    []*orderBy
 }
 
 func (f *orderbyFunctor) Init(e *Engine, conn protocol.EngineConn, attr []string, alias []string) error {
@@ -66,22 +67,14 @@ func (f *orderbyFunctor) Init(e *Engine, conn protocol.EngineConn, attr []string
 }
 
 func (f *orderbyFunctor) FeedVirtualRow(vrow virtualRow) error {
-
-	// search key
-	val, ok := vrow[f.orderby]
-	if !ok {
-		return fmt.Errorf("could not find ordering attribute %s in virtual row", f.orderby)
-	}
-
 	if f.order == nil { // first time
-		o, err := initOrderer(val, f.attributes)
-		if err != nil {
-			return err
-		}
+		o := &genericOrderer{orderBy: f.orderBy}
+		o.init(f.attributes)
+
 		f.order = o
 	}
 
-	return f.order.Feed(val, vrow)
+	return f.order.Feed(Value{}, vrow)
 }
 
 func (f *orderbyFunctor) Done() error {
@@ -92,10 +85,8 @@ func (f *orderbyFunctor) Done() error {
 		return f.conn.WriteRowEnd()
 	}
 
-	if f.asc {
-		f.order.Sort()
-	} else {
-		f.order.SortReverse()
+	if err := f.order.Sort(); err != nil {
+		return err
 	}
 
 	err := f.order.Write(f.conn)
@@ -106,201 +97,205 @@ func (f *orderbyFunctor) Done() error {
 	return f.conn.WriteRowEnd()
 }
 
-type sortSlice []int64
-
-func (s sortSlice) Less(i, j int) bool {
-	return s[i] < s[j]
-}
-
-func (s sortSlice) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s sortSlice) Len() int {
-	return len(s)
-}
-
 type orderer interface {
 	Feed(key Value, vrow virtualRow) error
 	Sort() error
-	SortReverse() error
 	Write(conn protocol.EngineConn) error
 }
 
-func initOrderer(val Value, attr []string) (orderer, error) {
-	log.Debug("initOrder: %v\n", val)
-	_, err := strconv.ParseInt(fmt.Sprintf("%v", val.v), 10, 64)
-	if err == nil {
-		log.Debug("initOrderer> key is in fact an integer\n")
-		i := &intOrderer{}
-		i.init(attr)
-		return i, nil
-	}
-
-	/* OK SO
-	 * Is the key an integer, a string or a date ?
-	 */
-	switch v := val.v.(type) {
-	case string:
-		s := &stringOrderer{}
-		s.init(attr)
-		return s, nil
-	case int, int64:
-		i := &intOrderer{}
-		i.init(attr)
-		return i, nil
-	/*case time.Time:
-	d := dateOrderer{}
-	d.init()
-	return d*/
-	default:
-		return nil, fmt.Errorf("cannot order %T with value %v", val.v, v)
-	}
-}
-
-type stringOrderer struct {
-	buffer     map[string][][]string
+type genericOrderer struct {
+	buffer     map[string][][]interface{}
 	attributes []string
 	keys       []string
+	orderBy    []*orderBy
 }
 
-func (i *stringOrderer) init(attr []string) {
-	i.buffer = make(map[string][][]string)
-	i.attributes = attr
+func (o *genericOrderer) init(attr []string) {
+	o.buffer = make(map[string][][]interface{})
+	o.attributes = attr
 }
 
-func (i *stringOrderer) Feed(val Value, vrow virtualRow) error {
-	var row []string
+func (o *genericOrderer) Feed(_ Value, vrow virtualRow) error {
+	var row []interface{}
 
-	key, ok := val.v.(string)
-	if !ok {
-		return fmt.Errorf("error ordering because of value %v", val.v)
+	var key string
+	for _, ob := range o.orderBy {
+		if key != "" {
+			key += "."
+		}
+
+		key += fmt.Sprint(vrow[ob.column].v)
+
+		if ob.comparator != nil {
+			continue
+		}
+
+		// TODO: refactor using generics once possible
+		switch vrow[ob.column].v.(type) {
+		case string:
+			ob.comparator = func(desc bool) comparator {
+				return func(i interface{}, j interface{}) int {
+					if _, ok := i.(string); !ok {
+						panic(fmt.Sprintf("unsupported type, expected string but got %T", i))
+					}
+
+					a := i.(string)
+					b := j.(string)
+					if desc {
+						switch {
+						case a > b:
+							return 1
+						case a < b:
+							return -1
+						case a == b:
+							return 0
+						}
+					} else {
+						switch {
+						case a < b:
+							return 1
+						case a > b:
+							return -1
+						case a == b:
+							return 0
+						}
+					}
+					return 0
+				}
+			}(ob.desc)
+		case int64:
+			ob.comparator = func(desc bool) comparator {
+				return func(i interface{}, j interface{}) int {
+					if _, ok := i.(int64); !ok {
+						panic(fmt.Sprintf("unsupported type, expected int64 but got %T %v", i, i))
+					}
+
+					a := i.(int64)
+					b := j.(int64)
+					if desc {
+						switch {
+						case a > b:
+							return 1
+						case a < b:
+							return -1
+						case a == b:
+							return 0
+						}
+					} else {
+						switch {
+						case a < b:
+							return 1
+						case a > b:
+							return -1
+						case a == b:
+							return 0
+						}
+					}
+					return 0
+				}
+			}(ob.desc)
+		case float64:
+			ob.comparator = func(desc bool) comparator {
+				return func(i interface{}, j interface{}) int {
+					if _, ok := i.(float64); !ok {
+						panic(fmt.Sprintf("unsupported type, expected float64 but got %T %v", i, i))
+					}
+
+					a := i.(float64)
+					b := j.(float64)
+					if desc {
+						switch {
+						case a > b:
+							return 1
+						case a < b:
+							return -1
+						case a == b:
+							return 0
+						}
+					} else {
+						switch {
+						case a < b:
+							return 1
+						case a > b:
+							return -1
+						case a == b:
+							return 0
+						}
+					}
+					return 0
+				}
+			}(ob.desc)
+		//default:
+		//	panic(fmt.Sprintf("wrong type %T for column %s", vrow[ob.column].v, ob.column))
+		}
 	}
 
-	for _, attr := range i.attributes {
+	for _, attr := range o.attributes {
 		val, ok := vrow[attr]
 		if !ok {
 			return fmt.Errorf("could not select attribute %s", attr)
 		}
-		row = append(row, fmt.Sprintf("%v", val.v))
+		row = append(row, val.v)
 	}
 
 	// now instead of writing row, we will find the ordering key and put in in our buffer
-	i.buffer[key] = append(i.buffer[key], row)
+	o.buffer[key] = append(o.buffer[key], row)
 	return nil
 }
 
-func (i *stringOrderer) Sort() error {
-	// now we have to sort our key
-	i.keys = make([]string, len(i.buffer))
-	var index int64
-	for k := range i.buffer {
-		i.keys[index] = k
-		index++
+func (o *genericOrderer) Sort() error {
+	o.keys = make([]string, len(o.buffer))
+	var idx int
+	for k := range o.buffer {
+		o.keys[idx] = k
+		idx++
 	}
 
-	sort.Sort(sort.StringSlice(i.keys))
+	sort.Slice(o.keys, func(a, b int) bool {
+		for _, ob := range o.orderBy {
+			keyA := o.keys[a]
+			keyB := o.keys[b]
+
+			var idx int
+			for i, attr := range o.attributes {
+				if attr == ob.column {
+					idx = i
+				}
+			}
+
+			switch ob.comparator(o.buffer[keyA][0][idx], o.buffer[keyB][0][idx]) {
+			case 1:
+				return true
+			case 0:
+				continue
+			case -1:
+				return false
+			}
+		}
+
+		return false
+	})
+
 	return nil
 }
 
-func (i *stringOrderer) SortReverse() error {
-	// now we have to sort our key
-	i.keys = make([]string, len(i.buffer))
-	var index int64
-	for k := range i.buffer {
-		i.keys[index] = k
-		index++
-	}
-
-	sort.Sort(sort.Reverse(sort.StringSlice(i.keys)))
-	return nil
-}
-
-func (i *stringOrderer) Write(conn protocol.EngineConn) error {
+func (o *genericOrderer) Write(conn protocol.EngineConn) error {
 	// now write ordered rows
-	for _, key := range i.keys {
-		rows := i.buffer[key]
+	for _, key := range o.keys {
+		rows := o.buffer[key]
 		for index := range rows {
-			err := conn.WriteRow(rows[index])
+			var row []string
+			for _, elem := range rows[index] {
+				row = append(row, fmt.Sprint(elem))
+			}
+			err := conn.WriteRow(row)
 			if err != nil {
 				return err
 			}
 		}
 	}
+
 	return nil
 }
 
-type intOrderer struct {
-	buffer     map[int64][][]string
-	attributes []string
-	keys       []int64
-}
-
-func (i *intOrderer) init(attr []string) {
-	i.buffer = make(map[int64][][]string)
-	i.attributes = attr
-}
-
-func (i *intOrderer) Feed(val Value, vrow virtualRow) error {
-	var row []string
-	var key int64
-	var err error
-
-	key, err = strconv.ParseInt(fmt.Sprintf("%v", val.v), 10, 64)
-	if err != nil {
-		return fmt.Errorf("error ordering because of value %v", val.v)
-	}
-
-	for _, attr := range i.attributes {
-		val, ok := vrow[attr]
-		if !ok {
-			return fmt.Errorf("could not select attribute %s", attr)
-		}
-		row = append(row, fmt.Sprintf("%v", val.v))
-	}
-
-	// now instead of writing row, we will find the ordering key and put in in our buffer
-	i.buffer[key] = append(i.buffer[key], row)
-	return nil
-}
-
-func (i *intOrderer) Sort() error {
-	// now we have to sort our key
-	i.keys = make([]int64, len(i.buffer))
-	var index int64
-	for k := range i.buffer {
-		i.keys[index] = k
-		index++
-	}
-
-	sort.Sort(sortSlice(i.keys))
-	return nil
-}
-
-func (i *intOrderer) SortReverse() error {
-	// now we have to sort our key
-	i.keys = make([]int64, len(i.buffer))
-	var index int64
-	for k := range i.buffer {
-		i.keys[index] = k
-		index++
-	}
-
-	sort.Sort(sort.Reverse(sortSlice(i.keys)))
-	return nil
-}
-
-func (i *intOrderer) Write(conn protocol.EngineConn) error {
-	// now write ordered rows
-	for _, key := range i.keys {
-		rows := i.buffer[key]
-		for index := range rows {
-			conn.WriteRow(rows[index])
-		}
-	}
-	return nil
-}
-
-type dateOrderer struct {
-	buffer map[time.Time][][]string
-}
+type comparator func(i interface{}, j interface{}) int

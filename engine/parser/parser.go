@@ -70,8 +70,6 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 	p.tokenLen = len(tokens)
 	p.index = 0
 	for p.hasNext() {
-		// fmt.Printf("Token index : %d\n", p.index)
-
 		// Found a new instruction
 		if tokens[p.index].Token == SemicolonToken {
 			p.index++
@@ -338,36 +336,29 @@ func (p *parser) parseOrderBy(selectDecl *Decl) error {
 		return err
 	}
 
-	// parse attribute now
-	attrDecl, err := p.parseAttribute()
-	if err != nil {
-		return err
-	}
-	orderDecl.Add(attrDecl)
-
-	// Parse multiple ordering
-	for p.cur().Token == CommaToken {
-		_, err := p.consumeToken(CommaToken)
-		if err != nil {
-			return nil
-		}
-
+	for {
 		// parse attribute now
 		attrDecl, err := p.parseAttribute()
 		if err != nil {
 			return err
 		}
 		orderDecl.Add(attrDecl)
-	}
 
-	// ASC ? DESC ? nothing ?
-	t := p.cur().Token
-	if t == AscToken || t == DescToken {
-		decl, err := p.consumeToken(AscToken, DescToken)
-		if err != nil {
-			return err
+		if p.is(AscToken, DescToken) {
+			decl, err := p.consumeToken(AscToken, DescToken)
+			if err != nil {
+				return err
+			}
+			attrDecl.Add(decl)
 		}
-		orderDecl.Add(decl)
+
+		if !p.is(CommaToken) {
+			break
+		}
+
+		if _, err = p.consumeToken(CommaToken); err != nil {
+			return nil
+		}
 	}
 
 	return nil
@@ -510,7 +501,7 @@ func (p *parser) parseQuotedToken() (*Decl, error) {
 	quoted := false
 	quoteToken := DoubleQuoteToken
 
-	if p.is(DoubleQuoteToken) || p.is(BacktickToken){
+	if p.is(DoubleQuoteToken) || p.is(BacktickToken) {
 		quoted = true
 		quoteToken = p.cur().Token
 		if err := p.next(); err != nil {
@@ -836,7 +827,6 @@ func (p *parser) cur() Token {
 }
 
 func (p *parser) consumeToken(tokenTypes ...int) (*Decl, error) {
-
 	if !p.is(tokenTypes...) {
 		return nil, p.syntaxError()
 	}

@@ -2,9 +2,9 @@ package engine_test
 
 import (
 	"database/sql"
-	"testing"
-
+	"fmt"
 	"github.com/proullon/ramsql/engine/log"
+	"testing"
 )
 
 func TestOrderByInt(t *testing.T) {
@@ -230,4 +230,73 @@ func TestOrderByIntEmpty(t *testing.T) {
 	}
 	defer rows.Close()
 
+}
+
+func TestOrderByMultipleStrings(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestOrderByMultipleStrings")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+
+	defer func() {
+		if err := db.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	batch := []string{
+		`CREATE TABLE user (name TEXT, surname TEXT, age INT64, savings DECIMAL);`,
+		`INSERT INTO user (name, surname, age, savings) VALUES (Joe, Angel, 11, 125.215);`,
+		`INSERT INTO user (name, surname, age, savings) VALUES (Joe, Angel, 11, 1.1);`,
+		`INSERT INTO user (name, surname, age, savings) VALUES (Joe, Zebra, 32, 0.921);`,
+		`INSERT INTO user (name, surname, age, savings) VALUES (Anna, Angel, 33, 0);`,
+		`INSERT INTO user (name, surname, age, savings) VALUES (Anna, Zebra, 9, 25);`,
+	}
+
+	for _, b := range batch {
+		_, err = db.Exec(b)
+		if err != nil {
+			t.Fatalf("sql.Exec: Error: %s", err)
+		}
+	}
+
+	query := `SELECT name, surname, age, savings FROM user ORDER BY name ASC, age DESC, savings ASC`
+	rows, err := db.Query(query)
+	if err != nil {
+		t.Fatalf("Cannot select and order by age: %s", err)
+	}
+
+	exp := [][]string{
+		{"Anna", "33", "0"},
+		{"Anna", "9", "25"},
+		{"Joe", "32", "0.921"},
+		{"Joe", "11", "1.1"},
+		{"Joe", "11", "125.215"},
+	}
+	var (
+		got           [][]string
+		name, surname string
+		age           int64
+		savings       float64
+	)
+	for rows.Next() {
+		err = rows.Scan(&name, &surname, &age, &savings)
+		if err != nil {
+			t.Fatalf("Cannot scan row: %s\n", err)
+		}
+		got = append(got, []string{name, fmt.Sprint(age), fmt.Sprint(savings)})
+	}
+
+	if len(exp) != len(got) {
+		t.Fatalf("length mismatch, expected %d but got %d", len(exp), len(got))
+	}
+	for i := 0; i < len(exp); i++ {
+		for j := 0; j < len(exp[i]); j++ {
+			if exp[i][j] != got[i][j] {
+				t.Fatalf("data mismatch at %d/%d, expeced %v but got %v", i, j, exp[i][j], got[i][j])
+			}
+		}
+	}
 }

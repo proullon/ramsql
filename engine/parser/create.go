@@ -104,6 +104,7 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 		}
 		tableDecl.Add(newAttribute)
 
+
 		newAttributeType, err := p.parseType()
 		if err != nil {
 			return nil, err

@@ -186,8 +186,6 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 
 	var r bool
 	for l.pos < l.instructionLen {
-		// fmt.Printf("Tokens : %v\n\n", l.tokens)
-
 		r = false
 		for _, m := range matchers {
 			if r = m(); r == true {
@@ -430,6 +428,12 @@ func (l *lexer) MatchNumberToken() bool {
 	i := l.pos
 	for i < l.instructionLen && unicode.IsDigit(rune(l.instruction[i])) {
 		i++
+	}
+	if i < l.instructionLen && l.instruction[i] == '.' {
+		i++
+		for i < l.instructionLen && unicode.IsDigit(rune(l.instruction[i])) {
+			i++
+		}
 	}
 
 	if i != l.pos {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/proullon/ramsql/engine/log"
@@ -24,7 +25,6 @@ import (
         |-> pierre.roullon@gmail.com
 */
 func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.EngineConn) error {
-
 	// Get table and concerned attributes and write lock it
 	r, attributes, err := getRelation(e, insertDecl.Decl[0])
 	if err != nil {
@@ -86,8 +86,6 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 	return r, intoDecl.Decl[0].Decl, nil
 }
 
-type f func() interface{}
-
 func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, returnedID string) (int64, error) {
 	var assigned = false
 	var id int64
@@ -95,19 +93,34 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 
 	// Create tuple
 	t := NewTuple()
+
+
 	for attrindex, attr := range r.table.attributes {
 		assigned = false
 
 		for x, decl := range attributes {
-
 			if attr.name == decl.Lexeme && attr.autoIncrement == false {
 				// Before adding value in tuple, check it's not a builtin func or arithmetic operation
 				switch values[x].Token {
 				case parser.NowToken:
 					t.Append(time.Now().Format(parser.DateLongFormat))
 				default:
-					t.Append(values[x].Lexeme)
-
+					switch strings.ToLower(attr.typeName) {
+					case "int64", "int":
+						val, err := strconv.ParseInt(values[x].Lexeme, 10, 64)
+						if err != nil {
+							return 0, err
+						}
+						t.Append(val)
+					case "numeric", "decimal":
+						val, err := strconv.ParseFloat(values[x].Lexeme, 64)
+						if err != nil {
+							return 0, err
+						}
+						t.Append(val)
+					default:
+						t.Append(values[x].Lexeme)
+					}
 				}
 				valuesindex = x
 				assigned = true
