@@ -374,6 +374,10 @@ func (l *lexer) MatchDeleteToken() bool {
 }
 
 func (l *lexer) MatchAutoincrementToken() bool {
+	if l.Match([]byte("auto_increment"), AutoincrementToken) {
+		return true
+	}
+
 	return l.Match([]byte("autoincrement"), AutoincrementToken)
 }
 
