@@ -246,11 +246,11 @@ func (l *lexer) MatchFalseToken() bool {
 }
 
 func (l *lexer) MatchAscToken() bool {
-	return l.Match([]byte("desc"), DescToken)
+	return l.Match([]byte("asc"), AscToken)
 }
 
 func (l *lexer) MatchDescToken() bool {
-	return l.Match([]byte("asc"), AscToken)
+	return l.Match([]byte("desc"), DescToken)
 }
 
 func (l *lexer) MatchAndToken() bool {
