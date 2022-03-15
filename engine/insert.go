@@ -88,7 +88,7 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 	// Decl[0] is the table name
 	r := e.relation(intoDecl.Decl[0].Lexeme)
 	if r == nil {
-		return nil, nil, errors.New("table " + intoDecl.Decl[0].Lexeme + " does not exists")
+		return nil, nil, errors.New("table " + intoDecl.Decl[0].Lexeme + " does not exist")
 	}
 
 	for i := range intoDecl.Decl[0].Decl {
