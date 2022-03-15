@@ -30,7 +30,7 @@ func updateExecutor(e *Engine, updateDecl *parser.Decl, conn protocol.EngineConn
 	// Fetch table from name and write lock it
 	r := e.relation(updateDecl.Decl[0].Lexeme)
 	if r == nil {
-		return fmt.Errorf("Table %s does not exists", updateDecl.Decl[0].Lexeme)
+		return fmt.Errorf("Table %s does not exist", updateDecl.Decl[0].Lexeme)
 	}
 	r.Lock()
 	r.Unlock()
