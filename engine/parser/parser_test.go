@@ -42,16 +42,16 @@ func TestParserComplete(t *testing.T) {
 }
 
 func TestParserCompleteWithBacktickQuotes(t *testing.T) {
-	query := `CREATE TABLE `+"`"+`user`+"`"+`
+	query := `CREATE TABLE ` + "`" + `user` + "`" + `
 	(
-		`+"`"+`id`+"`"+` INT PRIMARY KEY,
-		`+"`"+`last_name`+"`"+` TEXT,
-		`+"`"+`first_name`+"`"+` TEXT,
-		`+"`"+`email`+"`"+` TEXT,
-		`+"`"+`birth_date`+"`"+` DATE,
-		`+"`"+`country`+"`"+` TEXT,
-		`+"`"+`town`+"`"+` TEXT,
-		`+"`"+`zip_code`+"`"+` TEXT
+		` + "`" + `id` + "`" + ` INT PRIMARY KEY,
+		` + "`" + `last_name` + "`" + ` TEXT,
+		` + "`" + `first_name` + "`" + ` TEXT,
+		` + "`" + `email` + "`" + ` TEXT,
+		` + "`" + `birth_date` + "`" + ` DATE,
+		` + "`" + `country` + "`" + ` TEXT,
+		` + "`" + `town` + "`" + ` TEXT,
+		` + "`" + `zip_code` + "`" + ` TEXT
 	)`
 	parse(query, 1, t)
 }
@@ -91,7 +91,7 @@ func TestSelectAttributeWithQuotedTable(t *testing.T) {
 }
 
 func TestSelectAttributeWithBacktickQuotedTable(t *testing.T) {
-	query := `SELECT `+"`"+`account`+"`"+`.id FROM account WHERE email = 'foo@bar.com'`
+	query := `SELECT ` + "`" + `account` + "`" + `.id FROM account WHERE email = 'foo@bar.com'`
 	parse(query, 1, t)
 }
 
@@ -114,10 +114,10 @@ func TestSelectQuotedTableName(t *testing.T) {
 }
 
 func TestSelectBacktickQuotedTableName(t *testing.T) {
-	query := `SELECT * FROM `+"`"+`account`+"`"+` WHERE 1`
+	query := `SELECT * FROM ` + "`" + `account` + "`" + ` WHERE 1`
 	parse(query, 1, t)
 
-	query = `SELECT * FROM `+"`"+`account`+"`"+``
+	query = `SELECT * FROM ` + "`" + `account` + "`" + ``
 	parse(query, 1, t)
 }
 
@@ -144,7 +144,7 @@ func TestInsertNumberWithQuote(t *testing.T) {
 }
 
 func TestInsertNumberWithBacktickQuote(t *testing.T) {
-	query := `INSERT INTO `+"`"+`account`+"`"+` ('email', 'password', 'age') VALUES ('foo@bar.com', 'tititoto', 4)`
+	query := `INSERT INTO ` + "`" + `account` + "`" + ` ('email', 'password', 'age') VALUES ('foo@bar.com', 'tititoto', 4)`
 	parse(query, 1, t)
 }
 
@@ -246,6 +246,25 @@ func TestUnique(t *testing.T) {
 		parse(q, 1, t)
 	}
 }
+
+func TestNow(t *testing.T) {
+	query := `CREATE TABLE IF NOT EXISTS "pokemon" (id BIGSERIAL PRIMARY KEY, test TIMESTAMPZ DEFAULT NOW())`
+
+	parse(query, 1, t)
+}
+
+/*
+func TestForeignKey(t *testing.T) {
+	queries := []string{
+		`CREATE TABLE pokemon (id BIGSERIAL, name TEXT NOT NULL UNIQUE)`,
+		`CREATE TABLE pokemon_spell (id BIGINT, name VARCHAR(255), pokemon_id BIGINT REFERENCE pokemon(id))`,
+	}
+
+	for _, q := range queries {
+		parse(q, 1, t)
+	}
+}
+*/
 
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)

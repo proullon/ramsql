@@ -104,7 +104,6 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 		}
 		tableDecl.Add(newAttribute)
 
-
 		newAttributeType, err := p.parseType()
 		if err != nil {
 			return nil, err
@@ -180,7 +179,7 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 					return nil, err
 				}
 				newAttribute.Add(dDecl)
-				vDecl, err := p.consumeToken(FalseToken, StringToken, NumberToken, LocalTimestampToken)
+				vDecl, err := p.consumeToken(FalseToken, StringToken, NumberToken, LocalTimestampToken, NowToken)
 				if err != nil {
 					return nil, err
 				}

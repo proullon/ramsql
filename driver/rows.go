@@ -23,7 +23,7 @@ func newRows(channel chan []string) *Rows {
 	r := &Rows{rowsChannel: channel}
 	c, ok := <-channel
 	if !ok {
-		log.Critical("Cannot receive column names form channel")
+		log.Critical("Cannot receive column names from channel")
 		return nil
 	}
 
