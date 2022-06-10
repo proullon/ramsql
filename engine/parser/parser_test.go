@@ -16,6 +16,15 @@ func TestParserCreateTableSimpleWithPrimaryKey(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestParserCreateTableWithDefaultClause(t *testing.T) {
+	query := `CREATE TABLE account_detail
+	(
+		id INT PRIMARY KEY,
+		email TEXT DEFAULT 'example@example.com'
+	)`
+	parse(query, 1, t)
+}
+
 func TestParserMultipleInstructions(t *testing.T) {
 	query := `CREATE TABLE account (id INT, email TEXT);CREATE TABLE user (id INT, email TEXT)`
 	parse(query, 2, t)
