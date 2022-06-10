@@ -754,6 +754,26 @@ func (p *parser) parseValue() (*Decl, error) {
 	return valueDecl, nil
 }
 
+func (p *parser) parseStringLiteral() (*Decl, error) {
+	singleQuoted := p.is(SimpleQuoteToken)
+	_, err := p.consumeToken(SimpleQuoteToken, DoubleQuoteToken)
+	if err != nil {
+		return nil, err
+	}
+	valueDecl, err := p.consumeToken(StringToken)
+	if err != nil {
+		return nil, err
+	}
+	if (singleQuoted && p.is(DoubleQuoteToken)) || (!singleQuoted && p.is(SimpleQuoteToken)) {
+		return nil, fmt.Errorf("Quotation marks do not match.")
+	}
+	_, err = p.consumeToken(SimpleQuoteToken, DoubleQuoteToken)
+	if err != nil {
+		return nil, err
+	}
+	return valueDecl, nil
+}
+
 // parseJoin parses the JOIN keywords and all its condition
 // JOIN user_addresses ON address.id=user_addresses.address_id
 func (p *parser) parseJoin() (*Decl, error) {

@@ -174,16 +174,11 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 					timeDecl.Add(zoneDecl)
 				}
 			case DefaultToken: // DEFAULT
-				dDecl, err := p.consumeToken(DefaultToken)
+				dDecl, err := p.parseDefaultClause()
 				if err != nil {
 					return nil, err
 				}
 				newAttribute.Add(dDecl)
-				vDecl, err := p.consumeToken(FalseToken, StringToken, NumberToken, LocalTimestampToken, NowToken)
-				if err != nil {
-					return nil, err
-				}
-				dDecl.Add(vDecl)
 			default:
 				// Unknown column constraint
 				return nil, p.syntaxError()
@@ -203,6 +198,27 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 	}
 
 	return tableDecl, nil
+}
+
+func (p *parser) parseDefaultClause() (*Decl, error) {
+	dDecl, err := p.consumeToken(DefaultToken)
+	if err != nil {
+		return nil, err
+	}
+
+	var vDecl *Decl
+
+	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
+		vDecl, err = p.parseStringLiteral()
+	} else {
+		vDecl, err = p.consumeToken(FalseToken, NumberToken, LocalTimestampToken, NowToken)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	dDecl.Add(vDecl)
+	return dDecl, nil
 }
 
 func (p *parser) parsePrimaryKey() (*Decl, error) {
