@@ -262,6 +262,19 @@ func TestNow(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestIndex(t *testing.T) {
+	queries := []string{
+		`CREATE INDEX index_name ON table_name (col1, col2)`,
+		`CREATE UNIQUE INDEX index_name ON table_name (col1, col2)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS index_name ON table_name (col1, col2)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS index_name ON table_name (col1, col2 COLLATE NOCASE)`,
+	}
+
+	for _, q := range queries {
+		parse(q, 1, t)
+	}
+}
+
 /*
 func TestForeignKey(t *testing.T) {
 	queries := []string{
