@@ -29,11 +29,143 @@ func (p *parser) parseCreate(tokens []Token) (*Instruction, error) {
 		}
 		createDecl.Add(d)
 		break
+	case IndexToken:
+		d, err := p.parseIndex(tokens)
+		if err != nil {
+			return nil, err
+		}
+		createDecl.Add(d)
+		break
+	case UniqueToken:
+		u, err := p.consumeToken(UniqueToken)
+		if err != nil {
+			return nil, err
+		}
+		// should have index after unique here
+		if !p.hasNext() || tokens[p.index].Token != IndexToken {
+			return nil, fmt.Errorf("expected INDEX after UNIQUE")
+		}
+		d, err := p.parseIndex(tokens)
+		if err != nil {
+			return nil, err
+		}
+		d.Add(u)
+		createDecl.Add(d)
+		break
+
 	default:
 		return nil, fmt.Errorf("Parsing error near <%s>", tokens[p.index].Lexeme)
 	}
 
 	return i, nil
+}
+
+// INDEX index_name ON table_name (col1, col2)
+func (p *parser) parseIndex(tokens []Token) (*Decl, error) {
+	var err error
+	indexDecl := NewDecl(tokens[p.index])
+	p.index++
+
+	// Maybe have "IF NOT EXISTS" here
+	if p.is(IfToken) {
+		ifDecl, err := p.consumeToken(IfToken)
+		if err != nil {
+			return nil, err
+		}
+		indexDecl.Add(ifDecl)
+
+		if p.is(NotToken) {
+			notDecl, err := p.consumeToken(NotToken)
+			if err != nil {
+				return nil, err
+			}
+			ifDecl.Add(notDecl)
+			if !p.is(ExistsToken) {
+				return nil, p.syntaxError()
+			}
+			existsDecl, err := p.consumeToken(ExistsToken)
+			if err != nil {
+				return nil, err
+			}
+			notDecl.Add(existsDecl)
+		}
+	}
+
+	// Now we should found index name
+	nameIndex, err := p.parseAttribute()
+	if err != nil {
+		return nil, p.syntaxError()
+	}
+	indexDecl.Add(nameIndex)
+
+	// ON
+	if !p.hasNext() || tokens[p.index].Token != OnToken {
+		return nil, fmt.Errorf("Expected ON")
+	}
+	p.index++
+
+	// Now we should found table name
+	nameTable, err := p.parseAttribute()
+	if err != nil {
+		return nil, p.syntaxError()
+	}
+	indexDecl.Add(nameTable)
+
+	// Now we should found brackets
+	if !p.hasNext() || tokens[p.index].Token != BracketOpeningToken {
+		return nil, fmt.Errorf("Table name token must be followed by table definition")
+	}
+	p.index++
+
+	for p.index < len(tokens) {
+
+		// New attribute name
+		newAttribute, err := p.parseQuotedToken()
+		if err != nil {
+			return nil, err
+		}
+		indexDecl.Add(newAttribute)
+
+		// Closing bracket ?
+		if tokens[p.index].Token == BracketClosingToken {
+			p.consumeToken(BracketClosingToken)
+			break
+		}
+
+		// All the following tokens until bracket or comma are column constraints.
+		// Column constraints can be listed in any order.
+		for p.isNot(BracketClosingToken, CommaToken) {
+			switch p.cur().Token {
+			case CollateToken: // COLLATE NOCASE
+				collateDecl, err := p.consumeToken(CollateToken)
+				if err != nil {
+					return nil, p.syntaxError()
+				}
+				newAttribute.Add(collateDecl)
+				n, err := p.consumeToken(NocaseToken)
+				if err != nil {
+					return nil, p.syntaxError()
+				}
+				collateDecl.Add(n)
+			default:
+				// Unknown column constraint
+				return nil, p.syntaxError()
+			}
+		}
+
+		// The current token is either closing bracked or comma.
+
+		// Closing bracket means table parsing stops.
+		if tokens[p.index].Token == BracketClosingToken {
+			p.index++
+			break
+		}
+
+		// Comma means continue on next table column.
+		p.index++
+	}
+
+	return indexDecl, nil
 }
 
 func (p *parser) parseTable(tokens []Token) (*Decl, error) {
