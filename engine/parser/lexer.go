@@ -80,6 +80,9 @@ const (
 	UniqueToken
 	NowToken
 	OffsetToken
+	IndexToken
+	CollateToken
+	NocaseToken
 
 	// Type Token
 
@@ -178,6 +181,10 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchUniqueToken)
 	matchers = append(matchers, l.MatchNowToken)
 	matchers = append(matchers, l.MatchOffsetToken)
+	matchers = append(matchers, l.MatchIndexToken)
+	matchers = append(matchers, l.MatchOnToken)
+	matchers = append(matchers, l.MatchCollateToken)
+	matchers = append(matchers, l.MatchNocaseToken)
 	// Type Matcher
 	matchers = append(matchers, l.MatchPrimaryToken)
 	matchers = append(matchers, l.MatchKeyToken)
@@ -407,6 +414,18 @@ func (l *lexer) MatchOnToken() bool {
 
 func (l *lexer) MatchOffsetToken() bool {
 	return l.Match([]byte("offset"), OffsetToken)
+}
+
+func (l *lexer) MatchIndexToken() bool {
+	return l.Match([]byte("index"), IndexToken)
+}
+
+func (l *lexer) MatchCollateToken() bool {
+	return l.Match([]byte("collate"), CollateToken)
+}
+
+func (l *lexer) MatchNocaseToken() bool {
+	return l.Match([]byte("nocase"), NocaseToken)
 }
 
 func (l *lexer) MatchStringToken() bool {

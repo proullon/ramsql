@@ -279,28 +279,28 @@ func (p *parser) parseInsert() (*Instruction, error) {
 
 	for {
 		openingBracketDecl, err := p.consumeToken(BracketOpeningToken)
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 		valuesDecl.Add(openingBracketDecl)
 
-	// should be a list of values for specified attributes
-	for {
-		decl, err := p.parseListElement()
-		if err != nil {
-			return nil, err
-		}
+		// should be a list of values for specified attributes
+		for {
+			decl, err := p.parseListElement()
+			if err != nil {
+				return nil, err
+			}
 			openingBracketDecl.Add(decl)
 
-		if p.is(BracketClosingToken) {
-			p.consumeToken(BracketClosingToken)
-			break
-		}
+			if p.is(BracketClosingToken) {
+				p.consumeToken(BracketClosingToken)
+				break
+			}
 
-		_, err = p.consumeToken(CommaToken)
-		if err != nil {
-			return nil, err
-		}
+			_, err = p.consumeToken(CommaToken)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		if p.is(CommaToken) {
