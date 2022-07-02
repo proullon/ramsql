@@ -144,3 +144,16 @@ $ echo $?
 - File system full error with configurable maximum database size
 - Random configurable slow queries
 - Random deconnection
+
+## Compatibility
+
+### GORM
+If you intend to use ramsql with the GORM ORM, you should use the GORM Postgres driver. A working example would be:
+```go
+	sqlDB, err := sql.Open("ramsql", "Test")
+	...
+
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: sqlDB,
+	}), &gorm.Config{})
+```
