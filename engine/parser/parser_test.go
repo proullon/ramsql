@@ -208,6 +208,12 @@ func TestSelectForUpdate(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestUpdateWithQuotedColumns(t *testing.T) {
+	query := `UPDATE "challenges" SET "deleted_at"='2022-07-11 14:52:45.804' WHERE "challenges"."deleted_at" IS NULL`
+
+	parse(query, 1, t)
+}
+
 func TestCreateDefault(t *testing.T) {
 	query := `CREATE TABLE foo (bar BIGINT, riri TEXT, fifi BOOLEAN NOT NULL DEFAULT false)`
 
