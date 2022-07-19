@@ -470,6 +470,7 @@ func (p *parser) parseBuiltinFunc() (*Decl, error) {
 // table.foo
 // table.*
 // "table".foo
+// "table"."foo"
 // foo
 func (p *parser) parseAttribute() (*Decl, error) {
 	quoted := false
@@ -498,6 +499,8 @@ func (p *parser) parseAttribute() (*Decl, error) {
 			return nil, err
 		}
 	}
+	quoted = false
+
 	// If no next token,and not quoted, then is was the atribute name
 	if err := p.next(); err != nil {
 		return decl, nil
@@ -509,12 +512,28 @@ func (p *parser) parseAttribute() (*Decl, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// mayby attribute is quoted as well (see #62)
+		if p.is(DoubleQuoteToken) || p.is(BacktickToken) {
+			quoteToken = p.cur().Token
+			quoted = true
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+		}
 		// if so, next must be the attribute name or a star
 		attributeDecl, err := p.consumeToken(StringToken, StarToken)
 		if err != nil {
 			return nil, err
 		}
 		attributeDecl.Add(decl)
+
+		if quoted {
+			// Check there is a closing quote
+			if _, err := p.consumeToken(quoteToken); err != nil {
+				return nil, fmt.Errorf("expected closing quote: %s", err)
+			}
+		}
 		return attributeDecl, nil
 	}
 
@@ -722,8 +741,6 @@ func (p *parser) parseIn() (*Decl, error) {
 }
 
 func (p *parser) parseValue() (*Decl, error) {
-	debug("parseValue")
-	defer debug("~parseValue")
 	quoted := false
 
 	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
