@@ -1008,3 +1008,38 @@ func TestDistinct(t *testing.T) {
 		testDistinct(t, `SELECT DISTINCT ON (surname, age) name FROM user`, 6, &name)
 	})
 }
+
+func TestBracketWhereClause(t *testing.T) {
+	log.UseTestLogger(t)
+
+	batch := []string{
+		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Foo', 'Bar', 20);`,
+		`INSERT INTO user (name, surname, age) VALUES ('John', 'Doe', 32);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Jane', 'Doe', 33);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Joe', 'Doe', 10);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Homer', 'Simpson', 40);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Marge', 'Simpson', 40);`,
+		`INSERT INTO user (name, surname, age) VALUES ('Bruce', 'Wayne', 3333);`,
+	}
+
+	db, err := sql.Open("ramsql", "TestBracketWhereClause")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+
+	for _, b := range batch {
+		_, err = db.Exec(b)
+		if err != nil {
+			t.Fatalf("sql.Exec: Error: %s\n", err)
+		}
+	}
+
+	query := `SELECT * FROM "user" WHERE (age < 40)`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		t.Fatalf("sql.Query: %s", err)
+	}
+	defer rows.Close()
+}
