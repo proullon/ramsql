@@ -915,7 +915,6 @@ func TestJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sql.QueryRow: %s", err)
 	}
-	t.Logf("Result: %s\n", data)
 
 	s := struct {
 		ID   string `json:"id"`
@@ -941,7 +940,6 @@ func TestJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sql.QueryRow: %s", err)
 	}
-	t.Logf("Result: %s\n", data)
 
 	err = json.Unmarshal([]byte(data), &s)
 	if err != nil {
