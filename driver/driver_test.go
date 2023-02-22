@@ -1073,3 +1073,51 @@ func TestInsertByteArray(t *testing.T) {
 		t.Fatalf("Expected JSON to be '%s', got '%s'", string(j), s)
 	}
 }
+
+func TestInsertWithReturningSerial(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestInsertWithReturningSerial")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE test (id BIGSERIAL PRIMARY KEY, val TEXT, created_at TIMESTAMP)`)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	var id int64
+	err = db.QueryRow("INSERT INTO test (val) values ($1)", "ok").Scan(&id)
+	if err != nil {
+		t.Fatalf("sql.QueryRow: Error: %s\n", err)
+	}
+
+	if id == 0 {
+		t.Fatalf("Expected returing generated unique id")
+	}
+}
+
+func TestInsertWithReturningUUID(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestInsertWithReturningUUID")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE test (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), val TEXT, created_at TIMESTAMP)`)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	var id string
+	err = db.QueryRow("INSERT INTO test (val) values ($1)", "ok").Scan(&id)
+	if err != nil {
+		t.Fatalf("sql.QueryRow: Error: %s\n", err)
+	}
+
+	if id == "" {
+		t.Fatalf("Expected returning generated uuid")
+	}
+}
