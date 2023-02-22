@@ -51,6 +51,36 @@ func TestInsertEmptyString(t *testing.T) {
 
 }
 
+func TestCreateTableIfNotExists(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestCreateTableIfNotExists")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS account (id INT, email TEXT)")
+	if err != nil {
+		t.Fatalf("sql.Exec: cannot create table: %s\n", err)
+	}
+
+	_, err = db.Exec("CREATE TABLE account (id INT, email TEXT)")
+	if err == nil {
+		t.Fatalf("sql.Exec: table already exists, expected error")
+	}
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS account (id INT, email TEXT)")
+	if err != nil {
+		t.Fatalf("sql.Exec: IF NOT EXISTS is ignored: %s\n", err)
+	}
+
+	err = db.Close()
+	if err != nil {
+		t.Fatalf("sql.Close : Error : %s\n", err)
+	}
+}
+
 func TestInsertTable(t *testing.T) {
 	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "TestInsertTable")
