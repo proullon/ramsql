@@ -50,7 +50,7 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 		return fmt.Errorf("parsing failed, malformed query")
 	}
 
-	// Fetch constrainit (i.e: "IF EXISTS")
+	// Check for specific attribute
 	i = 0
 	for i < len(tableDecl.Decl) {
 
@@ -65,9 +65,12 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 		i++
 	}
 
+	// Check if 'IF NOT EXISTS' is present
+	ifNotExists := hasIfNotExists(tableDecl)
+
 	// Check if table does not exists
 	r := e.relation(tableDecl.Decl[i].Lexeme)
-	if r != nil {
+	if r != nil && !ifNotExists {
 		return fmt.Errorf("table %s already exists", tableDecl.Decl[i].Lexeme)
 	}
 
@@ -92,4 +95,19 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 	e.relations[t.name] = NewRelation(t)
 	conn.WriteResult(0, 1)
 	return nil
+}
+
+func hasIfNotExists(tableDecl *parser.Decl) bool {
+	for _, d := range tableDecl.Decl {
+		if d.Token == parser.IfToken {
+			if len(d.Decl) > 0 && d.Decl[0].Token == parser.NotToken {
+				not := d.Decl[0]
+				if len(not.Decl) > 0 && not.Decl[0].Token == parser.ExistsToken {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
