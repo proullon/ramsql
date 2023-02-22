@@ -459,7 +459,7 @@ func (p *parser) parseAttribute() (*Decl, error) {
 	}
 	quoted = false
 
-	// If no next token,and not quoted, then is was the atribute name
+	// If no next token, and not quoted, then is was the attribute name
 	if err := p.next(); err != nil {
 		return decl, nil
 	}

@@ -185,7 +185,7 @@ func createExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn
 		return e.opsExecutors[createDecl.Decl[0].Token](e, createDecl.Decl[0], conn)
 	}
 
-	return errors.New("Parsing failed, unkown token " + createDecl.Decl[0].Lexeme)
+	return errors.New("Parsing failed, unknown token " + createDecl.Decl[0].Lexeme)
 }
 
 func grantExecutor(e *Engine, decl *parser.Decl, conn protocol.EngineConn) error {

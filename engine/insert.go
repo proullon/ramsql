@@ -165,7 +165,7 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 			}
 		}
 
-		// If values was not explictly given, set default value
+		// If values was not explicitly given, set default value
 		if assigned == false {
 			switch val := attr.defaultValue.(type) {
 			case func() interface{}:
