@@ -1043,3 +1043,33 @@ func TestBracketWhereClause(t *testing.T) {
 	}
 	defer rows.Close()
 }
+
+func TestInsertByteArray(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestBracketWhereClause")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE test (sequence_number BIGSERIAL PRIMARY KEY, json JSON, created_at TIMESTAMP)`)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	j, _ := json.Marshal(map[string]string{"a": "a"})
+	_, err = db.Exec("INSERT INTO test (json) values ($1)", j)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	var s string
+	err = db.QueryRow("SELECT json FROM test limit 1").Scan(&s)
+	if err != nil {
+		t.Fatalf("sql.Select: Error: %s\n", err)
+	}
+
+	if s != string(j) {
+		t.Fatalf("Expected JSON to be '%s', got '%s'", string(j), s)
+	}
+}

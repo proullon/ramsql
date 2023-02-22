@@ -163,6 +163,8 @@ func replaceArguments(query string, args []driver.Value) string {
 		var v string
 		if args[index-1] == nil {
 			v = "null"
+		} else if _, ok := args[index-1].([]byte); ok {
+			v = fmt.Sprintf("$$%v$$", string(args[index-1].([]byte)))
 		} else {
 			v = fmt.Sprintf("$$%v$$", args[index-1])
 		}
