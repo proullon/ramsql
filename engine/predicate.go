@@ -55,7 +55,7 @@ func (o *orOperator) Eval(v virtualRow) (bool, error) {
 	return false, nil
 }
 
-// TruePredicate is a predicate wich return always true
+// TruePredicate is a predicate which return always true
 var TruePredicate = Predicate{
 	True: true,
 }

@@ -127,7 +127,7 @@ func TestOrderByString(t *testing.T) {
 			t.Fatalf("Cannot scan row: %s\n", err)
 		}
 		if surname != "Doe" {
-			t.Fatalf("Didn't expect surname beeing %s", surname)
+			t.Fatalf("Didn't expect surname being %s", surname)
 		}
 		names = append(names, name)
 	}
@@ -295,7 +295,7 @@ func TestOrderByMultipleStrings(t *testing.T) {
 	for i := 0; i < len(exp); i++ {
 		for j := 0; j < len(exp[i]); j++ {
 			if exp[i][j] != got[i][j] {
-				t.Fatalf("data mismatch at %d/%d, expeced %v but got %v", i, j, exp[i][j], got[i][j])
+				t.Fatalf("data mismatch at %d/%d, expected %v but got %v", i, j, exp[i][j], got[i][j])
 			}
 		}
 	}
