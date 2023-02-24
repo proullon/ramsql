@@ -121,7 +121,7 @@ func Run(db *sql.DB) {
 		}
 
 		stmt := string(buffer)
-		stmt = strings.Replace(stmt, "\n", "", -1)
+		stmt = removeComments(stmt)
 
 		// Do things here
 		if strings.HasPrefix(stmt, "SELECT") {
@@ -134,4 +134,19 @@ func Run(db *sql.DB) {
 			exec(db, stmt)
 		}
 	}
+}
+
+func removeComments(stmt string) string {
+	var newstmt string
+	lines := strings.Split(stmt, "\n")
+	for _, l := range lines {
+		if strings.HasPrefix(l, "--") {
+			continue
+		}
+		if strings.HasPrefix(l, "//") {
+			continue
+		}
+		newstmt = newstmt + " " + l
+	}
+	return newstmt
 }
