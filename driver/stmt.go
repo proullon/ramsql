@@ -163,8 +163,8 @@ func replaceArguments(query string, args []driver.Value) string {
 		var v string
 		if args[index-1] == nil {
 			v = "null"
-		} else if _, ok := args[index-1].([]byte); ok {
-			v = fmt.Sprintf("$$%v$$", string(args[index-1].([]byte)))
+		} else if b, ok := args[index-1].([]byte); ok {
+			v = fmt.Sprintf("$$%s$$", b)
 		} else {
 			v = fmt.Sprintf("$$%v$$", args[index-1])
 		}
@@ -181,19 +181,29 @@ func replaceArguments(query string, args []driver.Value) string {
 }
 
 func replaceArgumentsODBC(query string, args []driver.Value) string {
-	var finalQuery string
+	finalQuery := &strings.Builder{}
 
 	queryParts := strings.Split(query, "?")
-	finalQuery = queryParts[0]
+
+	finalQuery.WriteString(queryParts[0])
+
 	for i := range args {
-		arg := fmt.Sprintf("%v", args[i])
-		_, ok := args[i].(string)
-		if ok && !strings.HasSuffix(query, "'") {
-			arg = "$$" + arg + "$$"
+		var arg string
+		switch v := args[i].(type) {
+		case string:
+			if !strings.HasSuffix(query, "'") {
+				arg = fmt.Sprintf("$$%s$$", v)
+			}
+		case []byte:
+			if !strings.HasSuffix(query, "'") {
+				arg = fmt.Sprintf("$$%s$$", v)
+			}
+		default:
+			arg = fmt.Sprintf("%v", v)
 		}
-		finalQuery += arg
-		finalQuery += queryParts[i+1]
+		finalQuery.WriteString(arg)
+		finalQuery.WriteString(queryParts[i+1])
 	}
 
-	return finalQuery
+	return finalQuery.String()
 }
