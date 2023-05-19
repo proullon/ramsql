@@ -1078,7 +1078,7 @@ func TestBracketWhereClause(t *testing.T) {
 func TestInsertByteArray(t *testing.T) {
 	log.UseTestLogger(t)
 
-	db, err := sql.Open("ramsql", "TestBracketWhereClause")
+	db, err := sql.Open("ramsql", "TestInsertByteArray")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
@@ -1105,10 +1105,10 @@ func TestInsertByteArray(t *testing.T) {
 	}
 }
 
-func TestInsertByteArrayOBDC(t *testing.T) {
+func TestInsertByteArrayODBC(t *testing.T) {
 	log.UseTestLogger(t)
 
-	db, err := sql.Open("ramsql", "TestBracketWhereClause")
+	db, err := sql.Open("ramsql", "TestInsertByteArrayODBC")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
