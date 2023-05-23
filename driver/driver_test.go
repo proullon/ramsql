@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -1077,7 +1078,7 @@ func TestBracketWhereClause(t *testing.T) {
 func TestInsertByteArray(t *testing.T) {
 	log.UseTestLogger(t)
 
-	db, err := sql.Open("ramsql", "TestBracketWhereClause")
+	db, err := sql.Open("ramsql", "TestInsertByteArray")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
@@ -1101,5 +1102,36 @@ func TestInsertByteArray(t *testing.T) {
 
 	if s != string(j) {
 		t.Fatalf("Expected JSON to be '%s', got '%s'", string(j), s)
+	}
+}
+
+func TestInsertByteArrayODBC(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestInsertByteArrayODBC")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE test_json (sequence_number BIGSERIAL PRIMARY KEY, json JSON, created_at TIMESTAMP)`)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	j, _ := json.Marshal(map[string]string{"a": "a"})
+
+	_, err = db.Exec("INSERT INTO test (json) values (?)", j)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	var s []byte
+	err = db.QueryRow("SELECT json FROM test limit 1").Scan(&s)
+	if err != nil {
+		t.Fatalf("sql.Select: Error: %s\n", err)
+	}
+
+	if !reflect.DeepEqual(s, j) {
+		t.Fatalf("Expected JSON to be '%s', got '%s'", j, s)
 	}
 }
