@@ -1120,13 +1120,13 @@ func TestInsertByteArrayODBC(t *testing.T) {
 
 	j, _ := json.Marshal(map[string]string{"a": "a"})
 
-	_, err = db.Exec("INSERT INTO test (json) values (?)", j)
+	_, err = db.Exec("INSERT INTO test_json (json) values (?)", j)
 	if err != nil {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
 
 	var s []byte
-	err = db.QueryRow("SELECT json FROM test limit 1").Scan(&s)
+	err = db.QueryRow("SELECT json FROM test_json limit 1").Scan(&s)
 	if err != nil {
 		t.Fatalf("sql.Select: Error: %s\n", err)
 	}
