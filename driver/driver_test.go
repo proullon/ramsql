@@ -1110,10 +1110,10 @@ func TestInsertByteArrayODBC(t *testing.T) {
 
 	db, err := sql.Open("ramsql", "TestInsertByteArrayODBC")
 	if err != nil {
-		t.Fatalf("sql.Open : Error : %s\n", err)
+		t.Fatalf("sql.Open: Error : %s\n", err)
 	}
 
-	_, err = db.Exec(`CREATE TABLE test_json (sequence_number BIGSERIAL PRIMARY KEY, json JSON, created_at TIMESTAMP)`)
+	_, err = db.Exec(`CREATE TABLE test_json (sequence_number BIGSERIAL PRIMARY KEY, json JSON, created_at TIMESTAMP);`)
 	if err != nil {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
@@ -1126,7 +1126,7 @@ func TestInsertByteArrayODBC(t *testing.T) {
 	}
 
 	var s []byte
-	err = db.QueryRow("SELECT json FROM test limit 1").Scan(&s)
+	err = db.QueryRow("SELECT json FROM test_json limit 1").Scan(&s)
 	if err != nil {
 		t.Fatalf("sql.Select: Error: %s\n", err)
 	}
