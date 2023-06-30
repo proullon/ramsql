@@ -70,6 +70,7 @@ func attributesExistInTables(e *Engine, attributes []Attribute, tables []string)
 
 /*
 |-> SELECT
+
 	|-> *
 	|-> FROM
 		|-> account
@@ -445,10 +446,10 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, fromTableName string) (Predi
 }
 
 /*
-   |-> WHERE
-	   |-> email
-		   |-> =
-		   |-> foo@bar.com
+	   |-> WHERE
+		   |-> email
+			   |-> =
+			   |-> foo@bar.com
 */
 func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, error) {
 	var predicates []Predicate
@@ -467,7 +468,6 @@ func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, e
 		}
 
 		if len(cond.Decl) == 0 {
-			log.Debug("whereExecutor: HUm hum you must be AND or OR: %v", cond)
 			continue
 		}
 
@@ -556,6 +556,7 @@ func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, e
 
 /*
 |-> FROM
+
 	|-> account
 */
 func fromExecutor(fromDecl *parser.Decl) []*Table {

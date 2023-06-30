@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"sync"
 
-	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
@@ -44,7 +43,6 @@ func (c *Conn) Prepare(query string) (driver.Stmt, error) {
 // idle connections, it shouldn't be necessary for drivers to
 // do their own connection caching.
 func (c *Conn) Close() error {
-	log.Debug("Conn.Close")
 	c.conn.Close()
 
 	if c.parent != nil {
