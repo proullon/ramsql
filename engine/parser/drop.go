@@ -1,33 +1,44 @@
 package parser
 
-import (
-	"github.com/proullon/ramsql/engine/log"
-)
-
-func (p *parser) parseDrop() (*Instruction, error) {
+func (p *parser) parseDrop(tokens []Token) (*Instruction, error) {
+	var err error
 	i := &Instruction{}
 
 	trDecl, err := p.consumeToken(DropToken)
 	if err != nil {
-		log.Debug("WTF\n")
 		return nil, err
 	}
 	i.Decls = append(i.Decls, trDecl)
 
-	tableDecl, err := p.consumeToken(TableToken)
-	if err != nil {
-		log.Debug("Consume table !\n")
-		return nil, err
+	var d *Decl
+	switch tokens[p.index].Token {
+	case TableToken:
+		d, err = p.consumeToken(TableToken)
+		if err != nil {
+			return nil, err
+		}
+		break
+	case IndexToken:
+		d, err = p.consumeToken(SchemaToken)
+		if err != nil {
+			return nil, err
+		}
+		break
+	case SchemaToken:
+		d, err = p.consumeToken(SchemaToken)
+		if err != nil {
+			return nil, err
+		}
+		break
 	}
-	trDecl.Add(tableDecl)
+	trDecl.Add(d)
 
-	// Should be a table name
-	nameDecl, err := p.parseQuotedToken()
+	// Should be a name attribute
+	nameDecl, err := p.parseAttribute()
 	if err != nil {
-		log.Debug("UH ?\n")
 		return nil, err
 	}
-	tableDecl.Add(nameDecl)
+	d.Add(nameDecl)
 
 	return i, nil
 }

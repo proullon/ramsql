@@ -294,6 +294,21 @@ func TestForeignKey(t *testing.T) {
 }
 */
 
+func TestSchema(t *testing.T) {
+	queries := []string{
+		`CREATE SCHEMA foo`,
+		`CREATE SCHEMA public`,
+		`CREATE TABLE "foo"."bar" (id BIGSERIAL, baz TEXT)`,
+		`CREATE TABLE public.bar (id BIGSERIAL, baz TEXT)`,
+		`DROP TABLE public.bar`,
+		`DROP SCHEMA foo.bar`,
+	}
+
+	for _, q := range queries {
+		parse(q, 1, t)
+	}
+}
+
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 	log.UseTestLogger(t)
 

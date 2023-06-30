@@ -130,8 +130,7 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 			p.i = append(p.i, *i)
 			break
 		case DropToken:
-			log.Debug("HEY DROP HERE !\n")
-			i, err := p.parseDrop()
+			i, err := p.parseDrop(tokens)
 			if err != nil {
 				return nil, err
 			}
@@ -207,18 +206,18 @@ func (p *parser) parseUpdate() (*Instruction, error) {
 //
 // The generated AST is as follows:
 //
-//  |-> "INSERT" (InsertToken)
-//      |-> "INTO" (IntoToken)
-//          |-> table name
-//              |-> column name
-//              |-> (...)
-//      |-> "VALUES" (ValuesToken)
-//          |-> "(" (BracketOpeningToken)
-//              |-> value
-//              |-> (...)
-//          |-> (...)
-//      |-> "RETURNING" (ReturningToken) (optional)
-//          |-> column name
+//	|-> "INSERT" (InsertToken)
+//	    |-> "INTO" (IntoToken)
+//	        |-> table name
+//	            |-> column name
+//	            |-> (...)
+//	    |-> "VALUES" (ValuesToken)
+//	        |-> "(" (BracketOpeningToken)
+//	            |-> value
+//	            |-> (...)
+//	        |-> (...)
+//	    |-> "RETURNING" (ReturningToken) (optional)
+//	        |-> column name
 func (p *parser) parseInsert() (*Instruction, error) {
 	i := &Instruction{}
 

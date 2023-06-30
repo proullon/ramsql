@@ -49,6 +49,7 @@ const (
 	FromToken
 	WhereToken
 	TableToken
+	SchemaToken
 	IntoToken
 	ValuesToken
 	JoinToken
@@ -148,6 +149,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchDistinctToken)
 	// Second order Matcher
 	matchers = append(matchers, l.MatchTableToken)
+	matchers = append(matchers, l.MatchSchemaToken)
 	matchers = append(matchers, l.MatchFromToken)
 	matchers = append(matchers, l.MatchWhereToken)
 	matchers = append(matchers, l.MatchIntoToken)
@@ -354,6 +356,10 @@ func (l *lexer) MatchFromToken() bool {
 
 func (l *lexer) MatchTableToken() bool {
 	return l.Match([]byte("table"), TableToken)
+}
+
+func (l *lexer) MatchSchemaToken() bool {
+	return l.Match([]byte("schema"), SchemaToken)
 }
 
 func (l *lexer) MatchNullToken() bool {
