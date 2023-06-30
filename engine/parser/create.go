@@ -36,6 +36,13 @@ func (p *parser) parseCreate(tokens []Token) (*Instruction, error) {
 		}
 		createDecl.Add(d)
 		break
+	case SchemaToken:
+		d, err := p.parseSchema(tokens)
+		if err != nil {
+			return nil, err
+		}
+		createDecl.Add(d)
+		break
 	case UniqueToken:
 		u, err := p.consumeToken(UniqueToken)
 		if err != nil {
@@ -386,4 +393,19 @@ func (p *parser) parsePrimaryKey() (*Decl, error) {
 	}
 
 	return primaryDecl, nil
+}
+
+func (p *parser) parseSchema(tokens []Token) (*Decl, error) {
+	var err error
+	schemaDecl := NewDecl(tokens[p.index])
+	p.index++
+
+	// Now we should found name
+	name, err := p.parseAttribute()
+	if err != nil {
+		return nil, p.syntaxError()
+	}
+	schemaDecl.Add(name)
+
+	return schemaDecl, nil
 }
