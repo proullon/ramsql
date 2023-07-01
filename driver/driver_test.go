@@ -1135,3 +1135,67 @@ func TestInsertByteArrayODBC(t *testing.T) {
 		t.Fatalf("Expected JSON to be '%s', got '%s'", j, s)
 	}
 }
+
+func TestSchema(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestSchema")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE foo.bar (baz TEXT)`)
+	if err == nil {
+		t.Fatalf("expected error trying to create a table on non-existent schema")
+	}
+
+	_, err = db.Exec(`CREATE TABLE "foo"."bar" ()`)
+	if err == nil {
+		t.Fatalf("expected error trying to create a table on non-existent schema")
+	}
+
+	_, err = db.Exec(`CREATE TABLE "foo"."bar" (baz TEXT)`)
+	if err == nil {
+		t.Fatalf("expected error trying to create a table on non-existent schema")
+	}
+
+	_, err = db.Exec(`CREATE SCHEMA "foo"`)
+	if err != nil {
+		t.Fatalf("unexpected error trying to create a schema: %s", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE "foo"."bar" (baz TEXT)`)
+	if err != nil {
+		t.Fatalf("unexpected error trying to create a table on existing schema: %s", err)
+	}
+
+	_, err = db.Exec(`INSERT INTO "foo"."bar" (baz) VALUES ("yep")`)
+	if err != nil {
+		t.Fatalf("unexpected error trying to insert row in a table with existing schema: %s", err)
+	}
+
+	var baz string
+	err = db.QueryRow(`SELECT baz FROM "bar" WHERE 1`).Scan(&baz)
+	if err == nil {
+		t.Fatalf("expected error fetching row from table existing in another schema")
+	}
+
+	err = db.QueryRow(`SELECT baz FROM "foo"."bar" WHERE 1`).Scan(&baz)
+	if err != nil {
+		t.Fatalf("unexpected error fetching row from table in existing schema: %s", err)
+	}
+
+	if baz != "yep" {
+		t.Fatalf("expected baz value to be 'yep', got '%s'", baz)
+	}
+
+	_, err = db.Exec(`DROP SCHEMA nope`)
+	if err == nil {
+		t.Fatalf("expected error dropping non-existing schema")
+	}
+
+	_, err = db.Exec(`DROP SCHEMA foo`)
+	if err != nil {
+		t.Fatalf("unexpected error dropping existing schema: %s", err)
+	}
+}

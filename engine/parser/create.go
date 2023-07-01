@@ -112,7 +112,7 @@ func (p *parser) parseIndex(tokens []Token) (*Decl, error) {
 	p.index++
 
 	// Now we should found table name
-	nameTable, err := p.parseAttribute()
+	nameTable, err := p.parseTableName()
 	if err != nil {
 		return nil, p.syntaxError()
 	}
