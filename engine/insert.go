@@ -77,12 +77,15 @@ func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.E
 }
 
 /*
-|-> INTO
+|-> insert (18)
 
-	|-> user
-	    |-> last_name
-	    |-> first_name
-	    |-> email
+	|-> into (30)
+	    |-> bar (68)
+	        |-> foo (29)
+	        |-> baz (68)
+	|-> values (31)
+	    |-> ( (3)
+	        |-> yep (68)
 */
 func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, error) {
 	var schema string
@@ -92,6 +95,8 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 
 	if d, ok := table.Has(parser.SchemaToken); ok {
 		schema = d.Lexeme
+		// remove Schema declaration from table declaration to allow buggy insert() matching to work
+		table.Decl = table.Decl[1:]
 	}
 
 	r := e.relation(schema, table.Lexeme)

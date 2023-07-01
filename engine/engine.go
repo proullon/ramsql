@@ -38,6 +38,7 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 	e.opsExecutors = map[int]executor{
 		parser.CreateToken:   createExecutor,
 		parser.TableToken:    createTableExecutor,
+		parser.SchemaToken:   createSchemaExecutor,
 		parser.SelectToken:   selectExecutor,
 		parser.InsertToken:   insertIntoTableExecutor,
 		parser.DeleteToken:   deleteExecutor,
@@ -104,6 +105,12 @@ func (e *Engine) dropRelation(schema, name string) {
 	e.Lock()
 	e.schemas[schema].drop(name)
 	e.Unlock()
+}
+
+func (e *Engine) addSchema(s *Schema) {
+	e.Lock()
+	defer e.Unlock()
+	e.schemas[s.name] = s
 }
 
 func (e *Engine) dropSchema(name string) bool {

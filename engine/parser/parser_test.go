@@ -297,6 +297,7 @@ func TestForeignKey(t *testing.T) {
 func TestSchema(t *testing.T) {
 	queries := []string{
 		`CREATE SCHEMA foo`,
+		`CREATE SCHEMA "foo"`,
 		`CREATE SCHEMA public`,
 		`CREATE TABLE "foo"."bar" (id BIGSERIAL, baz TEXT)`,
 		`CREATE TABLE public.bar (id BIGSERIAL, baz TEXT)`,
