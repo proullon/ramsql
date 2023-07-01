@@ -704,25 +704,20 @@ func (p *parser) parseValue() (*Decl, error) {
 
 	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
 		quoted = true
-		debug("value %v is quoted!", p.tokens[p.index])
 		_, err := p.consumeToken(SimpleQuoteToken, DoubleQuoteToken)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	valueDecl, err := p.consumeToken(StringToken, NumberToken, DateToken, NowToken)
+	valueDecl, err := p.consumeToken(StringToken, NumberToken, DateToken, NowToken, CurrentSchemaToken)
 	if err != nil {
-		debug("parseValue: Wasn't expecting %v\n", p.tokens[p.index])
 		return nil, err
 	}
-	log.Debug("Parsing value %v !\n", valueDecl)
 
 	if quoted {
-		log.Debug("consume quote %v\n", p.tokens[p.index])
 		_, err := p.consumeToken(SimpleQuoteToken, DoubleQuoteToken)
 		if err != nil {
-			debug("uuuh, wasn't a quote")
 			return nil, err
 		}
 	}
