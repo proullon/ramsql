@@ -122,74 +122,74 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	var matchers []Matcher
 	// Punctuation Matcher
 	matchers = append(matchers, l.MatchSpaceToken)
-	matchers = append(matchers, l.MatchSemicolonToken)
-	matchers = append(matchers, l.MatchCommaToken)
-	matchers = append(matchers, l.MatchBracketOpeningToken)
-	matchers = append(matchers, l.MatchBracketClosingToken)
-	matchers = append(matchers, l.MatchStarToken)
+	matchers = append(matchers, l.genericByteMatcher(';', SemicolonToken))
+	matchers = append(matchers, l.genericByteMatcher(',', CommaToken))
+	matchers = append(matchers, l.genericByteMatcher('(', BracketOpeningToken))
+	matchers = append(matchers, l.genericByteMatcher(')', BracketClosingToken))
+	matchers = append(matchers, l.genericByteMatcher('*', StarToken))
 	matchers = append(matchers, l.MatchSimpleQuoteToken)
-	matchers = append(matchers, l.MatchEqualityToken)
-	matchers = append(matchers, l.MatchDistinctnessToken)
-	matchers = append(matchers, l.MatchPeriodToken)
+	matchers = append(matchers, l.genericByteMatcher('=', EqualityToken))
+	matchers = append(matchers, l.genericStringMatcher("<>", DistinctnessToken))
+	matchers = append(matchers, l.genericByteMatcher('.', PeriodToken))
 	matchers = append(matchers, l.MatchDoubleQuoteToken)
-	matchers = append(matchers, l.MatchLessOrEqualToken)
-	matchers = append(matchers, l.MatchGreaterOrEqualToken)
-	matchers = append(matchers, l.MatchLeftDipleToken)
-	matchers = append(matchers, l.MatchRightDipleToken)
-	matchers = append(matchers, l.MatchBacktickToken)
+	matchers = append(matchers, l.genericStringMatcher("<=", LessOrEqualToken))
+	matchers = append(matchers, l.genericStringMatcher(">=", GreaterOrEqualToken))
+	matchers = append(matchers, l.genericByteMatcher('<', LeftDipleToken))
+	matchers = append(matchers, l.genericByteMatcher('>', RightDipleToken))
+	matchers = append(matchers, l.genericByteMatcher('`', BacktickToken))
 	// First order Matcher
-	matchers = append(matchers, l.MatchCreateToken)
-	matchers = append(matchers, l.MatchSelectToken)
-	matchers = append(matchers, l.MatchInsertToken)
-	matchers = append(matchers, l.MatchUpdateToken)
-	matchers = append(matchers, l.MatchDeleteToken)
-	matchers = append(matchers, l.MatchTruncateToken)
-	matchers = append(matchers, l.MatchDropToken)
-	matchers = append(matchers, l.MatchGrantToken)
-	matchers = append(matchers, l.MatchDistinctToken)
+	matchers = append(matchers, l.genericStringMatcher("create", CreateToken))
+	matchers = append(matchers, l.genericStringMatcher("select", SelectToken))
+	matchers = append(matchers, l.genericStringMatcher("insert", InsertToken))
+	matchers = append(matchers, l.genericStringMatcher("update", UpdateToken))
+	matchers = append(matchers, l.genericStringMatcher("delete", DeleteToken))
+	matchers = append(matchers, l.genericStringMatcher("truncate", TruncateToken))
+	matchers = append(matchers, l.genericStringMatcher("drop", DropToken))
+	matchers = append(matchers, l.genericStringMatcher("grant", GrantToken))
+	matchers = append(matchers, l.genericStringMatcher("distinct", DistinctToken))
 	// Second order Matcher
-	matchers = append(matchers, l.MatchTableToken)
-	matchers = append(matchers, l.MatchSchemaToken)
-	matchers = append(matchers, l.MatchFromToken)
-	matchers = append(matchers, l.MatchWhereToken)
-	matchers = append(matchers, l.MatchIntoToken)
-	matchers = append(matchers, l.MatchValuesToken)
-	matchers = append(matchers, l.MatchJoinToken)
-	matchers = append(matchers, l.MatchOnToken)
-	matchers = append(matchers, l.MatchIfToken)
-	matchers = append(matchers, l.MatchNotToken)
-	matchers = append(matchers, l.MatchExistsToken)
-	matchers = append(matchers, l.MatchNullToken)
+	matchers = append(matchers, l.genericStringMatcher("table", TableToken))
+	matchers = append(matchers, l.genericStringMatcher("schema", SchemaToken))
+	matchers = append(matchers, l.genericStringMatcher("from", FromToken))
+	matchers = append(matchers, l.genericStringMatcher("where", WhereToken))
+	matchers = append(matchers, l.genericStringMatcher("into", IntoToken))
+	matchers = append(matchers, l.genericStringMatcher("values", ValuesToken))
+	matchers = append(matchers, l.genericStringMatcher("join", JoinToken))
+	matchers = append(matchers, l.genericStringMatcher("on", OnToken))
+	matchers = append(matchers, l.genericStringMatcher("if", IfToken))
+	matchers = append(matchers, l.genericStringMatcher("not", NotToken))
+	matchers = append(matchers, l.genericStringMatcher("exists", ExistsToken))
+	matchers = append(matchers, l.genericStringMatcher("null", NullToken))
 	matchers = append(matchers, l.MatchAutoincrementToken)
-	matchers = append(matchers, l.MatchCountToken)
-	matchers = append(matchers, l.MatchSetToken)
-	matchers = append(matchers, l.MatchOrderToken)
-	matchers = append(matchers, l.MatchByToken)
-	matchers = append(matchers, l.MatchWithToken)
-	matchers = append(matchers, l.MatchTimeToken)
-	matchers = append(matchers, l.MatchZoneToken)
-	matchers = append(matchers, l.MatchReturningToken)
-	matchers = append(matchers, l.MatchInToken)
-	matchers = append(matchers, l.MatchAndToken)
-	matchers = append(matchers, l.MatchOrToken)
-	matchers = append(matchers, l.MatchAscToken)
-	matchers = append(matchers, l.MatchDescToken)
-	matchers = append(matchers, l.MatchLimitToken)
-	matchers = append(matchers, l.MatchIsToken)
-	matchers = append(matchers, l.MatchForToken)
-	matchers = append(matchers, l.MatchDefaultToken)
-	matchers = append(matchers, l.MatchLocalTimestampToken)
-	matchers = append(matchers, l.MatchFalseToken)
-	matchers = append(matchers, l.MatchUniqueToken)
-	matchers = append(matchers, l.MatchNowToken)
-	matchers = append(matchers, l.MatchOffsetToken)
-	matchers = append(matchers, l.MatchIndexToken)
-	matchers = append(matchers, l.MatchOnToken)
-	matchers = append(matchers, l.MatchCollateToken)
-	matchers = append(matchers, l.MatchNocaseToken)
+	matchers = append(matchers, l.genericStringMatcher("count", CountToken))
+	matchers = append(matchers, l.genericStringMatcher("set", SetToken))
+	matchers = append(matchers, l.genericStringMatcher("order", OrderToken))
+	matchers = append(matchers, l.genericStringMatcher("by", ByToken))
+	matchers = append(matchers, l.genericStringMatcher("with", WithToken))
+	matchers = append(matchers, l.genericStringMatcher("time", TimeToken))
+	matchers = append(matchers, l.genericStringMatcher("zone", ZoneToken))
+	matchers = append(matchers, l.genericStringMatcher("returning", ReturningToken))
+	matchers = append(matchers, l.genericStringMatcher("in", InToken))
+	matchers = append(matchers, l.genericStringMatcher("and", AndToken))
+	matchers = append(matchers, l.genericStringMatcher("or", OrToken))
+	matchers = append(matchers, l.genericStringMatcher("asc", AscToken))
+	matchers = append(matchers, l.genericStringMatcher("desc", DescToken))
+	matchers = append(matchers, l.genericStringMatcher("limit", LimitToken))
+	matchers = append(matchers, l.genericStringMatcher("is", IsToken))
+	matchers = append(matchers, l.genericStringMatcher("for", ForToken))
+	matchers = append(matchers, l.genericStringMatcher("default", DefaultToken))
+	matchers = append(matchers, l.genericStringMatcher("localtimestamp", LocalTimestampToken))
+	matchers = append(matchers, l.genericStringMatcher("false", LocalTimestampToken))
+	matchers = append(matchers, l.genericStringMatcher("unique", UniqueToken))
+	matchers = append(matchers, l.genericStringMatcher("now()", NowToken))
+	matchers = append(matchers, l.genericStringMatcher("offset", OffsetToken))
+	matchers = append(matchers, l.genericStringMatcher("index", IndexToken))
+	matchers = append(matchers, l.genericStringMatcher("on", OnToken))
+	matchers = append(matchers, l.genericStringMatcher("collate", CollateToken))
+	matchers = append(matchers, l.genericStringMatcher("nocase", NocaseToken))
 	// Type Matcher
-	matchers = append(matchers, l.MatchPrimaryToken)
-	matchers = append(matchers, l.MatchKeyToken)
+	matchers = append(matchers, l.genericStringMatcher("primary", PrimaryToken))
+	matchers = append(matchers, l.genericStringMatcher("key", KeyToken))
 	matchers = append(matchers, l.MatchEscapedStringToken)
 	matchers = append(matchers, l.MatchDateToken)
 	matchers = append(matchers, l.MatchNumberToken)
@@ -234,156 +234,16 @@ func (l *lexer) MatchSpaceToken() bool {
 	return false
 }
 
-func (l *lexer) MatchNowToken() bool {
-	return l.Match([]byte("now()"), NowToken)
+func (l *lexer) genericStringMatcher(str string, token int) Matcher {
+	return func() bool {
+		return l.Match([]byte(str), token)
+	}
 }
 
-func (l *lexer) MatchUniqueToken() bool {
-	return l.Match([]byte("unique"), UniqueToken)
-}
-
-func (l *lexer) MatchLocalTimestampToken() bool {
-	return l.Match([]byte("localtimestamp"), LocalTimestampToken)
-}
-
-func (l *lexer) MatchDefaultToken() bool {
-	return l.Match([]byte("default"), DefaultToken)
-}
-
-func (l *lexer) MatchFalseToken() bool {
-	return l.Match([]byte("false"), FalseToken)
-}
-
-func (l *lexer) MatchAscToken() bool {
-	return l.Match([]byte("asc"), AscToken)
-}
-
-func (l *lexer) MatchDescToken() bool {
-	return l.Match([]byte("desc"), DescToken)
-}
-
-func (l *lexer) MatchAndToken() bool {
-	return l.Match([]byte("and"), AndToken)
-}
-
-func (l *lexer) MatchOrToken() bool {
-	return l.Match([]byte("or"), OrToken)
-}
-
-func (l *lexer) MatchInToken() bool {
-	return l.Match([]byte("in"), InToken)
-}
-
-func (l *lexer) MatchReturningToken() bool {
-	return l.Match([]byte("returning"), ReturningToken)
-}
-
-func (l *lexer) MatchTruncateToken() bool {
-	return l.Match([]byte("truncate"), TruncateToken)
-}
-
-func (l *lexer) MatchDropToken() bool {
-	return l.Match([]byte("drop"), DropToken)
-}
-
-func (l *lexer) MatchGrantToken() bool {
-	return l.Match([]byte("grant"), GrantToken)
-}
-
-func (l *lexer) MatchWithToken() bool {
-	return l.Match([]byte("with"), WithToken)
-}
-
-func (l *lexer) MatchTimeToken() bool {
-	return l.Match([]byte("time"), TimeToken)
-}
-
-func (l *lexer) MatchZoneToken() bool {
-	return l.Match([]byte("zone"), ZoneToken)
-}
-
-func (l *lexer) MatchIsToken() bool {
-	return l.Match([]byte("is"), IsToken)
-}
-
-func (l *lexer) MatchForToken() bool {
-	return l.Match([]byte("for"), ForToken)
-}
-
-func (l *lexer) MatchLimitToken() bool {
-	return l.Match([]byte("limit"), LimitToken)
-}
-
-func (l *lexer) MatchOrderToken() bool {
-	return l.Match([]byte("order"), OrderToken)
-}
-
-func (l *lexer) MatchByToken() bool {
-	return l.Match([]byte("by"), ByToken)
-}
-
-func (l *lexer) MatchSetToken() bool {
-	return l.Match([]byte("set"), SetToken)
-}
-
-func (l *lexer) MatchUpdateToken() bool {
-	return l.Match([]byte("update"), UpdateToken)
-}
-
-func (l *lexer) MatchCreateToken() bool {
-	return l.Match([]byte("create"), CreateToken)
-}
-
-func (l *lexer) MatchSelectToken() bool {
-	return l.Match([]byte("select"), SelectToken)
-}
-
-func (l *lexer) MatchDistinctToken() bool {
-	return l.Match([]byte("distinct"), DistinctToken)
-}
-
-func (l *lexer) MatchInsertToken() bool {
-	return l.Match([]byte("insert"), InsertToken)
-}
-
-func (l *lexer) MatchWhereToken() bool {
-	return l.Match([]byte("where"), WhereToken)
-}
-
-func (l *lexer) MatchFromToken() bool {
-	return l.Match([]byte("from"), FromToken)
-}
-
-func (l *lexer) MatchTableToken() bool {
-	return l.Match([]byte("table"), TableToken)
-}
-
-func (l *lexer) MatchSchemaToken() bool {
-	return l.Match([]byte("schema"), SchemaToken)
-}
-
-func (l *lexer) MatchNullToken() bool {
-	return l.Match([]byte("null"), NullToken)
-}
-
-func (l *lexer) MatchIfToken() bool {
-	return l.Match([]byte("if"), IfToken)
-}
-
-func (l *lexer) MatchNotToken() bool {
-	return l.Match([]byte("not"), NotToken)
-}
-
-func (l *lexer) MatchExistsToken() bool {
-	return l.Match([]byte("exists"), ExistsToken)
-}
-
-func (l *lexer) MatchCountToken() bool {
-	return l.Match([]byte("count"), CountToken)
-}
-
-func (l *lexer) MatchDeleteToken() bool {
-	return l.Match([]byte("delete"), DeleteToken)
+func (l *lexer) genericByteMatcher(r byte, token int) Matcher {
+	return func() bool {
+		return l.MatchSingle(r, token)
+	}
 }
 
 func (l *lexer) MatchAutoincrementToken() bool {
@@ -392,46 +252,6 @@ func (l *lexer) MatchAutoincrementToken() bool {
 	}
 
 	return l.Match([]byte("autoincrement"), AutoincrementToken)
-}
-
-func (l *lexer) MatchPrimaryToken() bool {
-	return l.Match([]byte("primary"), PrimaryToken)
-}
-
-func (l *lexer) MatchKeyToken() bool {
-	return l.Match([]byte("key"), KeyToken)
-}
-
-func (l *lexer) MatchIntoToken() bool {
-	return l.Match([]byte("into"), IntoToken)
-}
-
-func (l *lexer) MatchValuesToken() bool {
-	return l.Match([]byte("values"), ValuesToken)
-}
-
-func (l *lexer) MatchJoinToken() bool {
-	return l.Match([]byte("join"), JoinToken)
-}
-
-func (l *lexer) MatchOnToken() bool {
-	return l.Match([]byte("on"), OnToken)
-}
-
-func (l *lexer) MatchOffsetToken() bool {
-	return l.Match([]byte("offset"), OffsetToken)
-}
-
-func (l *lexer) MatchIndexToken() bool {
-	return l.Match([]byte("index"), IndexToken)
-}
-
-func (l *lexer) MatchCollateToken() bool {
-	return l.Match([]byte("collate"), CollateToken)
-}
-
-func (l *lexer) MatchNocaseToken() bool {
-	return l.Match([]byte("nocase"), NocaseToken)
 }
 
 func (l *lexer) MatchStringToken() bool {
@@ -482,58 +302,6 @@ func (l *lexer) MatchNumberToken() bool {
 	}
 
 	return false
-}
-
-func (l *lexer) MatchSemicolonToken() bool {
-	return l.MatchSingle(';', SemicolonToken)
-}
-
-func (l *lexer) MatchPeriodToken() bool {
-	return l.MatchSingle('.', PeriodToken)
-}
-
-func (l *lexer) MatchBracketOpeningToken() bool {
-	return l.MatchSingle('(', BracketOpeningToken)
-}
-
-func (l *lexer) MatchBracketClosingToken() bool {
-	return l.MatchSingle(')', BracketClosingToken)
-}
-
-func (l *lexer) MatchCommaToken() bool {
-	return l.MatchSingle(',', CommaToken)
-}
-
-func (l *lexer) MatchStarToken() bool {
-	return l.MatchSingle('*', StarToken)
-}
-
-func (l *lexer) MatchEqualityToken() bool {
-	return l.MatchSingle('=', EqualityToken)
-}
-
-func (l *lexer) MatchDistinctnessToken() bool {
-	return l.Match([]byte("<>"), DistinctnessToken)
-}
-
-func (l *lexer) MatchLeftDipleToken() bool {
-	return l.MatchSingle('<', LeftDipleToken)
-}
-
-func (l *lexer) MatchRightDipleToken() bool {
-	return l.MatchSingle('>', RightDipleToken)
-}
-
-func (l *lexer) MatchLessOrEqualToken() bool {
-	return l.Match([]byte("<="), LessOrEqualToken)
-}
-
-func (l *lexer) MatchGreaterOrEqualToken() bool {
-	return l.Match([]byte(">="), GreaterOrEqualToken)
-}
-
-func (l *lexer) MatchBacktickToken() bool {
-	return l.MatchSingle('`', BacktickToken)
 }
 
 // 2015-09-10 14:03:09.444695269 +0200 CEST);
