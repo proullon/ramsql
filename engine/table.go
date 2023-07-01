@@ -11,13 +11,19 @@ import (
 // A table with data is called a Relation
 type Table struct {
 	name       string
+	schema     string
 	attributes []Attribute
 }
 
 // NewTable initializes a new Table
-func NewTable(name string) *Table {
+func NewTable(schema, name string) *Table {
 	t := &Table{
-		name: name,
+		schema: schema,
+		name:   name,
+	}
+
+	if schema == "" {
+		t.schema = "public"
 	}
 
 	return t
@@ -45,6 +51,7 @@ func (t Table) String() string {
 
 func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.EngineConn) error {
 	var i int
+	var schema string
 
 	if len(tableDecl.Decl) == 0 {
 		return fmt.Errorf("parsing failed, malformed query")
@@ -68,14 +75,18 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 	// Check if 'IF NOT EXISTS' is present
 	ifNotExists := hasIfNotExists(tableDecl)
 
+	if d, ok := tableDecl.Has(parser.SchemaToken); ok {
+		schema = d.Lexeme
+	}
+
 	// Check if table does not exists
-	r := e.relation(tableDecl.Decl[i].Lexeme)
+	r := e.relation(schema, tableDecl.Decl[i].Lexeme)
 	if r != nil && !ifNotExists {
 		return fmt.Errorf("table %s already exists", tableDecl.Decl[i].Lexeme)
 	}
 
 	// Fetch table name
-	t := NewTable(tableDecl.Decl[i].Lexeme)
+	t := NewTable(schema, tableDecl.Decl[i].Lexeme)
 
 	// Fetch attributes
 	i++
@@ -92,7 +103,7 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 		i++
 	}
 
-	e.relations[t.name] = NewRelation(t)
+	e.schema(schema).add(t.name, NewRelation(t))
 	conn.WriteResult(0, 1)
 	return nil
 }

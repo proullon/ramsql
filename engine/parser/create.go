@@ -206,7 +206,7 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 	}
 
 	// Now we should found table name
-	nameTable, err := p.parseAttribute()
+	nameTable, err := p.parseTableName()
 	if err != nil {
 		return nil, p.syntaxError()
 	}

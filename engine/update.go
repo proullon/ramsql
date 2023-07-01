@@ -12,23 +12,29 @@ import (
 
 /*
 |-> update
-	|-> account
-	|-> set
-	      |-> email
-					|-> =
-					|-> roger@gmail.com
-  |-> where
-        |-> id
-					|-> =
-					|-> 2
+
+		|-> account
+		|-> set
+		      |-> email
+						|-> =
+						|-> roger@gmail.com
+	  |-> where
+	        |-> id
+						|-> =
+						|-> 2
 */
 func updateExecutor(e *Engine, updateDecl *parser.Decl, conn protocol.EngineConn) error {
 	var num int64
+	var schema string
 
-	updateDecl.Stringy(0)
+	updateDecl.Stringy(0, nil)
+
+	if d, ok := updateDecl.Has(parser.SchemaToken); ok {
+		schema = d.Lexeme
+	}
 
 	// Fetch table from name and write lock it
-	r := e.relation(updateDecl.Decl[0].Lexeme)
+	r := e.relation(schema, updateDecl.Decl[0].Lexeme)
 	if r == nil {
 		return fmt.Errorf("Table %s does not exist", updateDecl.Decl[0].Lexeme)
 	}
@@ -74,7 +80,8 @@ func updateExecutor(e *Engine, updateDecl *parser.Decl, conn protocol.EngineConn
 }
 
 /*
-	|-> set
+|-> set
+
 	      |-> email
 					|-> =
 					|-> roger@gmail.com

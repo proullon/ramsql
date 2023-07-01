@@ -95,7 +95,7 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 		if err = p.next(); err != nil {
 			return nil, fmt.Errorf("Unexpected end. Syntax error near %v\n", tokens[p.index])
 		}
-		tableNameDecl, err := p.parseAttribute()
+		tableNameDecl, err := p.parseTableName()
 		if err != nil {
 			return nil, err
 		}
