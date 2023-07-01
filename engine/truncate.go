@@ -3,16 +3,19 @@ package engine
 import (
 	"fmt"
 
-	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
 func truncateExecutor(e *Engine, trDecl *parser.Decl, conn protocol.EngineConn) error {
-	log.Debug("truncateExecutor")
+	var schema string
+
+	if d, ok := trDecl.Decl[0].Has(parser.SchemaToken); ok {
+		schema = d.Lexeme
+	}
 
 	// get tables to be deleted
-	table := NewTable(trDecl.Decl[0].Lexeme)
+	table := NewTable(schema, trDecl.Decl[0].Lexeme)
 
 	return truncateTable(e, table, conn)
 }
@@ -21,7 +24,7 @@ func truncateTable(e *Engine, table *Table, conn protocol.EngineConn) error {
 	var rowsDeleted int64
 
 	// get relations and write lock them
-	r := e.relation(table.name)
+	r := e.relation(table.schema, table.name)
 	if r == nil {
 		return fmt.Errorf("Table %v not found", table.name)
 	}

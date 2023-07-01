@@ -1,16 +1,13 @@
 package engine
 
 import (
-	// "errors"
 	"fmt"
 
-	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
 func deleteExecutor(e *Engine, deleteDecl *parser.Decl, conn protocol.EngineConn) error {
-	log.Debug("deleteExecutor")
 
 	// get tables to be deleted
 	tables := fromExecutor(deleteDecl.Decl[0])
@@ -33,7 +30,7 @@ func deleteExecutor(e *Engine, deleteDecl *parser.Decl, conn protocol.EngineConn
 func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates []Predicate) error {
 	var rowsDeleted int64
 
-	r := e.relation(tables[0].name)
+	r := e.relation(tables[0].schema, tables[0].name)
 	if r == nil {
 		return fmt.Errorf("Table %s not found", tables[0].name)
 	}

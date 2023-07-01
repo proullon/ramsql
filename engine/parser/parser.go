@@ -25,16 +25,34 @@ type Decl struct {
 }
 
 // Stringy prints the declaration tree in console
-func (d Decl) Stringy(depth int) {
+func (d Decl) Stringy(depth int, printer func(fmt string, varargs ...any)) {
+	if printer == nil {
+		printer = func(format string, varargs ...any) {
+			//fmt.Printf(format, varargs...)
+		}
+	}
+
 	indent := ""
 	for i := 0; i < depth; i++ {
 		indent = fmt.Sprintf("%s    ", indent)
 	}
 
-	log.Debug("%s|-> %s\n", indent, d.Lexeme)
+	printer("%s|-> %s (%d)\n", indent, d.Lexeme, d.Token)
 	for _, subD := range d.Decl {
-		subD.Stringy(depth + 1)
+		subD.Stringy(depth+1, printer)
 	}
+}
+
+func (d Decl) Has(t int) (*Decl, bool) {
+	for _, child := range d.Decl {
+		if child.Token == t {
+			return child, true
+		}
+		if cd, ok := child.Has(t); ok {
+			return cd, true
+		}
+	}
+	return nil, false
 }
 
 // Instruction define a valid SQL statement
@@ -43,9 +61,9 @@ type Instruction struct {
 }
 
 // PrettyPrint prints instruction's declarations on console with indentation
-func (i Instruction) PrettyPrint() {
+func (i Instruction) PrettyPrint(printer func(fmt string, varargs ...interface{})) {
 	for _, d := range i.Decls {
-		d.Stringy(0)
+		d.Stringy(0, printer)
 	}
 }
 
@@ -236,7 +254,7 @@ func (p *parser) parseInsert() (*Instruction, error) {
 	insertDecl.Add(intoDecl)
 
 	// should be table Name
-	tableDecl, err := p.parseQuotedToken()
+	tableDecl, err := p.parseTableName()
 	if err != nil {
 		return nil, err
 	}
@@ -421,6 +439,81 @@ func (p *parser) parseBuiltinFunc() (*Decl, error) {
 	}
 
 	return d, nil
+}
+
+// parseTableName parse a table of the form
+// schema.table
+// "schema".table
+// "schema"."table"
+// table
+func (p *parser) parseTableName() (*Decl, error) {
+	quoted := false
+	quoteToken := DoubleQuoteToken
+
+	if p.is(DoubleQuoteToken) || p.is(BacktickToken) {
+		quoteToken = p.cur().Token
+		quoted = true
+		if err := p.next(); err != nil {
+			return nil, err
+		}
+	}
+
+	// should be a StringToken here
+	// If there is a point after, it's a table name,
+	// if not, it's the attribute
+	if !p.is(StringToken, StarToken) {
+		return nil, p.syntaxError()
+	}
+	decl := NewDecl(p.cur())
+
+	if quoted {
+		// Check there is a closing quote
+		if _, err := p.mustHaveNext(quoteToken); err != nil {
+			log.Debug("parseAttribute: Missing closing quote")
+			return nil, err
+		}
+	}
+	quoted = false
+
+	// If no next token, and not quoted, then is was the attribute name
+	if err := p.next(); err != nil {
+		return decl, nil
+	}
+
+	// Now, is it a point ?
+	if p.is(PeriodToken) {
+		_, err := p.consumeToken(PeriodToken)
+		if err != nil {
+			return nil, err
+		}
+
+		// mayby attribute is quoted as well (see #62)
+		if p.is(DoubleQuoteToken) || p.is(BacktickToken) {
+			quoteToken = p.cur().Token
+			quoted = true
+			if err := p.next(); err != nil {
+				return nil, err
+			}
+		}
+		// if so, next must be the attribute name or a star
+		attributeDecl, err := p.consumeToken(StringToken, StarToken)
+		if err != nil {
+			return nil, err
+		}
+		decl.Token = SchemaToken
+		attributeDecl.Add(decl)
+
+		if quoted {
+			// Check there is a closing quote
+			if _, err := p.consumeToken(quoteToken); err != nil {
+				return nil, fmt.Errorf("expected closing quote: %s", err)
+			}
+		}
+		return attributeDecl, nil
+	}
+
+	// Then the first string token was the naked attribute name
+	return decl, nil
 }
 
 // parseAttribute parse an attribute of the form

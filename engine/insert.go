@@ -14,19 +14,19 @@ import (
 
 /*
 |-> INSERT
-    |-> INTO
-        |-> user
-            |-> last_name
-            |-> first_name
-            |-> email
-    |-> VALUES
-        |-> (
-            |-> Roullon
-            |-> Pierre
-            |-> pierre.roullon@gmail.com
-    |-> RETURNING
-            |-> email
 
+	|-> INTO
+	    |-> user
+	        |-> last_name
+	        |-> first_name
+	        |-> email
+	|-> VALUES
+	    |-> (
+	        |-> Roullon
+	        |-> Pierre
+	        |-> pierre.roullon@gmail.com
+	|-> RETURNING
+	        |-> email
 */
 func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.EngineConn) error {
 	// Get table and concerned attributes and write lock it
@@ -78,21 +78,29 @@ func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.E
 
 /*
 |-> INTO
-    |-> user
-        |-> last_name
-        |-> first_name
-        |-> email
+
+	|-> user
+	    |-> last_name
+	    |-> first_name
+	    |-> email
 */
 func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, error) {
+	var schema string
 
 	// Decl[0] is the table name
-	r := e.relation(intoDecl.Decl[0].Lexeme)
+	table := intoDecl.Decl[0]
+
+	if d, ok := table.Has(parser.SchemaToken); ok {
+		schema = d.Lexeme
+	}
+
+	r := e.relation(schema, table.Lexeme)
 	if r == nil {
 		return nil, nil, errors.New("table " + intoDecl.Decl[0].Lexeme + " does not exist")
 	}
 
 	for i := range intoDecl.Decl[0].Decl {
-		err := attributeExistsInTable(e, intoDecl.Decl[0].Decl[i].Lexeme, intoDecl.Decl[0].Lexeme)
+		err := attributeExistsInTable(e, intoDecl.Decl[0].Decl[i].Lexeme, schema, intoDecl.Decl[0].Lexeme)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -108,7 +116,6 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 
 	// Create tuple
 	t := NewTuple()
-
 
 	for attrindex, attr := range r.table.attributes {
 		assigned = false

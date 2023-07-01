@@ -300,12 +300,33 @@ func TestSchema(t *testing.T) {
 		`CREATE SCHEMA public`,
 		`CREATE TABLE "foo"."bar" (id BIGSERIAL, baz TEXT)`,
 		`CREATE TABLE public.bar (id BIGSERIAL, baz TEXT)`,
+	}
+
+	for _, q := range queries {
+		i := parse(q, 1, t)
+		d := i[0].Decls[0]
+		if d.Token != CreateToken {
+			t.Errorf("expected CreateToken (%d), got (%d)", CreateToken, d.Token)
+		}
+		if tableD, ok := d.Has(TableToken); ok {
+			if _, ok := tableD.Decl[0].Has(SchemaToken); !ok {
+				t.Errorf("expected TableToken to have Schema (%d) child", SchemaToken)
+				tableD.Stringy(0, t.Logf)
+			}
+		}
+	}
+
+	queries = []string{
 		`DROP TABLE public.bar`,
 		`DROP SCHEMA foo.bar`,
 	}
 
 	for _, q := range queries {
-		parse(q, 1, t)
+		i := parse(q, 1, t)
+		d := i[0].Decls[0]
+		if d.Token != DropToken {
+			t.Errorf("expected DropToken (%d), got (%d)", DropToken, d.Token)
+		}
 	}
 }
 

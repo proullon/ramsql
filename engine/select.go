@@ -11,9 +11,9 @@ import (
 	"github.com/proullon/ramsql/engine/protocol"
 )
 
-func attributeExistsInTable(e *Engine, attr string, table string) error {
+func attributeExistsInTable(e *Engine, attr, schema, table string) error {
 
-	r := e.relation(table)
+	r := e.relation(schema, table)
 	if r == nil {
 		return fmt.Errorf("table \"%s\" does not exist", table)
 	}
@@ -34,7 +34,7 @@ func attributeExistsInTable(e *Engine, attr string, table string) error {
 	return nil
 }
 
-func attributesExistInTables(e *Engine, attributes []Attribute, tables []string) error {
+func attributesExistInTables(e *Engine, attributes []Attribute, schema string, tables []string) error {
 
 	for _, attr := range attributes {
 		if attr.name == "COUNT" {
@@ -43,7 +43,7 @@ func attributesExistInTables(e *Engine, attributes []Attribute, tables []string)
 
 		if strings.Contains(attr.name, ".") {
 			t := strings.Split(attr.name, ".")
-			if err := attributeExistsInTable(e, t[1], t[0]); err != nil {
+			if err := attributeExistsInTable(e, t[1], schema, t[0]); err != nil {
 				return err
 			}
 			continue
@@ -52,7 +52,7 @@ func attributesExistInTables(e *Engine, attributes []Attribute, tables []string)
 		found := 0
 		for _, t := range tables {
 
-			if err := attributeExistsInTable(e, attr.name, t); err == nil {
+			if err := attributeExistsInTable(e, attr.name, schema, t); err == nil {
 				found++
 			}
 
@@ -85,17 +85,21 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 	var predicates []PredicateLinker
 	var functors []selectFunctor
 	var joiners []joiner
+	var schema string
 	var err error
 
-	selectDecl.Stringy(0)
+	selectDecl.Stringy(0, nil)
 	for i := range selectDecl.Decl {
 		switch selectDecl.Decl[i].Token {
 		case parser.FromToken:
 			// get selected tables
 			tables = fromExecutor(selectDecl.Decl[i])
+			if len(tables) > 0 {
+				schema = tables[0].schema
+			}
 		case parser.WhereToken:
 			// get WHERE declaration
-			pred, err := whereExecutor2(e, selectDecl.Decl[i].Decl, tables[0].name)
+			pred, err := whereExecutor2(e, selectDecl.Decl[i].Decl, schema, tables[0].name)
 			if err != nil {
 				return err
 			}
@@ -153,7 +157,7 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 		}
 	}
 
-	err = generateVirtualRows(e, attributes, conn, tables[0].name, joiners, predicates, functors)
+	err = generateVirtualRows(e, attributes, conn, schema, tables[0].name, joiners, predicates, functors)
 	if err != nil {
 		return err
 	}
@@ -263,7 +267,7 @@ func (f *countSelectFunction) Done() error {
 }
 
 func inExecutor(inDecl *parser.Decl, p *Predicate) error {
-	inDecl.Stringy(0)
+	inDecl.Stringy(0, nil)
 
 	p.Operator = inOperator
 
@@ -279,7 +283,7 @@ func inExecutor(inDecl *parser.Decl, p *Predicate) error {
 }
 
 func notInExecutor(inDecl *parser.Decl, p *Predicate) error {
-	inDecl.Stringy(0)
+	inDecl.Stringy(0, nil)
 
 	p.Operator = notInOperator
 
@@ -295,7 +299,7 @@ func notInExecutor(inDecl *parser.Decl, p *Predicate) error {
 }
 
 func isExecutor(isDecl *parser.Decl, p *Predicate) error {
-	isDecl.Stringy(0)
+	isDecl.Stringy(0, nil)
 
 	if isDecl.Decl[0].Token == parser.NullToken {
 		p.Operator = isNullOperator
@@ -306,11 +310,11 @@ func isExecutor(isDecl *parser.Decl, p *Predicate) error {
 	return nil
 }
 
-func or(e *Engine, left []*parser.Decl, right []*parser.Decl, tableName string) (PredicateLinker, error) {
+func or(e *Engine, left []*parser.Decl, right []*parser.Decl, schema, tableName string) (PredicateLinker, error) {
 	p := &orOperator{}
 
 	if len(left) > 0 {
-		lPred, err := whereExecutor2(e, left, tableName)
+		lPred, err := whereExecutor2(e, left, schema, tableName)
 		if err != nil {
 			return nil, err
 		}
@@ -318,7 +322,7 @@ func or(e *Engine, left []*parser.Decl, right []*parser.Decl, tableName string) 
 	}
 
 	if len(right) > 0 {
-		rPred, err := whereExecutor2(e, right, tableName)
+		rPred, err := whereExecutor2(e, right, schema, tableName)
 		if err != nil {
 			return nil, err
 		}
@@ -328,11 +332,11 @@ func or(e *Engine, left []*parser.Decl, right []*parser.Decl, tableName string) 
 	return p, nil
 }
 
-func and(e *Engine, left []*parser.Decl, right []*parser.Decl, tableName string) (PredicateLinker, error) {
+func and(e *Engine, left []*parser.Decl, right []*parser.Decl, schema, tableName string) (PredicateLinker, error) {
 	p := &andOperator{}
 
 	if len(left) > 0 {
-		lPred, err := whereExecutor2(e, left, tableName)
+		lPred, err := whereExecutor2(e, left, schema, tableName)
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +344,7 @@ func and(e *Engine, left []*parser.Decl, right []*parser.Decl, tableName string)
 	}
 
 	if len(right) > 0 {
-		rPred, err := whereExecutor2(e, right, tableName)
+		rPred, err := whereExecutor2(e, right, schema, tableName)
 		if err != nil {
 			return nil, err
 		}
@@ -350,7 +354,7 @@ func and(e *Engine, left []*parser.Decl, right []*parser.Decl, tableName string)
 	return p, nil
 }
 
-func whereExecutor2(e *Engine, decl []*parser.Decl, fromTableName string) (PredicateLinker, error) {
+func whereExecutor2(e *Engine, decl []*parser.Decl, schema, fromTableName string) (PredicateLinker, error) {
 
 	for i, cond := range decl {
 
@@ -359,7 +363,7 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, fromTableName string) (Predi
 				return nil, fmt.Errorf("query error: AND not followed by any predicate")
 			}
 
-			p, err := and(e, decl[:i], decl[i+1:], fromTableName)
+			p, err := and(e, decl[:i], decl[i+1:], schema, fromTableName)
 			return p, err
 		}
 
@@ -367,7 +371,7 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, fromTableName string) (Predi
 			if i+1 == len(decl) {
 				return nil, fmt.Errorf("query error: OR not followd by any predicate")
 			}
-			p, err := or(e, decl[:i], decl[i+1:], fromTableName)
+			p, err := or(e, decl[:i], decl[i+1:], schema, fromTableName)
 			return p, err
 		}
 	}
@@ -392,7 +396,7 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, fromTableName string) (Predi
 
 	p.LeftValue.lexeme = cond.Lexeme
 
-	if err := attributeExistsInTable(e, p.LeftValue.lexeme, fromTableName); err != nil {
+	if err := attributeExistsInTable(e, p.LeftValue.lexeme, schema, fromTableName); err != nil {
 		return nil, err
 	}
 
@@ -454,7 +458,7 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, fromTableName string) (Predi
 func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, error) {
 	var predicates []Predicate
 	var err error
-	whereDecl.Stringy(0)
+	whereDecl.Stringy(0, nil)
 
 	for i := range whereDecl.Decl {
 		var p Predicate
@@ -561,8 +565,13 @@ func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, e
 */
 func fromExecutor(fromDecl *parser.Decl) []*Table {
 	var tables []*Table
+	var schema string
 	for _, t := range fromDecl.Decl {
-		tables = append(tables, NewTable(t.Lexeme))
+		schema = ""
+		if d, ok := t.Has(parser.SchemaToken); ok {
+			schema = d.Lexeme
+		}
+		tables = append(tables, NewTable(schema, t.Lexeme))
 	}
 
 	return tables
@@ -571,22 +580,24 @@ func fromExecutor(fromDecl *parser.Decl) []*Table {
 func getSelectedAttribute(e *Engine, attr *parser.Decl, tables []*Table) ([]Attribute, error) {
 	var attributes []Attribute
 	var t []string
+	var schema string
 
 	for i := range tables {
 		t = append(t, tables[i].name)
+		schema = tables[i].schema
 	}
 
 	switch attr.Token {
 	case parser.StarToken:
 		for _, table := range tables {
-			r := e.relation(table.name)
+			r := e.relation(table.schema, table.name)
 			if r == nil {
 				return nil, errors.New("Relation " + table.name + " not found")
 			}
 			attributes = append(attributes, r.table.attributes...)
 		}
 	case parser.CountToken:
-		err := attributesExistInTables(e, []Attribute{NewAttribute(attr.Decl[0].Lexeme, "", false)}, t)
+		err := attributesExistInTables(e, []Attribute{NewAttribute(attr.Decl[0].Lexeme, "", false)}, schema, t)
 		if err != nil && attr.Decl[0].Lexeme != "*" {
 			return nil, err
 		}
@@ -594,13 +605,13 @@ func getSelectedAttribute(e *Engine, attr *parser.Decl, tables []*Table) ([]Attr
 	case parser.StringToken:
 		attribute := attr.Lexeme
 		if len(attr.Decl) > 0 {
-			if err := attributeExistsInTable(e, attr.Lexeme, attr.Decl[0].Lexeme); err != nil {
+			if err := attributeExistsInTable(e, attr.Lexeme, schema, attr.Decl[0].Lexeme); err != nil {
 				return nil, err
 			}
 			attribute = attr.Decl[0].Lexeme + "." + attribute
 		}
 		newAttr := NewAttribute(attribute, "text", false)
-		if err := attributesExistInTables(e, []Attribute{newAttr}, t); err != nil {
+		if err := attributesExistInTables(e, []Attribute{newAttr}, schema, t); err != nil {
 			return nil, err
 		}
 		attributes = append(attributes, newAttr)

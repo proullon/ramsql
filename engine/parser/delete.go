@@ -20,7 +20,7 @@ func (p *parser) parseDelete() (*Instruction, error) {
 	deleteDecl.Add(fromDecl)
 
 	// Should be a table name
-	nameDecl, err := p.parseQuotedToken()
+	nameDecl, err := p.parseTableName()
 	if err != nil {
 		return nil, err
 	}

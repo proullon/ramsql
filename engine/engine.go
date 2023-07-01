@@ -16,7 +16,7 @@ type executor func(*Engine, *parser.Decl, protocol.EngineConn) error
 // Engine is the root struct of RamSQL server
 type Engine struct {
 	endpoint     protocol.EngineEndpoint
-	relations    map[string]*Relation
+	schemas      map[string]*Schema
 	opsExecutors map[int]executor
 
 	// Any value send to this channel (through Engine.stop)
@@ -50,7 +50,9 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 		parser.GrantToken:    grantExecutor,
 	}
 
-	e.relations = make(map[string]*Relation)
+	// create public schema
+	e.schemas = make(map[string]*Schema)
+	e.schemas["public"] = NewSchema("public")
 
 	err = e.start()
 	if err != nil {
@@ -78,18 +80,40 @@ func (e *Engine) Stop() {
 	}()
 }
 
-func (e *Engine) relation(name string) *Relation {
-	// Lock ?
-	r := e.relations[name]
-	// Unlock ?
+func (e *Engine) relation(schema, name string) *Relation {
+	if schema == "" {
+		schema = "public"
+	}
 
-	return r
+	return e.schemas[schema].relation(name)
 }
 
-func (e *Engine) drop(name string) {
+func (e *Engine) schema(name string) *Schema {
+	if name == "" {
+		name = "public"
+	}
+
+	return e.schemas[name]
+}
+
+func (e *Engine) dropRelation(schema, name string) {
+	if schema == "" {
+		schema = "public"
+	}
+
 	e.Lock()
-	delete(e.relations, name)
+	e.schemas[schema].drop(name)
 	e.Unlock()
+}
+
+func (e *Engine) dropSchema(name string) bool {
+	e.Lock()
+	defer e.Unlock()
+	if _, ok := e.schemas[name]; !ok {
+		return false
+	}
+	delete(e.schemas, name)
+	return true
 }
 
 func (e *Engine) listen() {

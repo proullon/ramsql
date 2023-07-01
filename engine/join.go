@@ -89,10 +89,10 @@ func (i *inner) Evaluate(row virtualRow, r *Relation, index int) (bool, error) {
 
 // The optional WHERE, GROUP BY, and HAVING clauses in the table expression specify a pipeline of successive transformations performed on the table derived in the FROM clause.
 // All these transformations produce a virtual table that provides the rows that are passed to the select list to compute the output rows of the query.
-func generateVirtualRows(e *Engine, attr []Attribute, conn protocol.EngineConn, t1Name string, joinPredicates []joiner, selectPredicates []PredicateLinker, functors []selectFunctor) error {
+func generateVirtualRows(e *Engine, attr []Attribute, conn protocol.EngineConn, schema, t1Name string, joinPredicates []joiner, selectPredicates []PredicateLinker, functors []selectFunctor) error {
 
 	// get t1 and lock it
-	t1 := e.relation(t1Name)
+	t1 := e.relation(schema, t1Name)
 	if t1 == nil {
 		return fmt.Errorf("table %s not found", t1Name)
 	}
@@ -102,7 +102,7 @@ func generateVirtualRows(e *Engine, attr []Attribute, conn protocol.EngineConn, 
 	// all joined tables in a map of relation
 	relations := make(map[string]*Relation)
 	for _, j := range joinPredicates {
-		r := e.relation(j.On())
+		r := e.relation(schema, j.On())
 		if r == nil {
 			return fmt.Errorf("table %s not found", j.On())
 		}
@@ -216,17 +216,17 @@ func join(row virtualRow, relations map[string]*Relation, predicates []joiner, p
 
 /*
 -> join
-       |-> user_project
-       |-> on
-           |-> project_id
-               |-> user_project
-           |-> =
-           |-> id
-               |-> project
 
+	|-> user_project
+	|-> on
+	    |-> project_id
+	        |-> user_project
+	    |-> =
+	    |-> id
+	        |-> project
 */
 func joinExecutor(decl *parser.Decl) (joiner, error) {
-	decl.Stringy(0)
+	decl.Stringy(0, nil)
 
 	j := &inner{}
 
