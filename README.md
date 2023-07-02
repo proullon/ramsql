@@ -194,10 +194,6 @@ Find bellow all objectives for `v1.0.0`
 
 ### GORM
 
-> **Callout:** **RamSQL is incompatible with current version of `gorm`**
->
-> Compatibility work is in active development.
-
 If you intend to use ramsql with the GORM ORM, you should use the GORM Postgres driver. A working example would be:
 
 ```go
