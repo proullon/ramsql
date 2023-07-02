@@ -4,28 +4,42 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
-	"fmt"
-	"os"
 	"testing"
 
-	_ "github.com/lib/pq"
+	_ "github.com/glebarez/go-sqlite"
 	_ "github.com/proullon/ramsql/driver"
 )
 
-func benchmarkInsert(b *testing.B, driver string, nbRows int) {
-	u := os.Getenv("PG_USER")
-	pwd := os.Getenv("PG_PASSWORD")
-	ip := os.Getenv("PG_IP")
-	port := os.Getenv("PG_PORT")
-
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/postgres?sslmode=disable", u, pwd, ip, port)
-	db, err := sql.Open(driver, dsn)
+func setupInsertN(b *testing.B, db *sql.DB, n int) {
+	db.Exec(`DROP TABLE account`)
+	_, err := db.Exec(`CREATE TABLE account (id BIGSERIAL PRIMARY KEY, email TEXT)`)
 	if err != nil {
-		b.Fatalf("sql.Open: %s", err)
+		b.Fatalf("sql.Exec: %s", err)
 	}
 
+	query := `INSERT INTO account (email) VALUES ($1)`
+	for i := 0; i < n; i++ {
+		size := 32
+		bs := make([]byte, size)
+		_, err := rand.Read(bs)
+		if err != nil {
+			b.Fatalf("rand failed: %s", err)
+		}
+		str := hex.EncodeToString(bs)
+		token := []byte(str)[0:size]
+
+		_, err = db.Exec(query, string(token)+"@foobar.com")
+		if err != nil {
+			b.Fatalf("cannot insert rows: %s", err)
+		}
+	}
+
+}
+
+func benchmarkInsert(b *testing.B, db *sql.DB, nbRows int) {
+
 	db.Exec(`DROP TABLE account`)
-	_, err = db.Exec(`CREATE TABLE account (id BIGSERIAL PRIMARY KEY, email TEXT)`)
+	_, err := db.Exec(`CREATE TABLE account (id BIGSERIAL PRIMARY KEY, email TEXT)`)
 	if err != nil {
 		b.Fatalf("sql.Exec: %s", err)
 	}
@@ -56,40 +70,7 @@ func benchmarkInsert(b *testing.B, driver string, nbRows int) {
 	}
 }
 
-func benchmarkSelect(b *testing.B, driver string, n int) {
-	u := os.Getenv("PG_USER")
-	pwd := os.Getenv("PG_PASSWORD")
-	ip := os.Getenv("PG_IP")
-	port := os.Getenv("PG_PORT")
-
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/postgres?sslmode=disable", u, pwd, ip, port)
-	db, err := sql.Open(driver, dsn)
-	if err != nil {
-		b.Fatalf("sql.Open: %s", err)
-	}
-
-	db.Exec(`DROP TABLE account`)
-	_, err = db.Exec(`CREATE TABLE account (id BIGSERIAL PRIMARY KEY, email TEXT)`)
-	if err != nil {
-		b.Fatalf("sql.Exec: %s", err)
-	}
-
-	query := `INSERT INTO account (email) VALUES ($1)`
-	for i := 0; i < n; i++ {
-		size := 32
-		bs := make([]byte, size)
-		_, err := rand.Read(bs)
-		if err != nil {
-			b.Fatalf("rand failed: %s", err)
-		}
-		str := hex.EncodeToString(bs)
-		token := []byte(str)[0:size]
-
-		_, err = db.Exec(query, string(token)+"@foobar.com")
-		if err != nil {
-			b.Fatalf("cannot insert rows: %s", err)
-		}
-	}
+func benchmarkSelect(b *testing.B, db *sql.DB) {
 
 	var id int64
 	var email string
@@ -113,24 +94,88 @@ func benchmarkSelect(b *testing.B, driver string, n int) {
 	_ = id
 	_ = email
 
-	_, err = db.Exec(`DROP TABLE account`)
+	_, err := db.Exec(`DROP TABLE account`)
 	if err != nil {
 		b.Fatalf("sql.Exec: %s", err)
 	}
 }
 
 func BenchmarkRamSQLSelect(b *testing.B) {
-	benchmarkSelect(b, "ramsql", 100)
+	db, err := sql.Open("ramsql", "BenchmarkSQLSelect")
+	if err != nil {
+		b.Fatalf("cannot open ramsql db")
+	}
+
+	n := 100
+	setupInsertN(b, db, n)
+	benchmarkSelect(b, db)
 }
 
-func BenchmarkPostgresSelect(b *testing.B) {
-	benchmarkSelect(b, "postgres", 100)
+func BenchmarkSQLiteSelect(b *testing.B) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		b.Fatalf("cannot open sqlite")
+	}
+
+	n := 100
+	setupInsertN(b, db, n)
+	benchmarkSelect(b, db)
+}
+
+func BenchmarkRamSQLSelect10K(b *testing.B) {
+	db, err := sql.Open("ramsql", "BenchmarkSQLSelect1M")
+	if err != nil {
+		b.Fatalf("cannot open ramsql db")
+	}
+
+	n := 10000
+	setupInsertN(b, db, n)
+	benchmarkSelect(b, db)
+}
+
+func BenchmarkSQLiteSelect10K(b *testing.B) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		b.Fatalf("cannot open sqlite")
+	}
+
+	n := 10000
+	setupInsertN(b, db, n)
+	benchmarkSelect(b, db)
 }
 
 func BenchmarkRamSQLInsert10(b *testing.B) {
-	benchmarkInsert(b, "ramsql", 10)
+	db, err := sql.Open("ramsql", "BenchmarkSQLSelect")
+	if err != nil {
+		b.Fatalf("cannot open ramsql db")
+	}
+	benchmarkInsert(b, db, 10)
 }
 
-func BenchmarkPostgresInsert10(b *testing.B) {
-	benchmarkInsert(b, "postgres", 10)
+func BenchmarkSQLiteInsert10(b *testing.B) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		b.Fatalf("cannot open sqlite")
+	}
+	benchmarkInsert(b, db, 10)
+}
+
+func BenchmarkRamSQLSetup(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		db, err := sql.Open("ramsql", "BenchmarkSQLSelect")
+		if err != nil {
+			b.Fatalf("cannot open ramsql db")
+		}
+		db.Close()
+	}
+}
+
+func BenchmarkSQLiteSetup(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		db, err := sql.Open("sqlite", ":memory:")
+		if err != nil {
+			b.Fatalf("cannot open sqlite")
+		}
+		db.Close()
+	}
 }

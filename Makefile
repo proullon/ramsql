@@ -12,3 +12,6 @@ install: ## install binaries
 test: ## test
 	go test -v ./...
 
+bench:
+	go test -bench=. -count 6 | tee newbench.txt
+	benchstat bench.txt newbench.txt
