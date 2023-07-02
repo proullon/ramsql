@@ -15,3 +15,6 @@ test: ## test
 bench:
 	go test -bench=. -count 6 | tee newbench.txt
 	benchstat bench.txt newbench.txt
+
+format:
+	mdformat README.md

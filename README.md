@@ -19,7 +19,7 @@ Bottom line : One DataSourceName per test and you have full test isolation in no
   go get github.com/proullon/ramsql
 ```
 
-## Usage 
+## Usage
 
 Let's say you want to test the function LoadUserAddresses :
 
@@ -48,6 +48,7 @@ func LoadUserAddresses(db *sql.DB, userID int64) ([]string, error) {
 }
 
 ```
+
 Use RamSQL to test it in a disposable isolated in-memory SQL engine :
 
 ```go
@@ -115,6 +116,7 @@ Let's say you have a SQL describing your application structure:
 CREATE TABLE IF NOT EXISTS address (id BIGSERIAL PRIMARY KEY, street TEXT, street_number INT);
 CREATE TABLE IF NOT EXISTS user_addresses (address_id INT, user_id INT);
 ```
+
 You may want to test its validity:
 
 ```console
@@ -128,6 +130,49 @@ $ echo $?
 
 ## Features
 
+Find bellow all objectives for `v1.0.0`
+
+| Name           | Category      | Parsing                  | Implementation           |
+| -------------- | ------------- | ------------------------ | ------------------------ |
+| Table          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| Schema         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| CREATE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| PRIMARY_KEY    | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
+| DEFAULT        | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| INSERT         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| UNIQUE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| FOREIGN KEY    | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| SELECT         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| backtick       | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| quote          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| double quote   | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| COUNT          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| MAX            | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| ORDER BY       | SQL           | :heavy_check_mark:       | single column            |
+| UPDATE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| DELETE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| DROP           | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| INNER JOIN     | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| OUTER JOIN     | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
+| timestamp      | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| now()          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| OFFSET         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| Transactions   | SQL           | :heavy_check_mark:       | partial                  |
+| BEGIN          | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| COMMIT         | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| Index          | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
+| Hash index     | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
+| B-Tree index   | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
+| JSON           | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| CLI            | Testing       | :heavy_check_mark:       | :heavy_check_mark:       |
+| Breakpoint     | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| Query history  | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| Size limit     | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| Autogeneration | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| TTL            | Caching       | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| LFRU           | Caching       | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| Gorm           | Compatibility | :heavy_multiplication_x: | :heavy_multiplication_x: |
+
 ### Unit testing
 
 - Full isolation between tests
@@ -136,19 +181,25 @@ $ echo $?
 
 ### SQL parsing
 
-- Databse schema validation
+- Database schema validation
 - ALTER file validation
 
 ### Stress testing
 
 - File system full error with configurable maximum database size
 - Random configurable slow queries
-- Random deconnection
+- Random connection error
 
 ## Compatibility
 
 ### GORM
+
+> **Callout:** **RamSQL is incompatible with current version of `gorm`**
+>
+> Compatibility work is in active development.
+
 If you intend to use ramsql with the GORM ORM, you should use the GORM Postgres driver. A working example would be:
+
 ```go
 	sqlDB, err := sql.Open("ramsql", "Test")
 	...

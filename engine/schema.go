@@ -24,7 +24,7 @@ func NewSchema(name string) *Schema {
 func (s *Schema) relation(name string) (*Relation, error) {
 	r, ok := s.relations[name]
 	if !ok {
-		return nil, fmt.Errorf("table '%s'.'%s' does not exist")
+		return nil, fmt.Errorf("table '%s'.'%s' does not exist", s.name, name)
 	}
 
 	return r, nil
