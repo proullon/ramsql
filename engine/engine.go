@@ -39,6 +39,7 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 		parser.CreateToken:   createExecutor,
 		parser.TableToken:    createTableExecutor,
 		parser.SchemaToken:   createSchemaExecutor,
+		parser.IndexToken:    createIndexExecutor,
 		parser.SelectToken:   selectExecutor,
 		parser.InsertToken:   insertIntoTableExecutor,
 		parser.DeleteToken:   deleteExecutor,
@@ -190,12 +191,14 @@ func (e *Engine) handleConnection(conn protocol.EngineConn) {
 }
 
 func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol.EngineConn) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("fatal error: %s", r)
-			return
-		}
-	}()
+	/*
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("fatal error: %s", r)
+				return
+			}
+		}()
+	*/
 
 	for _, i := range instructions {
 		err = e.executeQuery(i, conn)

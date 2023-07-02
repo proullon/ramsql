@@ -25,7 +25,7 @@ func (conn *TestEngineConn) WriteRowHeader(header []string) error {
 	return nil
 }
 
-func (conn *TestEngineConn) WriteRow(row []string) error {
+func (conn *TestEngineConn) WriteRow(row []any) error {
 	return nil
 }
 

@@ -40,7 +40,7 @@ func (l *limit) WriteRowHeader(header []string) error {
 	return l.realConn.WriteRowHeader(header)
 }
 
-func (l *limit) WriteRow(row []string) error {
+func (l *limit) WriteRow(row []any) error {
 	if l.current == l.limit {
 		// We are done here
 		return nil
@@ -87,7 +87,7 @@ func (l *offset) WriteRowHeader(header []string) error {
 	return l.realConn.WriteRowHeader(header)
 }
 
-func (l *offset) WriteRow(row []string) error {
+func (l *offset) WriteRow(row []any) error {
 	if l.current < l.offset {
 		// skip this line
 		l.current++

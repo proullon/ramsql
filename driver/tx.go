@@ -17,5 +17,5 @@ func (t *Tx) Commit() error {
 
 // Rollback all changes
 func (t *Tx) Rollback() error {
-	return fmt.Errorf("Not implemented")
+	return fmt.Errorf("rollback not implemented")
 }

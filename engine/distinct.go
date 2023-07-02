@@ -43,7 +43,7 @@ func (l *distinct) WriteRowHeader(header []string) error {
 	return l.realConn.WriteRowHeader(header)
 }
 
-func (l *distinct) WriteRow(row []string) error {
+func (l *distinct) WriteRow(row []any) error {
 	if l.len > 0 {
 		if l.seen.exists(row[:l.len]) {
 			return nil
@@ -91,8 +91,13 @@ func (l *distinct) equalRows(a, b []string) bool {
 
 type seen map[string]seen
 
-func (s seen) exists(r []string) bool {
-	if c, ok := s[r[0]]; ok {
+func (s seen) exists(r []any) bool {
+	col, ok := r[0].(string)
+	if !ok {
+		return false
+	}
+
+	if c, ok := s[col]; ok {
 		if len(r) == 1 {
 			return true
 		}
@@ -100,11 +105,11 @@ func (s seen) exists(r []string) bool {
 		return c.exists(r[1:])
 	}
 
-	s[r[0]] = make(seen)
+	s[col] = make(seen)
 	if len(r) == 1 {
 		return false
 	}
 
 	// does not exists, but we want to populate the tree fully
-	return s[r[0]].exists(r[1:])
+	return s[col].exists(r[1:])
 }

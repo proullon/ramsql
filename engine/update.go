@@ -27,8 +27,6 @@ func updateExecutor(e *Engine, updateDecl *parser.Decl, conn protocol.EngineConn
 	var num int64
 	var schema string
 
-	updateDecl.Stringy(0, nil)
-
 	if d, ok := updateDecl.Has(parser.SchemaToken); ok {
 		schema = d.Lexeme
 	}

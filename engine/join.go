@@ -226,7 +226,6 @@ func join(row virtualRow, relations map[string]*Relation, predicates []joiner, p
 	        |-> project
 */
 func joinExecutor(decl *parser.Decl) (joiner, error) {
-	decl.Stringy(0, nil)
 
 	j := &inner{}
 

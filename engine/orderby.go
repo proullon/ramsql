@@ -2,9 +2,10 @@ package engine
 
 import (
 	"fmt"
+	"sort"
+
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
-	"sort"
 )
 
 // |-> order
@@ -103,19 +104,19 @@ type orderer interface {
 }
 
 type genericOrderer struct {
-	buffer     map[string][][]interface{}
+	buffer     map[string][][]any
 	attributes []string
 	keys       []string
 	orderBy    []*orderBy
 }
 
 func (o *genericOrderer) init(attr []string) {
-	o.buffer = make(map[string][][]interface{})
+	o.buffer = make(map[string][][]any)
 	o.attributes = attr
 }
 
 func (o *genericOrderer) Feed(_ Value, vrow virtualRow) error {
-	var row []interface{}
+	var row []any
 
 	var key string
 	for _, ob := range o.orderBy {
@@ -281,9 +282,9 @@ func (o *genericOrderer) Write(conn protocol.EngineConn) error {
 	for _, key := range o.keys {
 		rows := o.buffer[key]
 		for index := range rows {
-			var row []string
-			for _, elem := range rows[index] {
-				row = append(row, fmt.Sprint(elem))
+			var row []any
+			for i := range rows[index] {
+				row = append(row, rows[index][i])
 			}
 			err := conn.WriteRow(row)
 			if err != nil {
