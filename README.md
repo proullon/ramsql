@@ -201,10 +201,52 @@ Find bellow all objectives for `v1.0.0`
 If you intend to use ramsql with the GORM ORM, you should use the GORM Postgres driver. A working example would be:
 
 ```go
-	sqlDB, err := sql.Open("ramsql", "Test")
-	...
+import (
+	"database/sql"
+	"testing"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+)
+
+type Product struct {
+	gorm.Model
+	Code       string
+	Price      uint
+	TestBigint uint64 `gorm:"test_bigint;type:BIGINT UNSIGNED AUTO_INCREMENT"`
+}
+
+// From https://gorm.io/docs/connecting_to_the_database.html
+// and  https://gorm.io/docs/
+func main() {
+	ramdb, err := sql.Open("ramsql", "TestGormQuickStart")
 
 	db, err := gorm.Open(postgres.New(postgres.Config{
-		Conn: sqlDB,
-	}), &gorm.Config{})
+		Conn: ramdb,
+	}),
+		&gorm.Config{})
+
+	// Migrate the schema
+	err = db.AutoMigrate(&Product{})
+
+	// Create
+	err = db.Create(&Product{Code: "D42", Price: 100}).Error
+
+	// Read
+	var product Product
+	err = db.First(&product, 1).Error // find product with integer primary key
+	err = db.First(&product, "code = ?", "D42").Error // find product with code D42
+	err = db.First(&product, "Code = ?", "D42").Error // find product with code D42
+
+	// Update - update product's price to 200
+	err = db.Model(&product).Update("Price", 200).Error
+	// Update - update multiple fields
+	err = db.Model(&product).Updates(Product{Price: 200, Code: "F42"}).Error // non-zero fields
+	err = db.Model(&product).Updates(map[string]interface{}{"Price": 200, "Code": "F42"}).Error
+
+	// Delete - delete product
+	err = db.Delete(&product, 1).Error
+
+    _ = err
+}
 ```
