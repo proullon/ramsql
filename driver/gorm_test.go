@@ -42,6 +42,15 @@ func TestGormQuickStart(t *testing.T) {
 		t.Fatalf("cannot create: %s", err)
 	}
 
+	var id uint
+	err = ramdb.QueryRow(`SELECT id FROM products WHERE id = 1 AND deleted_at IS NULL`).Scan(&id)
+	if err != nil {
+		t.Fatalf("cannot select manually: %s", err)
+	}
+	if id == 0 {
+		t.Fatalf("unexpected 0 value for id")
+	}
+
 	// Read
 	var product Product
 	err = db.First(&product, 1).Error // find product with integer primary key

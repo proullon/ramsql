@@ -145,6 +145,13 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 		assigned = false
 
 		for x, decl := range attributes {
+			if attr.name == decl.Lexeme && attr.autoIncrement == false && strings.ToLower(values[x].Lexeme) == "null" {
+				valuesindex = x
+				assigned = true
+				t.Append(nil)
+				continue
+			}
+
 			if attr.name == decl.Lexeme && attr.autoIncrement == false {
 				// Before adding value in tuple, check it's not a builtin func or arithmetic operation
 				switch values[x].Token {
@@ -170,13 +177,6 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 				}
 				valuesindex = x
 				assigned = true
-				if returnedAttribute == attr.name {
-					var err error
-					id, err = strconv.ParseInt(values[x].Lexeme, 10, 64)
-					if err != nil {
-						return nil, err
-					}
-				}
 			}
 		}
 
