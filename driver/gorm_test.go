@@ -61,6 +61,10 @@ func TestGormQuickStart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot read with code: %s", err)
 	}
+	err = db.First(&product, "Code = ?", "D42").Error // find product with code D42
+	if err != nil {
+		t.Fatalf("cannot read with Code: %s", err)
+	}
 
 	// Update - update product's price to 200
 	err = db.Model(&product).Update("Price", 200).Error
