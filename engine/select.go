@@ -87,7 +87,6 @@ func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn
 	var schema string
 	var err error
 
-	selectDecl.Stringy(0, nil)
 	for i := range selectDecl.Decl {
 		switch selectDecl.Decl[i].Token {
 		case parser.FromToken:
@@ -213,7 +212,7 @@ func (f *defaultSelectFunction) Init(e *Engine, conn protocol.EngineConn, attr [
 }
 
 func (f *defaultSelectFunction) FeedVirtualRow(vrow virtualRow) error {
-	var row []string
+	var row []any
 
 	for _, attr := range f.attributes {
 		val, ok := vrow[attr]
@@ -257,7 +256,7 @@ func (f *countSelectFunction) Done() error {
 		return err
 	}
 
-	err = f.conn.WriteRow([]string{fmt.Sprintf("%d", f.Count)})
+	err = f.conn.WriteRow([]any{f.Count})
 	if err != nil {
 		return err
 	}
@@ -266,8 +265,6 @@ func (f *countSelectFunction) Done() error {
 }
 
 func inExecutor(inDecl *parser.Decl, p *Predicate) error {
-	inDecl.Stringy(0, nil)
-
 	p.Operator = inOperator
 
 	// Put everything in a []string
@@ -282,7 +279,6 @@ func inExecutor(inDecl *parser.Decl, p *Predicate) error {
 }
 
 func notInExecutor(inDecl *parser.Decl, p *Predicate) error {
-	inDecl.Stringy(0, nil)
 
 	p.Operator = notInOperator
 
@@ -298,7 +294,6 @@ func notInExecutor(inDecl *parser.Decl, p *Predicate) error {
 }
 
 func isExecutor(isDecl *parser.Decl, p *Predicate) error {
-	isDecl.Stringy(0, nil)
 
 	if isDecl.Decl[0].Token == parser.NullToken {
 		p.Operator = isNullOperator
@@ -457,7 +452,6 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, schema, fromTableName string
 func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, error) {
 	var predicates []Predicate
 	var err error
-	whereDecl.Stringy(0, nil)
 
 	for i := range whereDecl.Decl {
 		var p Predicate

@@ -9,8 +9,8 @@ import (
 // UnlimitedRowsChannel buffers incomming message from bufferThis channel and forward them to
 // returned channel.
 // ONLY CREATED CHANNEL IS CLOSED HERE.
-func UnlimitedRowsChannel(bufferThis chan message, firstMessage message) chan []string {
-	driverChannel := make(chan []string)
+func UnlimitedRowsChannel(bufferThis chan message, firstMessage message) chan []any {
+	driverChannel := make(chan []any)
 	rowList := list.New()
 
 	rowList.PushBack(firstMessage.Value)
@@ -27,9 +27,9 @@ func UnlimitedRowsChannel(bufferThis chan message, firstMessage message) chan []
 			// We can disable the case in select with a nil channel and get a chance
 			// to fetch new data on bufferThis channel
 			driverChannelNullable := driverChannel
-			var nextRow []string
+			var nextRow []any
 			if rowList.Len() != 0 {
-				nextRow = rowList.Front().Value.([]string)
+				nextRow = rowList.Front().Value.([]any)
 			} else {
 				driverChannelNullable = nil
 			}

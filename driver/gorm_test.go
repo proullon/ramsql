@@ -37,39 +37,39 @@ func TestGormQuickStart(t *testing.T) {
 	}
 
 	// Create
-	db.Create(&Product{Code: "D42", Price: 100})
+	err = db.Create(&Product{Code: "D42", Price: 100}).Error
 	if err != nil {
 		t.Fatalf("cannot create: %s", err)
 	}
 
 	// Read
 	var product Product
-	db.First(&product, 1) // find product with integer primary key
+	err = db.First(&product, 1).Error // find product with integer primary key
 	if err != nil {
 		t.Fatalf("cannot read with primary key: %s", err)
 	}
-	db.First(&product, "code = ?", "D42") // find product with code D42
+	err = db.First(&product, "code = ?", "D42").Error // find product with code D42
 	if err != nil {
 		t.Fatalf("cannot read with code: %s", err)
 	}
 
 	// Update - update product's price to 200
-	db.Model(&product).Update("Price", 200)
+	err = db.Model(&product).Update("Price", 200).Error
 	if err != nil {
 		t.Fatalf("cannot update: %s", err)
 	}
 	// Update - update multiple fields
-	db.Model(&product).Updates(Product{Price: 200, Code: "F42"}) // non-zero fields
+	err = db.Model(&product).Updates(Product{Price: 200, Code: "F42"}).Error // non-zero fields
 	if err != nil {
 		t.Fatalf("cannot update multiple fields: %s", err)
 	}
-	db.Model(&product).Updates(map[string]interface{}{"Price": 200, "Code": "F42"})
+	err = db.Model(&product).Updates(map[string]interface{}{"Price": 200, "Code": "F42"}).Error
 	if err != nil {
 		t.Fatalf("cannot update multiple fields: %s", err)
 	}
 
 	// Delete - delete product
-	db.Delete(&product, 1)
+	err = db.Delete(&product, 1).Error
 	if err != nil {
 		t.Fatalf("cannot delete: %s", err)
 	}

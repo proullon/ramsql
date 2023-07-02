@@ -26,7 +26,7 @@ func TestQuery(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			err = engineConn.WriteRow([]string{"hello", "world"})
+			err = engineConn.WriteRow([]any{"hello", "world"})
 			if err != nil {
 				t.Fatal(err)
 			}

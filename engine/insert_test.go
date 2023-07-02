@@ -99,6 +99,47 @@ func TestInsertSingleReturning(t *testing.T) {
 	}
 }
 
+func TestInsertSingleReturningUint(t *testing.T) {
+	log.UseTestLogger(t)
+
+	db, err := sql.Open("ramsql", "TestInsertSingleReturningUint")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE cat (id BIGSERIAL PRIMARY KEY, breed TEXT, name TEXT)")
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	rows, err := db.Query("INSERT INTO cat (breed, name) VALUES ('indeterminate', 'Nala') RETURNING id")
+	if err != nil {
+		t.Fatalf("Cannot insert into table account: %s", err)
+	}
+	defer rows.Close()
+
+	hasRow := rows.Next()
+	if !hasRow {
+		t.Fatalf("Did not return a row: %s", err)
+	}
+
+	var id uint
+	err = rows.Scan(&id)
+	if err != nil {
+		t.Fatalf("row.Scan: %s", err)
+	}
+
+	if id != 1 {
+		t.Fatalf("Expected id 1, got id %v", id)
+	}
+
+	hasRow = rows.Next()
+	if hasRow {
+		t.Fatalf("Returned more than one row: %s", err)
+	}
+}
+
 func TestInsertWithMissingValue(t *testing.T) {
 	log.UseTestLogger(t)
 

@@ -1,0 +1,15 @@
+goos: linux
+goarch: amd64
+pkg: github.com/proullon/ramsql
+cpu: Intel(R) Core(TM) i7-7700K CPU @ 4.20GHz
+                  │  bench.txt   │           newbench.txt            │
+                  │    sec/op    │   sec/op     vs base              │
+RamSQLSelect-8      287.8µ ±  4%   286.6µ ± 4%       ~ (p=0.818 n=6)
+SQLiteSelect-8      10.98µ ± 11%   10.73µ ± 3%       ~ (p=0.065 n=6)
+RamSQLSelect10K-8   8.246m ±  5%   7.479m ± 6%  -9.30% (p=0.004 n=6)
+SQLiteSelect10K-8   11.54µ ± 11%   11.05µ ± 1%  -4.28% (p=0.002 n=6)
+RamSQLInsert10-8    312.3µ ±  4%   281.5µ ± 6%  -9.86% (p=0.002 n=6)
+SQLiteInsert10-8    341.5µ ±  1%   329.5µ ± 4%  -3.53% (p=0.041 n=6)
+RamSQLSetup-8       855.3n ±  4%   820.0n ± 2%       ~ (p=0.065 n=6)
+SQLiteSetup-8       844.1n ±  2%   811.1n ± 0%  -3.90% (p=0.002 n=6)
+geomean             46.84µ         44.61µ       -4.75%

@@ -38,40 +38,60 @@ func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.E
 	defer r.Unlock()
 
 	// Check for RETURNING clause
-	var returnedID string
+	var returnedAttribute string
 	if len(insertDecl.Decl) > 2 {
 		for i := range insertDecl.Decl {
 			if insertDecl.Decl[i].Token == parser.ReturningToken {
 				returningDecl := insertDecl.Decl[i]
-				returnedID = returningDecl.Lexeme
+				returnedAttribute = returningDecl.Decl[0].Lexeme
 				break
 			}
 		}
 	}
 
 	// Create a new tuple with values
-	ids := []int64{}
+	var tuples []Tuple
 	valuesDecl := insertDecl.Decl[1]
 	for _, valueListDecl := range valuesDecl.Decl {
 		// TODO handle all inserts atomically
-		id, err := insert(r, attributes, valueListDecl.Decl, returnedID)
+		t, err := insert(r, attributes, valueListDecl.Decl, returnedAttribute)
 		if err != nil {
 			return err
 		}
-
-		ids = append(ids, id)
+		tuples = append(tuples, *t)
 	}
 
-	// if RETURNING decl is not present
-	if returnedID != "" {
-		conn.WriteRowHeader([]string{returnedID})
-		for _, id := range ids {
-			conn.WriteRow([]string{fmt.Sprintf("%v", id)})
+	// if RETURNING decl is present
+	if returnedAttribute != "" {
+		conn.WriteRowHeader([]string{returnedAttribute})
+		for _, t := range tuples {
+			val, err := r.Get(returnedAttribute, t)
+			if err != nil {
+				continue
+			}
+			conn.WriteRow([]any{val})
 		}
 		conn.WriteRowEnd()
-	} else {
-		conn.WriteResult(ids[len(ids)-1], (int64)(len(ids)))
+		return nil
 	}
+
+	if len(tuples) == 0 {
+		conn.WriteResult(0, 0)
+		return nil
+	}
+
+	value, err := r.Get("id", tuples[len(tuples)-1])
+	if err != nil {
+		conn.WriteResult(0, (int64)(len(tuples)))
+		return nil
+	}
+
+	if val, ok := value.(int64); ok {
+		conn.WriteResult(val, (int64)(len(tuples)))
+		return nil
+	}
+
+	conn.WriteResult(0, (int64)(len(tuples)))
 	return nil
 }
 
@@ -113,7 +133,7 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 	return r, intoDecl.Decl[0].Decl, nil
 }
 
-func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, returnedID string) (int64, error) {
+func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, returnedAttribute string) (*Tuple, error) {
 	var assigned = false
 	var id int64
 	var valuesindex int
@@ -135,13 +155,13 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 					case "int64", "int":
 						val, err := strconv.ParseInt(values[x].Lexeme, 10, 64)
 						if err != nil {
-							return 0, err
+							return nil, err
 						}
 						t.Append(val)
 					case "numeric", "decimal":
 						val, err := strconv.ParseFloat(values[x].Lexeme, 64)
 						if err != nil {
-							return 0, err
+							return nil, err
 						}
 						t.Append(val)
 					default:
@@ -150,11 +170,11 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 				}
 				valuesindex = x
 				assigned = true
-				if returnedID == attr.name {
+				if returnedAttribute == attr.name {
 					var err error
 					id, err = strconv.ParseInt(values[x].Lexeme, 10, 64)
 					if err != nil {
-						return 0, err
+						return nil, err
 					}
 				}
 			}
@@ -171,7 +191,7 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 		if attr.unique {
 			for i := range r.rows { // check all value already in relation (yup, no index tree)
 				if r.rows[i].Values[attrindex].(string) == string(values[valuesindex].Lexeme) {
-					return 0, fmt.Errorf("UNIQUE constraint violation")
+					return nil, fmt.Errorf("UNIQUE constraint violation")
 				}
 			}
 		}
@@ -195,8 +215,8 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 	// Insert tuple
 	err := r.Insert(t)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	return id, nil
+	return t, nil
 }

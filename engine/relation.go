@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"errors"
 	"sync"
 )
 
@@ -27,4 +28,13 @@ func (r *Relation) Insert(t *Tuple) error {
 	// Maybe index
 	r.rows = append(r.rows, t)
 	return nil
+}
+
+func (r *Relation) Get(attr string, t Tuple) (any, error) {
+	for i, a := range r.table.attributes {
+		if a.name == attr {
+			return t.Values[i], nil
+		}
+	}
+	return nil, errors.New("not found")
 }

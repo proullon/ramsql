@@ -282,6 +282,17 @@ func TestIndex(t *testing.T) {
 	}
 }
 
+func TestReturning(t *testing.T) {
+	queries := []string{
+		`INSERT INTO test (foo, bar) VALUES ('foo', 'bar') RETURNING id`,
+		`INSERT INTO test (foo, bar) VALUES ('foo', 'bar') RETURNING "id"`,
+	}
+
+	for _, q := range queries {
+		parse(q, 1, t)
+	}
+}
+
 /*
 func TestForeignKey(t *testing.T) {
 	queries := []string{

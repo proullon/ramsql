@@ -6,7 +6,7 @@ type DriverConn interface {
 	WriteQuery(query string) error
 	WriteExec(stmt string) error
 	ReadResult() (lastInsertedID int64, rowsAffected int64, err error)
-	ReadRows() (chan []string, error)
+	ReadRows() (chan []any, error)
 	Close()
 }
 
@@ -17,7 +17,7 @@ type EngineConn interface {
 	WriteResult(lastInsertedID int64, rowsAffected int64) error
 	WriteError(err error) error
 	WriteRowHeader(header []string) error
-	WriteRow(row []string) error
+	WriteRow(row []any) error
 	WriteRowEnd() error
 }
 

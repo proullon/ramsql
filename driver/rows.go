@@ -13,21 +13,30 @@ import (
 
 // Rows implements the sql/driver Rows interface
 type Rows struct {
-	rowsChannel chan []string
+	rowsChannel chan []any
 	columns     []string
 
 	sync.Mutex
 }
 
-func newRows(channel chan []string) *Rows {
+func newRows(channel chan []any) *Rows {
+	var c []any
+	var ok bool
+
 	r := &Rows{rowsChannel: channel}
-	c, ok := <-channel
+	c, ok = <-channel
 	if !ok {
 		log.Critical("Cannot receive column names from channel")
 		return nil
 	}
 
-	r.columns = c
+	for i := range c {
+		if val, ok := c[i].(string); ok {
+			r.columns = append(r.columns, val)
+		} else {
+			r.columns = append(r.columns, "<unknown>")
+		}
+	}
 	return r
 }
 
@@ -92,14 +101,20 @@ func (r *Rows) Next(dest []driver.Value) (err error) {
 			continue
 		}
 
-		// TODO: make rowsChannel send virtualRows,
-		// so we have the type and don't blindy try to parse date here
-		if t, err := parser.ParseDate(string(v)); err == nil {
-			dest[i] = *t
-		} else {
-
-			dest[i] = []byte(v)
+		switch v.(type) {
+		case string:
+			val, _ := v.(string)
+			// TODO: make rowsChannel send virtualRows,
+			// so we have the type and don't blindy try to parse date here
+			if t, err := parser.ParseDate(val); err == nil {
+				dest[i] = *t
+			} else {
+				dest[i] = []byte(val)
+			}
+		default:
+			dest[i] = v
 		}
+
 	}
 
 	return nil

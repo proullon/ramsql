@@ -14,7 +14,7 @@ func TestBufferChannel(t *testing.T) {
 	engineChannel := make(chan message)
 	m := message{
 		Type:  rowHeaderMessage,
-		Value: []string{"foo", "bar"},
+		Value: []any{"foo", "bar"},
 	}
 
 	driverChannel := UnlimitedRowsChannel(engineChannel, m)
@@ -23,7 +23,7 @@ func TestBufferChannel(t *testing.T) {
 	for i := 0; i < NumberRows; i++ {
 		row := message{
 			Type:  rowValueMessage,
-			Value: []string{"row", fmt.Sprintf("%d", i)},
+			Value: []any{"row", fmt.Sprintf("%d", i)},
 		}
 		engineChannel <- row
 	}

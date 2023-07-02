@@ -27,9 +27,11 @@ type Decl struct {
 // Stringy prints the declaration tree in console
 func (d Decl) Stringy(depth int, printer func(fmt string, varargs ...any)) {
 	if printer == nil {
-		printer = func(format string, varargs ...any) {
-			fmt.Printf(format, varargs...)
-		}
+		/*
+			printer = func(format string, varargs ...any) {
+				fmt.Printf(format, varargs...)
+			}
+		*/
 	}
 
 	indent := ""

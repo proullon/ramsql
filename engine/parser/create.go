@@ -116,6 +116,7 @@ func (p *parser) parseIndex(tokens []Token) (*Decl, error) {
 	if err != nil {
 		return nil, p.syntaxError()
 	}
+	nameTable.Token = TableToken
 	indexDecl.Add(nameTable)
 
 	// Now we should found brackets

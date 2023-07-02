@@ -18,7 +18,7 @@ const (
 
 type message struct {
 	Type  string
-	Value []string
+	Value []any
 }
 
 // ChannelDriverConn implements DriverConn for channel backend
@@ -112,14 +112,22 @@ func (cec *ChannelEngineConn) ReadStatement() (string, error) {
 		return "", io.EOF
 	}
 
-	return message.Value[0], nil
+	if len(message.Value) == 0 {
+		return "", fmt.Errorf("incorrect statement")
+	}
+	stmt, ok := message.Value[0].(string)
+	if !ok {
+		return "", fmt.Errorf("incorrect statement type")
+	}
+
+	return stmt, nil
 }
 
 // WriteResult is used to answer to statements other than SELECT
 func (cec *ChannelEngineConn) WriteResult(lastInsertedID int64, rowsAffected int64) error {
 	m := message{
 		Type:  resultMessage,
-		Value: []string{fmt.Sprintf("%d %d", lastInsertedID, rowsAffected)},
+		Value: []any{lastInsertedID, rowsAffected},
 	}
 
 	cec.conn <- m
@@ -130,7 +138,7 @@ func (cec *ChannelEngineConn) WriteResult(lastInsertedID int64, rowsAffected int
 func (cec *ChannelEngineConn) WriteError(err error) error {
 	m := message{
 		Type:  errMessage,
-		Value: []string{err.Error()},
+		Value: []any{err.Error()},
 	}
 
 	cec.conn <- m
@@ -140,9 +148,15 @@ func (cec *ChannelEngineConn) WriteError(err error) error {
 
 // WriteRowHeader indicates that rows are coming next
 func (cec *ChannelEngineConn) WriteRowHeader(header []string) error {
+	var v []any
+
+	for _, h := range header {
+		v = append(v, h)
+	}
+
 	m := message{
 		Type:  rowHeaderMessage,
-		Value: header,
+		Value: v,
 	}
 
 	cec.conn <- m
@@ -151,7 +165,7 @@ func (cec *ChannelEngineConn) WriteRowHeader(header []string) error {
 }
 
 // WriteRow must be called after WriteRowHeader and before WriteRowEnd
-func (cec *ChannelEngineConn) WriteRow(row []string) error {
+func (cec *ChannelEngineConn) WriteRow(row []any) error {
 	m := message{
 		Type:  rowValueMessage,
 		Value: row,
@@ -179,7 +193,7 @@ func (cdc *ChannelDriverConn) WriteQuery(query string) error {
 
 	m := message{
 		Type:  queryMessage,
-		Value: []string{query},
+		Value: []any{query},
 	}
 
 	cdc.conn <- m
@@ -194,7 +208,7 @@ func (cdc *ChannelDriverConn) WriteExec(statement string) error {
 
 	m := message{
 		Type:  execMessage,
-		Value: []string{statement},
+		Value: []any{statement},
 	}
 
 	cdc.conn <- m
@@ -210,24 +224,29 @@ func (cdc *ChannelDriverConn) ReadResult() (lastInsertedID int64, rowsAffected i
 	m := <-cdc.conn
 	if m.Type != resultMessage {
 		if m.Type == errMessage {
-			return 0, 0, errors.New(m.Value[0])
+			return 0, 0, getErrorFromValue(m)
 		}
 		return 0, 0, fmt.Errorf("Protocol error: ReadResult received %v", m)
 	}
 
-	_, err = fmt.Sscanf(m.Value[0], "%d %d", &lastInsertedID, &rowsAffected)
-	return lastInsertedID, rowsAffected, err
+	if val, ok := m.Value[0].(int64); ok {
+		lastInsertedID = val
+	}
+	if val, ok := m.Value[1].(int64); ok {
+		rowsAffected = val
+	}
+	return lastInsertedID, rowsAffected, nil
 }
 
 // ReadRows when Query has been used
-func (cdc *ChannelDriverConn) ReadRows() (chan []string, error) {
+func (cdc *ChannelDriverConn) ReadRows() (chan []any, error) {
 	if cdc.conn == nil {
 		return nil, fmt.Errorf("connection closed")
 	}
 
 	m := <-cdc.conn
 	if m.Type == errMessage {
-		return nil, errors.New(m.Value[0])
+		return nil, getErrorFromValue(m)
 	}
 
 	if m.Type != rowHeaderMessage {
@@ -235,4 +254,24 @@ func (cdc *ChannelDriverConn) ReadRows() (chan []string, error) {
 	}
 
 	return UnlimitedRowsChannel(cdc.conn, m), nil
+}
+
+func getErrorFromValue(m message) error {
+	if len(m.Value) == 0 {
+		return errors.New("unknown error")
+	}
+
+	switch m.Value[0].(type) {
+	case string:
+		msg, _ := m.Value[0].(string)
+		return errors.New(msg)
+	case []byte:
+		msg, _ := m.Value[0].([]byte)
+		return errors.New(string(msg))
+	case error:
+		e, _ := m.Value[0].(error)
+		return e
+	default:
+		return errors.New("unknown error")
+	}
 }
