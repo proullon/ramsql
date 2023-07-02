@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -13,9 +12,9 @@ import (
 
 func attributeExistsInTable(e *Engine, attr, schema, table string) error {
 
-	r := e.relation(schema, table)
-	if r == nil {
-		return fmt.Errorf("table \"%s\" does not exist", table)
+	r, err := e.relation(schema, table)
+	if err != nil {
+		return err
 	}
 
 	found := false
@@ -590,9 +589,9 @@ func getSelectedAttribute(e *Engine, attr *parser.Decl, tables []*Table) ([]Attr
 	switch attr.Token {
 	case parser.StarToken:
 		for _, table := range tables {
-			r := e.relation(table.schema, table.name)
-			if r == nil {
-				return nil, errors.New("Relation " + table.name + " not found")
+			r, err := e.relation(table.schema, table.name)
+			if err != nil {
+				return nil, err
 			}
 			attributes = append(attributes, r.table.attributes...)
 		}

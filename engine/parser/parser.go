@@ -28,7 +28,7 @@ type Decl struct {
 func (d Decl) Stringy(depth int, printer func(fmt string, varargs ...any)) {
 	if printer == nil {
 		printer = func(format string, varargs ...any) {
-			//fmt.Printf(format, varargs...)
+			fmt.Printf(format, varargs...)
 		}
 	}
 

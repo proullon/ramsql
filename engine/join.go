@@ -92,9 +92,9 @@ func (i *inner) Evaluate(row virtualRow, r *Relation, index int) (bool, error) {
 func generateVirtualRows(e *Engine, attr []Attribute, conn protocol.EngineConn, schema, t1Name string, joinPredicates []joiner, selectPredicates []PredicateLinker, functors []selectFunctor) error {
 
 	// get t1 and lock it
-	t1 := e.relation(schema, t1Name)
-	if t1 == nil {
-		return fmt.Errorf("table %s not found", t1Name)
+	t1, err := e.relation(schema, t1Name)
+	if err != nil {
+		return err
 	}
 	t1.RLock()
 	defer t1.RUnlock()
@@ -102,9 +102,9 @@ func generateVirtualRows(e *Engine, attr []Attribute, conn protocol.EngineConn, 
 	// all joined tables in a map of relation
 	relations := make(map[string]*Relation)
 	for _, j := range joinPredicates {
-		r := e.relation(schema, j.On())
-		if r == nil {
-			return fmt.Errorf("table %s not found", j.On())
+		r, err := e.relation(schema, j.On())
+		if err != nil {
+			return err
 		}
 		r.RLock()
 		defer r.RUnlock()

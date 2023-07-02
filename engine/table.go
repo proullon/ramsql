@@ -80,8 +80,8 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 	}
 
 	// Check if table does not exists
-	r := e.relation(schema, tableDecl.Decl[i].Lexeme)
-	if r != nil && !ifNotExists {
+	_, err := e.relation(schema, tableDecl.Decl[i].Lexeme)
+	if err == nil && !ifNotExists {
 		return fmt.Errorf("table %s already exists", tableDecl.Decl[i].Lexeme)
 	}
 
@@ -103,7 +103,11 @@ func createTableExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.Engine
 		i++
 	}
 
-	e.schema(schema).add(t.name, NewRelation(t))
+	s, err := e.schema(schema)
+	if err != nil {
+		return err
+	}
+	s.add(t.name, NewRelation(t))
 	conn.WriteResult(0, 1)
 	return nil
 }

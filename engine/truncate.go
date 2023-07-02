@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"fmt"
-
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
 )
@@ -24,9 +22,9 @@ func truncateTable(e *Engine, table *Table, conn protocol.EngineConn) error {
 	var rowsDeleted int64
 
 	// get relations and write lock them
-	r := e.relation(table.schema, table.name)
-	if r == nil {
-		return fmt.Errorf("Table %v not found", table.name)
+	r, err := e.relation(table.schema, table.name)
+	if err != nil {
+		return err
 	}
 	r.Lock()
 	defer r.Unlock()
