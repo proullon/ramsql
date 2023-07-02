@@ -81,20 +81,30 @@ func (e *Engine) Stop() {
 	}()
 }
 
-func (e *Engine) relation(schema, name string) *Relation {
+func (e *Engine) relation(schema, name string) (*Relation, error) {
 	if schema == "" {
 		schema = "public"
 	}
 
-	return e.schemas[schema].relation(name)
+	s, err := e.schema(schema)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.relation(name)
 }
 
-func (e *Engine) schema(name string) *Schema {
+func (e *Engine) schema(name string) (*Schema, error) {
 	if name == "" {
 		name = "public"
 	}
 
-	return e.schemas[name]
+	s, ok := e.schemas[name]
+	if !ok {
+		return nil, fmt.Errorf("schema '%s' does not exist", name)
+	}
+
+	return s, nil
 }
 
 func (e *Engine) dropRelation(schema, name string) {

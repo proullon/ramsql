@@ -34,9 +34,9 @@ func dropTable(e *Engine, dropDecl *parser.Decl, conn protocol.EngineConn) error
 		schema = d.Lexeme
 	}
 
-	r := e.relation(schema, tableDecl.Lexeme)
-	if r == nil {
-		return fmt.Errorf("relation '%s' not found", tableDecl.Lexeme)
+	_, err := e.relation(schema, tableDecl.Lexeme)
+	if err != nil {
+		return err
 	}
 
 	e.dropRelation(schema, tableDecl.Lexeme)

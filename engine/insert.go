@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -99,9 +98,9 @@ func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, e
 		table.Decl = table.Decl[1:]
 	}
 
-	r := e.relation(schema, table.Lexeme)
-	if r == nil {
-		return nil, nil, errors.New("table " + intoDecl.Decl[0].Lexeme + " does not exist")
+	r, err := e.relation(schema, table.Lexeme)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	for i := range intoDecl.Decl[0].Decl {

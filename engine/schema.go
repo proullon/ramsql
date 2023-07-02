@@ -21,9 +21,13 @@ func NewSchema(name string) *Schema {
 	return s
 }
 
-func (s *Schema) relation(name string) *Relation {
-	r := s.relations[name]
-	return r
+func (s *Schema) relation(name string) (*Relation, error) {
+	r, ok := s.relations[name]
+	if !ok {
+		return nil, fmt.Errorf("table '%s'.'%s' does not exist")
+	}
+
+	return r, nil
 }
 
 func (s *Schema) add(name string, r *Relation) {
@@ -49,8 +53,8 @@ func createSchemaExecutor(e *Engine, schemaDecl *parser.Decl, conn protocol.Engi
 	}
 
 	// Check if schema does not exists
-	r := e.schema(name)
-	if r != nil && !ifNotExists {
+	_, err := e.schema(name)
+	if err == nil && !ifNotExists {
 		return fmt.Errorf("schema %s already exists", name)
 	}
 
