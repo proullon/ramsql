@@ -254,6 +254,8 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 		// Column constraints can be listed in any order.
 		for p.isNot(BracketClosingToken, CommaToken) {
 			switch p.cur().Token {
+			case UnsignedToken:
+				p.consumeToken(UnsignedToken)
 			case UniqueToken: // UNIQUE
 				uniqueDecl, err := p.consumeToken(UniqueToken)
 				if err != nil {

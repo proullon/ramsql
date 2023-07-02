@@ -10,8 +10,9 @@ import (
 
 type Product struct {
 	gorm.Model
-	Code  string
-	Price uint
+	Code       string
+	Price      uint
+	TestBigint uint64 `gorm:"test_bigint;type:BIGINT UNSIGNED AUTO_INCREMENT"`
 }
 
 // From https://gorm.io/docs/connecting_to_the_database.html
