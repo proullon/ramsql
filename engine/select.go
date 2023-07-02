@@ -388,7 +388,7 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, schema, fromTableName string
 		break
 	}
 
-	p.LeftValue.lexeme = cond.Lexeme
+	p.LeftValue.lexeme = strings.ToLower(cond.Lexeme)
 
 	if err := attributeExistsInTable(e, p.LeftValue.lexeme, schema, fromTableName); err != nil {
 		return nil, err

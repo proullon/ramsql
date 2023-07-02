@@ -33,7 +33,7 @@ func parseAttribute(decl *parser.Decl) (Attribute, error) {
 	if decl.Token != parser.StringToken {
 		return attr, fmt.Errorf("engine: expected attribute name, got %v", decl.Token)
 	}
-	attr.name = decl.Lexeme
+	attr.name = strings.ToLower(decl.Lexeme)
 
 	// Attribute type
 	if len(decl.Decl) < 1 {
