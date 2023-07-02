@@ -59,6 +59,7 @@ const (
 	NotToken
 	ExistsToken
 	NullToken
+	UnsignedToken
 	AutoincrementToken
 	CountToken
 	SetToken
@@ -164,6 +165,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("exists", ExistsToken))
 	matchers = append(matchers, l.genericStringMatcher("null", NullToken))
 	matchers = append(matchers, l.MatchAutoincrementToken)
+	matchers = append(matchers, l.genericStringMatcher("unsigned", UnsignedToken))
 	matchers = append(matchers, l.genericStringMatcher("count", CountToken))
 	matchers = append(matchers, l.genericStringMatcher("set", SetToken))
 	matchers = append(matchers, l.genericStringMatcher("order", OrderToken))
