@@ -3,6 +3,7 @@ package agnostic
 import (
 	"fmt"
 	"hash/maphash"
+	"unsafe"
 )
 
 type Index interface {
@@ -16,7 +17,7 @@ type BTreeIndex struct {
 
 type HashIndex struct {
 	attrs []int
-	m     map[uint64]any
+	m     map[uint64]uintptr
 
 	maphash.Hash
 }
@@ -24,7 +25,7 @@ type HashIndex struct {
 func NewHashIndex(attrs []int) *HashIndex {
 	h := &HashIndex{
 		attrs: attrs,
-		m:     make(map[uint64]any),
+		m:     make(map[uint64]uintptr),
 	}
 	h.SetSeed(maphash.MakeSeed())
 	return h
@@ -36,11 +37,11 @@ func (h *HashIndex) Add(t *Tuple) {
 	}
 	sum := h.Sum64()
 	h.Reset()
-	h.m[sum] = t
+	h.m[sum] = uintptr(unsafe.Pointer(t))
 }
 
 func (h *HashIndex) Truncate() {
-	h.m = make(map[uint64]any)
+	h.m = make(map[uint64]uintptr)
 }
 
 func (h *HashIndex) CanUse() bool {

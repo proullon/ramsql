@@ -1,25 +1,25 @@
 package engine
 
+/*
 import (
 	"fmt"
 
 	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
 )
 
-func dropExecutor(e *Engine, dropDecl *parser.Decl, conn protocol.EngineConn) error {
+func dropExecutor(e *Engine, dropDecl *parser.Decl) error {
 
 	if _, ok := dropDecl.Has(parser.TableToken); ok {
-		return dropTable(e, dropDecl, conn)
+		return dropTable(e, dropDecl)
 	}
 	if _, ok := dropDecl.Has(parser.SchemaToken); ok {
-		return dropSchema(e, dropDecl, conn)
+		return dropSchema(e, dropDecl)
 	}
 
 	return fmt.Errorf("DROP not implemented")
 }
 
-func dropTable(e *Engine, dropDecl *parser.Decl, conn protocol.EngineConn) error {
+func dropTable(e *Engine, dropDecl *parser.Decl) error {
 	// Should have table token
 	if dropDecl.Decl == nil ||
 		len(dropDecl.Decl) != 1 ||
@@ -44,7 +44,7 @@ func dropTable(e *Engine, dropDecl *parser.Decl, conn protocol.EngineConn) error
 	return conn.WriteResult(0, 1)
 }
 
-func dropSchema(e *Engine, dropDecl *parser.Decl, conn protocol.EngineConn) error {
+func dropSchema(e *Engine, dropDecl *parser.Decl) error {
 	// Should have schema token
 	if dropDecl.Decl == nil ||
 		len(dropDecl.Decl) != 1 ||
@@ -61,3 +61,4 @@ func dropSchema(e *Engine, dropDecl *parser.Decl, conn protocol.EngineConn) erro
 
 	return conn.WriteResult(0, 1)
 }
+*/

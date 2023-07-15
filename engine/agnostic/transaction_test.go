@@ -273,7 +273,7 @@ func TestInsertPartial(t *testing.T) {
 
 	attrs := []Attribute{
 		NewAttribute("id", "BIGINT").WithAutoIncrement(),
-		NewAttribute("default_answer", "INT").WithDefault(42),
+		NewAttribute("default_answer", "INT").WithDefaultConst(42),
 		NewAttribute("foo", "JSON"),
 	}
 
@@ -331,5 +331,70 @@ func TestInsertPartial(t *testing.T) {
 	l = e.schemas[schema].relations[relation].rows.Len()
 	if l != 1 {
 		t.Fatalf("expected 1 rows in relation, got %d", l)
+	}
+}
+
+func TestIndexCreation(t *testing.T) {
+	e := NewEngine()
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	if len(e.schemas[DefaultSchema].relations) != 0 {
+		t.Fatalf("expected 0 relation in default schema, got %d", len(e.schemas[DefaultSchema].relations))
+	}
+
+	attrs := []Attribute{
+		NewAttribute("id", "BIGINT").WithAutoIncrement(),
+		NewAttribute("default_answer", "INT").WithDefaultConst(42),
+		NewAttribute("foo", "JSON").WithUnique(),
+	}
+
+	schema := DefaultSchema
+	relation := "myrel"
+
+	err = tx.CreateRelation(schema, relation, attrs, []string{"id"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	values := make(map[string]any)
+	values["foo"] = `{}`
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert values: %s", err)
+	}
+
+	values["foo"] = `{}`
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert values: %s", err)
+	}
+
+	values["foo"] = `{}`
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert values: %s", err)
+	}
+
+	changed, err := tx.Commit()
+	if err != nil {
+		t.Fatalf("cannot commit tx: %s", err)
+	}
+	if changed != 4 {
+		t.Fatalf("expected 4 change, got %d", changed)
+	}
+
+	l := e.schemas[schema].relations[relation].rows.Len()
+	if l != 3 {
+		t.Fatalf("expected 3 rows in relation, got %d", l)
+	}
+
+	l = len(e.schemas[schema].relations[relation].indexes)
+	if l != 2 {
+		t.Fatalf("expected 2 indexes for relation, got %d", l)
 	}
 }

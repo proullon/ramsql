@@ -1,10 +1,14 @@
 package agnostic
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
+
+type Defaulter func() any
 
 type ForeignKey struct {
 	schema    string
@@ -23,7 +27,7 @@ type Attribute struct {
 	name          string
 	typeName      string
 	typeInstance  reflect.Type
-	defaultValue  any
+	defaultValue  Defaulter
 	domain        Domain
 	autoIncrement bool
 	nextValue     uint64
@@ -47,8 +51,20 @@ func (a Attribute) WithAutoIncrement() Attribute {
 	return a
 }
 
-func (a Attribute) WithDefault(defaultValue any) Attribute {
-	a.defaultValue = reflect.ValueOf(defaultValue).Convert(a.typeInstance).Interface()
+func (a Attribute) WithDefaultConst(defaultValue any) Attribute {
+	a.defaultValue = func() any {
+		return reflect.ValueOf(defaultValue).Convert(a.typeInstance).Interface()
+	}
+	return a
+}
+
+func (a Attribute) WithDefault(defaultValue Defaulter) Attribute {
+	a.defaultValue = defaultValue
+	return a
+}
+
+func (a Attribute) WithUnique() Attribute {
+	a.unique = true
 	return a
 }
 
@@ -70,4 +86,67 @@ func typeInstanceFromName(name string) reflect.Type {
 		var v string
 		return reflect.TypeOf(v)
 	}
+}
+
+func ToInstance(value, typeName string) (any, error) {
+	switch strings.ToLower(typeName) {
+	case "serial", "bigserial":
+		var v uint64
+		v, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	case "int", "bigint":
+		v, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	case "bool", "boolean":
+		v, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	case "timestamp":
+		v, err := parseDate(value)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	case "json", "jsonb", "text", "varchar":
+		v := value
+		return v, nil
+	}
+
+	return nil, fmt.Errorf("cannot convert %v to instance of type %s", value, typeName)
+}
+
+func parseDate(data string) (time.Time, error) {
+	DateLongFormat := "2006-01-02 15:04:05.999999999 -0700 MST"
+	DateShortFormat := "2006-Jan-02"
+	DateNumberFormat := "2006-01-02"
+
+	t, err := time.Parse(DateLongFormat, data)
+	if err == nil {
+		return t, nil
+	}
+
+	t, err = time.Parse(time.RFC3339, data)
+	if err == nil {
+		return t, nil
+	}
+
+	t, err = time.Parse(DateShortFormat, data)
+	if err == nil {
+		return t, nil
+	}
+
+	t, err = time.Parse(DateNumberFormat, data)
+	if err == nil {
+		return t, nil
+	}
+
+	return time.Time{}, fmt.Errorf("cannot use '%s' as date", data)
 }

@@ -1,5 +1,6 @@
 package engine
 
+/*
 import (
 	"errors"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"github.com/proullon/ramsql/engine/agnostic"
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
 )
 
 type executor func(*Engine, *parser.Decl, protocol.EngineConn) error
@@ -78,6 +78,7 @@ func (e *Engine) Stop() {
 		e.stop = nil
 	}()
 }
+*/
 
 /*
 func (e *Engine) Commit(t *Transaction) error {
@@ -90,6 +91,7 @@ func (e *Engine) Rollback(t *Transaction) {
 }
 */
 
+/*
 func (e *Engine) relation(schema, name string) (*Relation, error) {
 	if schema == "" {
 		schema = "public"
@@ -177,7 +179,7 @@ func (e *Engine) handleConnection(conn protocol.EngineConn) {
 			continue
 		}
 
-		err = e.executeQueries(instructions, conn)
+		err = e.executeQueries(instructions)
 		if err != nil {
 			conn.WriteError(err)
 			continue
@@ -185,7 +187,7 @@ func (e *Engine) handleConnection(conn protocol.EngineConn) {
 	}
 }
 
-func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol.EngineConn) (err error) {
+func (e *Engine) executeQueries(instructions []parser.Instruction) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("fatal error: %s", r)
@@ -194,7 +196,7 @@ func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol
 	}()
 
 	for _, i := range instructions {
-		err = e.executeQuery(i, conn)
+		err = e.executeQuery(i)
 		if err != nil {
 			return err
 		}
@@ -203,34 +205,33 @@ func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol
 	return nil
 }
 
-func (e *Engine) executeQuery(i parser.Instruction, conn protocol.EngineConn) error {
-	/*
+func (e *Engine) executeQuery(i parser.Instruction) error {
 		i.Decls[0].Stringy(0,
 			func(format string, varargs ...any) {
 				fmt.Printf(format, varargs...)
 			})
-	*/
 
 	if e.opsExecutors[i.Decls[0].Token] != nil {
-		return e.opsExecutors[i.Decls[0].Token](e, i.Decls[0], conn)
+		return e.opsExecutors[i.Decls[0].Token](e, i.Decls[0])
 	}
 
 	return errors.New("Not Implemented")
 }
 
-func createExecutor(e *Engine, createDecl *parser.Decl, conn protocol.EngineConn) error {
+func createExecutor(e *Engine, createDecl *parser.Decl) error {
 
 	if len(createDecl.Decl) == 0 {
 		return errors.New("Parsing failed, no declaration after CREATE")
 	}
 
 	if e.opsExecutors[createDecl.Decl[0].Token] != nil {
-		return e.opsExecutors[createDecl.Decl[0].Token](e, createDecl.Decl[0], conn)
+		return e.opsExecutors[createDecl.Decl[0].Token](e, createDecl.Decl[0])
 	}
 
 	return errors.New("Parsing failed, unknown token " + createDecl.Decl[0].Lexeme)
 }
 
-func grantExecutor(e *Engine, decl *parser.Decl, conn protocol.EngineConn) error {
+func grantExecutor(e *Engine, decl *parser.Decl) error {
 	return conn.WriteResult(0, 0)
 }
+*/
