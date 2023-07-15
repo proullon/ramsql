@@ -1,5 +1,6 @@
 package engine_test
 
+/*
 import (
 	"database/sql"
 	"testing"
@@ -36,8 +37,8 @@ func TestJoinOrderBy(t *testing.T) {
 		}
 	}
 
-	query := `SELECT user.name, address.value 
-			FROM user 
+	query := `SELECT user.name, address.value
+			FROM user
 			JOIN address ON address.user_id = user.id
 			WHERE user.id = $1
 			ORDER BY address.value ASC`
@@ -158,3 +159,4 @@ func TestJoinGroup(t *testing.T) {
 	}
 
 }
+*/

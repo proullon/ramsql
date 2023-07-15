@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/proullon/ramsql/engine/agnostic"
 	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 	"github.com/proullon/ramsql/engine/protocol"
@@ -16,14 +17,13 @@ type executor func(*Engine, *parser.Decl, protocol.EngineConn) error
 // Engine is the root struct of RamSQL server
 type Engine struct {
 	endpoint     protocol.EngineEndpoint
-	schemas      map[string]*Schema
 	opsExecutors map[int]executor
 
 	// Any value send to this channel (through Engine.stop)
 	// Will stop the listening loop
 	stop chan bool
 
-	sync.Mutex
+	agnostic.Engine
 }
 
 // New initialize a new RamSQL server
@@ -31,6 +31,7 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 
 	e = &Engine{
 		endpoint: endpoint,
+		agnostic.New(),
 	}
 
 	e.stop = make(chan bool)
@@ -51,10 +52,6 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 		//		parser.DropToken:     dropExecutor,
 		//		parser.GrantToken:    grantExecutor,
 	}
-
-	// create public schema
-	e.schemas = make(map[string]*Schema)
-	e.schemas["public"] = NewSchema("public")
 
 	err = e.Start()
 	if err != nil {
@@ -82,18 +79,16 @@ func (e *Engine) Stop() {
 	}()
 }
 
-func (e *Engine) Begin() (Transaction, error) {
-	t, err := NewTransaction()
-	return t, err
+/*
+func (e *Engine) Commit(t *Transaction) error {
+	_, err := t.Commit()
+	return err
 }
 
-func (e *Engine) Commit(t Transaction) error {
-	return t.Commit()
-}
-
-func (e *Engine) Rollback(t Transaction) {
+func (e *Engine) Rollback(t *Transaction) {
 	t.Rollback()
 }
+*/
 
 func (e *Engine) relation(schema, name string) (*Relation, error) {
 	if schema == "" {
@@ -105,20 +100,7 @@ func (e *Engine) relation(schema, name string) (*Relation, error) {
 		return nil, err
 	}
 
-	return s.relation(name)
-}
-
-func (e *Engine) schema(name string) (*Schema, error) {
-	if name == "" {
-		name = "public"
-	}
-
-	s, ok := e.schemas[name]
-	if !ok {
-		return nil, fmt.Errorf("schema '%s' does not exist", name)
-	}
-
-	return s, nil
+	return s.Relation(name)
 }
 
 func (e *Engine) dropRelation(schema, name string) {
@@ -127,7 +109,7 @@ func (e *Engine) dropRelation(schema, name string) {
 	}
 
 	e.Lock()
-	e.schemas[schema].drop(name)
+	e.schemas[schema].Remove(name)
 	e.Unlock()
 }
 

@@ -7,7 +7,31 @@ import (
 	"github.com/proullon/ramsql/engine/parser"
 )
 
-func TestCreateTable(t *testing.T) {
+func TestCreateRelation(t *testing.T) {
+	e := testEngine(t)
+	e.Start()
+	defer e.Stop()
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	relationName := "user"
+	schemaName := "public"
+	err = tx.CreateRelation(schemaName, relationName)
+	if err != nil {
+		t.Fatalf("cannot create table '%s'.'%s': %s", schemaName, relationName, err)
+	}
+
+	_, err = tx.Commit()
+	if err != nil {
+		t.Fatalf("cannot commit tx: %s", err)
+	}
+}
+
+func TestCreateTableSQL(t *testing.T) {
 	log.UseTestLogger(t)
 	query := `CREATE TABLE user
 	(

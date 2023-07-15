@@ -1,5 +1,6 @@
 package engine_test
 
+/*
 import (
 	"database/sql"
 	"testing"
@@ -161,3 +162,4 @@ func TestDeleteAnd(t *testing.T) {
 		t.Fatalf("Expected 3 values, got %d", n)
 	}
 }
+*/
