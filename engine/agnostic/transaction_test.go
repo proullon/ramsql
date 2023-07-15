@@ -58,7 +58,7 @@ func TestCreateRelation(t *testing.T) {
 		},
 	}
 
-	err = tx.CreateRelation("", "myrel", attrs)
+	err = tx.CreateRelation("", "myrel", attrs, nil)
 	if err != nil {
 		t.Fatalf("cannot create table: %s", err)
 	}
@@ -102,7 +102,7 @@ func TestDropRelation(t *testing.T) {
 		},
 	}
 
-	err = tx.CreateRelation("", "myrel", attrs)
+	err = tx.CreateRelation("", "myrel", attrs, nil)
 	if err != nil {
 		t.Fatalf("cannot create relation: %s", err)
 	}
@@ -146,7 +146,7 @@ func TestInsertTotal(t *testing.T) {
 	schema := DefaultSchema
 	relation := "myrel"
 
-	err = tx.CreateRelation(schema, relation, attrs)
+	err = tx.CreateRelation(schema, relation, attrs, nil)
 	if err != nil {
 		t.Fatalf("cannot create relation: %s", err)
 	}
@@ -226,7 +226,7 @@ func TestInsertRollback(t *testing.T) {
 	schema := DefaultSchema
 	relation := "myrel"
 
-	err = tx.CreateRelation(schema, relation, attrs)
+	err = tx.CreateRelation(schema, relation, attrs, nil)
 	if err != nil {
 		t.Fatalf("cannot create relation: %s", err)
 	}
@@ -280,7 +280,7 @@ func TestInsertPartial(t *testing.T) {
 	schema := DefaultSchema
 	relation := "myrel"
 
-	err = tx.CreateRelation(schema, relation, attrs)
+	err = tx.CreateRelation(schema, relation, attrs, nil)
 	if err != nil {
 		t.Fatalf("cannot create relation: %s", err)
 	}

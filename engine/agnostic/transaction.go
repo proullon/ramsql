@@ -76,12 +76,12 @@ func (t Transaction) Error() error {
 	return t.err
 }
 
-func (t *Transaction) CreateRelation(schemaName, relName string, attributes []Attribute) error {
+func (t *Transaction) CreateRelation(schemaName, relName string, attributes []Attribute, pk []string) error {
 	if err := t.aborted(); err != nil {
 		return err
 	}
 
-	s, r, err := t.e.createRelation(schemaName, relName, attributes)
+	s, r, err := t.e.createRelation(schemaName, relName, attributes, pk)
 	if err != nil {
 		return t.abort(err)
 	}
