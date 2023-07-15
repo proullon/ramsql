@@ -40,14 +40,15 @@ func (s *Schema) Add(name string, r *Relation) {
 	s.relations[name] = r
 }
 
-func (s *Schema) Remove(name string) {
+func (s *Schema) Remove(name string) (*Relation, error) {
 	s.Lock()
 	defer s.Unlock()
 
-	_, ok := s.relations[name]
+	r, ok := s.relations[name]
 	if !ok {
-		return
+		return nil, fmt.Errorf("relation '%s'.'%s' does not exist", s.name, name)
 	}
 
 	delete(s.relations, name)
+	return r, nil
 }

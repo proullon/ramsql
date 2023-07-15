@@ -74,12 +74,12 @@ func (t Transaction) Error() error {
 	return t.err
 }
 
-func (t *Transaction) CreateRelation(schemaName, tableName string) error {
+func (t *Transaction) CreateRelation(schemaName, relName string) error {
 	if err := t.aborted(); err != nil {
 		return err
 	}
 
-	s, r, err := t.e.createRelation(schemaName, tableName)
+	s, r, err := t.e.createRelation(schemaName, relName)
 	if err != nil {
 		return t.abort(err)
 	}
@@ -93,6 +93,26 @@ func (t *Transaction) CreateRelation(schemaName, tableName string) error {
 
 	r.Lock()
 	t.locks = append(t.locks, *r)
+	return nil
+}
+
+func (t *Transaction) DropRelation(schemaName, relName string) error {
+	if err := t.aborted(); err != nil {
+		return err
+	}
+
+	s, r, err := t.e.dropRelation(schemaName, relName)
+	if err != nil {
+		return t.abort(err)
+	}
+
+	c := RelationChange{
+		schema:  s,
+		current: nil,
+		old:     r,
+	}
+	t.changes.PushBack(c)
+
 	return nil
 }
 
