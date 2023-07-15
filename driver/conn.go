@@ -2,28 +2,29 @@ package ramsql
 
 import (
 	"database/sql/driver"
-	"sync"
-
-	"github.com/proullon/ramsql/engine/protocol"
 )
 
 // Conn implements sql/driver Conn interface
+//
+// All Conn implementations should implement the following interaces: Pinger, SessionResetter, and Validator.
+//
+// If a Conn does not implement QueryerContext, the sql package's DB.Query will fall back to Queryer;
+// if the Conn does not implement Queryer either, DB.Query will first prepare a query, execute the statement, and then close the statement.
+//
+// The returned connection is only used by one goroutine at a time.
+//
+// https://pkg.go.dev/database/sql/driver#Pinger
+// https://pkg.go.dev/database/sql/driver#SessionResetter
+// https://pkg.go.dev/database/sql/driver#Validator
+// https://pkg.go.dev/database/sql/driver#QueryerContext
 type Conn struct {
-	// Mutex is locked when a Statement is created
-	// then released on Statement.Exec or Statement.Query
-	mutex sync.Mutex
-
-	// Socket is the network connection to RamSQL engine
-	conn protocol.DriverConn
-	// socket net.Conn
-
-	// This conn belongs to this server
+	// this conn belongs to this server
 	parent *Server
 }
 
-func newConn(conn protocol.DriverConn, parent *Server) driver.Conn {
+func newConn(parent *Server) driver.Conn {
 	parent.openingConn()
-	return &Conn{conn: conn, parent: parent}
+	return &Conn{parent: parent}
 }
 
 // Prepare returns a prepared statement, bound to this connection.
@@ -43,8 +44,6 @@ func (c *Conn) Prepare(query string) (driver.Stmt, error) {
 // idle connections, it shouldn't be necessary for drivers to
 // do their own connection caching.
 func (c *Conn) Close() error {
-	c.conn.Close()
-
 	if c.parent != nil {
 		c.parent.closingConn()
 	}

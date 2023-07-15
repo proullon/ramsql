@@ -1,8 +1,8 @@
 package engine
 
+/*
 import (
 	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/protocol"
 )
 
 type distinct struct {
@@ -113,3 +113,4 @@ func (s seen) exists(r []any) bool {
 	// does not exists, but we want to populate the tree fully
 	return s[col].exists(r[1:])
 }
+*/

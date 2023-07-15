@@ -1,13 +1,13 @@
 package engine
 
+/*
 import (
 	"fmt"
 
 	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
 )
 
-func ifExecutor(e *Engine, ifDecl *parser.Decl, conn protocol.EngineConn) error {
+func ifExecutor(e *Engine, ifDecl *parser.Decl) error {
 
 	if len(ifDecl.Decl) == 0 {
 		return fmt.Errorf("malformed condition")
@@ -20,10 +20,11 @@ func ifExecutor(e *Engine, ifDecl *parser.Decl, conn protocol.EngineConn) error 
 	return fmt.Errorf("error near %v, unknown keyword", ifDecl.Decl[0].Lexeme)
 }
 
-func notExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.EngineConn) error {
+func notExecutor(e *Engine, tableDecl *parser.Decl) error {
 	return nil
 }
 
-func existsExecutor(e *Engine, tableDecl *parser.Decl, conn protocol.EngineConn) error {
+func existsExecutor(e *Engine, tableDecl *parser.Decl) error {
 	return nil
 }
+*/

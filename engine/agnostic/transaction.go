@@ -43,6 +43,7 @@ func (t *Transaction) Commit() (int, error) {
 	}
 
 	t.unlock()
+	t.err = fmt.Errorf("transaction committed")
 	return changed, nil
 }
 
@@ -150,7 +151,7 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 		val, specified := values[attr.name]
 		if !specified {
 			if attr.defaultValue != nil {
-				tuple.Append(attr.defaultValue)
+				tuple.Append(attr.defaultValue())
 				continue
 			}
 			if attr.autoIncrement {
@@ -221,7 +222,7 @@ func (t *Transaction) unlock() {
 	for _, r := range t.locks {
 		r.Unlock()
 	}
-	t.locks = nil
+	t.locks = make(map[string]*Relation)
 }
 
 func (t *Transaction) aborted() error {

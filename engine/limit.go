@@ -1,8 +1,8 @@
 package engine
 
+/*
 import (
 	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/protocol"
 )
 
 type limit struct {
@@ -100,3 +100,4 @@ func (l *offset) WriteRow(row []any) error {
 func (l *offset) WriteRowEnd() error {
 	return l.realConn.WriteRowEnd()
 }
+*/

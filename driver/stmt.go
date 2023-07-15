@@ -45,7 +45,6 @@ func prepareStatement(c *Conn, query string) *Stmt {
 		numInput: numInput,
 	}
 
-	stmt.conn.mutex.Lock()
 	return stmt
 }
 
@@ -79,7 +78,6 @@ func (s *Stmt) Exec(args []driver.Value) (r driver.Result, err error) {
 			return
 		}
 	}()
-	defer s.conn.mutex.Unlock()
 
 	if s.query == "" {
 		return nil, fmt.Errorf("empty statement")
@@ -92,17 +90,21 @@ func (s *Stmt) Exec(args []driver.Value) (r driver.Result, err error) {
 	log.Info("Exec <%s>\n", finalQuery)
 
 	// Send query to server
-	err = s.conn.conn.WriteExec(finalQuery)
-	if err != nil {
-		log.Warning("Exec: Cannot send query to server: %s", err)
-		return nil, fmt.Errorf("Cannot send query to server: %s", err)
-	}
+	/*
+		err = s.conn.conn.WriteExec(finalQuery)
+		if err != nil {
+			log.Warning("Exec: Cannot send query to server: %s", err)
+			return nil, fmt.Errorf("Cannot send query to server: %s", err)
+		}
 
-	// Get answer from server
-	lastInsertedID, rowsAffected, err := s.conn.conn.ReadResult()
-	if err != nil {
-		return nil, err
-	}
+
+		// Get answer from server
+		lastInsertedID, rowsAffected, err := s.conn.conn.ReadResult()
+		if err != nil {
+			return nil, err
+			}
+	*/
+	var lastInsertedID, rowsAffected int64
 
 	// Create a driver.Result
 	return newResult(lastInsertedID, rowsAffected), nil
@@ -117,26 +119,28 @@ func (s *Stmt) Query(args []driver.Value) (r driver.Rows, err error) {
 			return
 		}
 	}()
-	defer s.conn.mutex.Unlock()
 
 	if s.query == "" {
 		return nil, fmt.Errorf("empty statement")
 	}
 
-	finalQuery := replaceArguments(s.query, args)
-	log.Info("Query < %s >\n", finalQuery)
-	err = s.conn.conn.WriteQuery(finalQuery)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		finalQuery := replaceArguments(s.query, args)
+		log.Info("Query < %s >\n", finalQuery)
+		err = s.conn.conn.WriteQuery(finalQuery)
+		if err != nil {
+			return nil, err
+		}
 
-	rowsChannel, err := s.conn.conn.ReadRows()
-	if err != nil {
-		return nil, err
-	}
+		rowsChannel, err := s.conn.conn.ReadRows()
+		if err != nil {
+			return nil, err
+		}
 
-	r = newRows(rowsChannel)
-	return r, nil
+		r = newRows(rowsChannel)
+		return r, nil
+	*/
+	return nil, fmt.Errorf("not implemented")
 }
 
 // replace $* by arguments in query string
