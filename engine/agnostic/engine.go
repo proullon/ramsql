@@ -47,6 +47,21 @@ func (e *Engine) createRelation(schema, relation string) (*Schema, *Relation, er
 	return s, r, nil
 }
 
+func (e *Engine) dropRelation(schema, relation string) (*Schema, *Relation, error) {
+
+	s, err := e.schema(schema)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r, err := s.Remove(relation)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return s, r, nil
+}
+
 func (e *Engine) schema(name string) (*Schema, error) {
 	if name == "" {
 		name = DefaultSchema
