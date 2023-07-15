@@ -1,10 +1,11 @@
 package engine
 
 import (
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+// "github.com/proullon/ramsql/engine/parser"
+// "github.com/proullon/ramsql/engine/protocol"
 )
 
+/*
 func truncateExecutor(e *Engine, trDecl *parser.Decl, conn protocol.EngineConn) error {
 	var schema string
 
@@ -36,3 +37,4 @@ func truncateTable(e *Engine, table *Table, conn protocol.EngineConn) error {
 
 	return conn.WriteResult(0, rowsDeleted)
 }
+*/

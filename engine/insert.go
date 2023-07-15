@@ -1,14 +1,14 @@
 package engine
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
-	"time"
+//"fmt"
+//"strconv"
+//"strings"
+//"time"
 
-	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+// "github.com/proullon/ramsql/engine/log"
+// "github.com/proullon/ramsql/engine/parser"
+// "github.com/proullon/ramsql/engine/protocol"
 )
 
 /*
@@ -27,6 +27,7 @@ import (
 	|-> RETURNING
 	        |-> email
 */
+/*
 func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.EngineConn) error {
 	// Get table and concerned attributes and write lock it
 	intoDecl := insertDecl.Decl[0]
@@ -94,6 +95,7 @@ func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.E
 	conn.WriteResult(0, (int64)(len(tuples)))
 	return nil
 }
+*/
 
 /*
 |-> insert (18)
@@ -106,6 +108,7 @@ func insertIntoTableExecutor(e *Engine, insertDecl *parser.Decl, conn protocol.E
 	    |-> ( (3)
 	        |-> yep (68)
 */
+/*
 func getRelation(e *Engine, intoDecl *parser.Decl) (*Relation, []*parser.Decl, error) {
 	var schema string
 
@@ -220,3 +223,4 @@ func insert(r *Relation, attributes []*parser.Decl, values []*parser.Decl, retur
 
 	return t, nil
 }
+*/

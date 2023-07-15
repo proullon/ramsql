@@ -1,14 +1,15 @@
 package engine
 
 import (
-	"fmt"
-	"strings"
+//"fmt"
+//"strings"
 
-	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+// "github.com/proullon/ramsql/engine/log"
+// "github.com/proullon/ramsql/engine/parser"
+// "github.com/proullon/ramsql/engine/protocol"
 )
 
+/*
 // virtualRow is the resultset after FROM and JOIN transformations
 // The key of the map is the lexeme (table.attribute) of the value (i.e: user.name)
 type virtualRow map[string]Value
@@ -225,6 +226,7 @@ func join(row virtualRow, relations map[string]*Relation, predicates []joiner, p
 	    |-> id
 	        |-> project
 */
+/*
 func joinExecutor(decl *parser.Decl) (joiner, error) {
 
 	j := &inner{}
@@ -256,3 +258,4 @@ func joinExecutor(decl *parser.Decl) (joiner, error) {
 	log.Debug("JOIN %s ON %s = %s !", j.table, j.t1Value.table+"."+j.t1Value.lexeme, j.t2Value.table+"."+j.t2Value.lexeme)
 	return j, nil
 }
+*/

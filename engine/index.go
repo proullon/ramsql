@@ -1,10 +1,11 @@
 package engine
 
 import (
-	"fmt"
+//"fmt"
+//"unsafe"
 
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+// "github.com/proullon/ramsql/engine/parser"
+// "github.com/proullon/ramsql/engine/protocol"
 )
 
 type Index interface {
@@ -20,6 +21,7 @@ func NewIndex() *Index {
 	return nil
 }
 
+/*
 func createIndexExecutor(e *Engine, indexDecl *parser.Decl, conn protocol.EngineConn) error {
 	var i int
 	var schema, relation, index string
@@ -52,30 +54,18 @@ func createIndexExecutor(e *Engine, indexDecl *parser.Decl, conn protocol.Engine
 		i++
 	}
 
+	var test uintptr
+	var t2 *Table
+
+	_ = t2
+
+	test = 203948
+	t2 = (*Table)(unsafe.Pointer(test))
+
 	_ = schema
 	_ = relation
 	_ = newIndex
-	/*
-		var attrs []Attribute
-		// Fetch attributes
-		for i < len(indexDecl.Decl) {
-			attr, err := parseAttribute(indexDecl.Decl[i])
-			if err != nil {
-				return err
-			}
-			attrs = append(attrs, attr)
-
-			i++
-		}
-
-		r, err := e.relation(schema, relation)
-		if err != nil {
-			return err
-		}
-
-		_ = newIndex
-		_ = r
-	*/
 	conn.WriteResult(0, 1)
 	return nil
 }
+*/

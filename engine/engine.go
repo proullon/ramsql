@@ -36,27 +36,27 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 	e.stop = make(chan bool)
 
 	e.opsExecutors = map[int]executor{
-		parser.CreateToken:   createExecutor,
-		parser.TableToken:    createTableExecutor,
-		parser.SchemaToken:   createSchemaExecutor,
-		parser.IndexToken:    createIndexExecutor,
-		parser.SelectToken:   selectExecutor,
-		parser.InsertToken:   insertIntoTableExecutor,
-		parser.DeleteToken:   deleteExecutor,
-		parser.UpdateToken:   updateExecutor,
-		parser.IfToken:       ifExecutor,
-		parser.NotToken:      notExecutor,
-		parser.ExistsToken:   existsExecutor,
-		parser.TruncateToken: truncateExecutor,
-		parser.DropToken:     dropExecutor,
-		parser.GrantToken:    grantExecutor,
+		//		parser.CreateToken:   createExecutor,
+		//		parser.TableToken:    createTableExecutor,
+		//		parser.SchemaToken:   createSchemaExecutor,
+		//		parser.IndexToken:    createIndexExecutor,
+		//		parser.SelectToken:   selectExecutor,
+		//		parser.InsertToken:   insertIntoTableExecutor,
+		//		parser.DeleteToken:   deleteExecutor,
+		//		parser.UpdateToken:   updateExecutor,
+		//		parser.IfToken:       ifExecutor,
+		//		parser.NotToken:      notExecutor,
+		//		parser.ExistsToken:   existsExecutor,
+		//		parser.TruncateToken: truncateExecutor,
+		//		parser.DropToken:     dropExecutor,
+		//		parser.GrantToken:    grantExecutor,
 	}
 
 	// create public schema
 	e.schemas = make(map[string]*Schema)
 	e.schemas["public"] = NewSchema("public")
 
-	err = e.start()
+	err = e.Start()
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func New(endpoint protocol.EngineEndpoint) (e *Engine, err error) {
 	return
 }
 
-func (e *Engine) start() (err error) {
+func (e *Engine) Start() (err error) {
 	go e.listen()
 	return nil
 }
@@ -80,6 +80,19 @@ func (e *Engine) Stop() {
 		close(e.stop)
 		e.stop = nil
 	}()
+}
+
+func (e *Engine) Begin() (Transaction, error) {
+	t, err := NewTransaction()
+	return t, err
+}
+
+func (e *Engine) Commit(t Transaction) error {
+	return t.Commit()
+}
+
+func (e *Engine) Rollback(t Transaction) {
+	t.Rollback()
 }
 
 func (e *Engine) relation(schema, name string) (*Relation, error) {
@@ -209,6 +222,12 @@ func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol
 }
 
 func (e *Engine) executeQuery(i parser.Instruction, conn protocol.EngineConn) error {
+	/*
+		i.Decls[0].Stringy(0,
+			func(format string, varargs ...any) {
+				fmt.Printf(format, varargs...)
+			})
+	*/
 
 	if e.opsExecutors[i.Decls[0].Token] != nil {
 		return e.opsExecutors[i.Decls[0].Token](e, i.Decls[0], conn)

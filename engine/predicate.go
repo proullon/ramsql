@@ -1,9 +1,10 @@
 package engine
 
 import (
-	"fmt"
+// "fmt"
 )
 
+/*
 // PredicateLinker referes to AND and OR operators.
 type PredicateLinker interface {
 	Eval(v virtualRow) (bool, error)
@@ -139,3 +140,4 @@ func (p *Predicate) Evaluate(t *Tuple, table *Table) (bool, error) {
 	p.LeftValue.v = t.Values[i]
 	return p.Operator(p.LeftValue, p.RightValue), nil
 }
+*/

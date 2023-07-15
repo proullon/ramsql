@@ -1,15 +1,16 @@
 package engine
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
+//"fmt"
+//"strconv"
+//"strings"
 
-	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+// "github.com/proullon/ramsql/engine/log"
+// "github.com/proullon/ramsql/engine/parser"
+// "github.com/proullon/ramsql/engine/protocol"
 )
 
+/*
 func attributeExistsInTable(e *Engine, attr, schema, table string) error {
 
 	r, err := e.relation(schema, table)
@@ -78,6 +79,7 @@ func attributesExistInTables(e *Engine, attributes []Attribute, schema string, t
 			|-> =
 			|-> foo@bar.com
 */
+/*
 func selectExecutor(e *Engine, selectDecl *parser.Decl, conn protocol.EngineConn) error {
 	var attributes []Attribute
 	var tables []*Table
@@ -449,6 +451,7 @@ func whereExecutor2(e *Engine, decl []*parser.Decl, schema, fromTableName string
 			   |-> =
 			   |-> foo@bar.com
 */
+/*
 func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, error) {
 	var predicates []Predicate
 	var err error
@@ -556,6 +559,7 @@ func whereExecutor(whereDecl *parser.Decl, fromTableName string) ([]Predicate, e
 
 	|-> account
 */
+/*
 func fromExecutor(fromDecl *parser.Decl) []*Table {
 	var tables []*Table
 	var schema string
@@ -636,3 +640,4 @@ func selectRows(row virtualRow, predicates []PredicateLinker, functors []selectF
 	}
 	return nil
 }
+*/

@@ -2,9 +2,8 @@ package engine
 
 import (
 	"fmt"
-
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+	//"github.com/proullon/ramsql/engine/parser"
+	//"github.com/proullon/ramsql/engine/protocol"
 )
 
 type Schema struct {
@@ -38,6 +37,7 @@ func (s *Schema) drop(name string) {
 	delete(s.relations, name)
 }
 
+/*
 func createSchemaExecutor(e *Engine, schemaDecl *parser.Decl, conn protocol.EngineConn) error {
 	var name string
 
@@ -63,3 +63,4 @@ func createSchemaExecutor(e *Engine, schemaDecl *parser.Decl, conn protocol.Engi
 	conn.WriteResult(0, 1)
 	return nil
 }
+*/

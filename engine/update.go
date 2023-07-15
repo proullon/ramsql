@@ -1,13 +1,13 @@
 package engine
 
 import (
-	"fmt"
-	"strings"
-	"time"
+//"fmt"
+//"strings"
+//"time"
 
-	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+// "github.com/proullon/ramsql/engine/log"
+// "github.com/proullon/ramsql/engine/parser"
+// "github.com/proullon/ramsql/engine/protocol"
 )
 
 /*
@@ -23,6 +23,7 @@ import (
 						|-> =
 						|-> 2
 */
+/*
 func updateExecutor(e *Engine, updateDecl *parser.Decl, conn protocol.EngineConn) error {
 	var num int64
 	var schema string
@@ -76,6 +77,7 @@ func updateExecutor(e *Engine, updateDecl *parser.Decl, conn protocol.EngineConn
 
 	return conn.WriteResult(0, num)
 }
+*/
 
 /*
 |-> set
@@ -84,6 +86,7 @@ func updateExecutor(e *Engine, updateDecl *parser.Decl, conn protocol.EngineConn
 					|-> =
 					|-> roger@gmail.com
 */
+/*
 func setExecutor(setDecl *parser.Decl) (map[string]interface{}, error) {
 
 	values := make(map[string]interface{})
@@ -122,3 +125,4 @@ func updateValues(r *Relation, row int, values map[string]interface{}) error {
 
 	return nil
 }
+*/
