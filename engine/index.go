@@ -8,19 +8,6 @@ import (
 // "github.com/proullon/ramsql/engine/protocol"
 )
 
-type Index interface {
-}
-
-type BTreeIndex struct {
-}
-
-type HashIndex struct {
-}
-
-func NewIndex() *Index {
-	return nil
-}
-
 /*
 func createIndexExecutor(e *Engine, indexDecl *parser.Decl, conn protocol.EngineConn) error {
 	var i int

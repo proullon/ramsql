@@ -1,0 +1,61 @@
+package agnostic
+
+import (
+	"fmt"
+	"sync"
+)
+
+const (
+	DefaultSchema = "public"
+)
+
+type Engine struct {
+	schemas map[string]*Schema
+
+	sync.Mutex
+}
+
+func NewEngine() *Engine {
+	e := &Engine{}
+
+	// create public schema
+	e.schemas = make(map[string]*Schema)
+	e.schemas[DefaultSchema] = NewSchema(DefaultSchema)
+
+	return e
+}
+
+func (e *Engine) Begin() (*Transaction, error) {
+	t, err := NewTransaction(e)
+	return t, err
+}
+
+func (e *Engine) createRelation(schema, relation string) (*Schema, *Relation, error) {
+
+	s, err := e.schema(schema)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r, err := NewRelation(schema, relation)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	s.Add(relation, r)
+
+	return s, r, nil
+}
+
+func (e *Engine) schema(name string) (*Schema, error) {
+	if name == "" {
+		name = DefaultSchema
+	}
+
+	s, ok := e.schemas[name]
+	if !ok {
+		return nil, fmt.Errorf("schema '%s' does not exist", name)
+	}
+
+	return s, nil
+}

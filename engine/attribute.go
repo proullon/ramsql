@@ -9,23 +9,6 @@ import (
 	"github.com/proullon/ramsql/engine/parser"
 )
 
-// Domain is the set of allowable values for an Attribute.
-type Domain struct {
-}
-
-// Attribute is a named column of a relation
-// AKA Field
-// AKA Column
-type Attribute struct {
-	name          string
-	typeName      string
-	typeInstance  interface{}
-	defaultValue  interface{}
-	domain        Domain
-	autoIncrement bool
-	unique        bool
-}
-
 func parseAttribute(decl *parser.Decl) (Attribute, error) {
 	attr := Attribute{}
 

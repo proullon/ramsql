@@ -1,4 +1,4 @@
-package engine
+package agnostic
 
 // Tuple is a row in a relation
 type Tuple struct {

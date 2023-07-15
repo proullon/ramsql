@@ -1,31 +1,10 @@
 package engine
 
-import (
-	"container/list"
-	//"errors"
-	"sync"
-)
-
 /*
 type Tuple struct {
 	values []any
 }
 */
-
-type Relation struct {
-	name   string
-	schema string
-
-	attributes []Attribute
-	attrIndex  map[string]int
-
-	// list of Tuple
-	rows *list.List
-
-	indexes []Index
-
-	sync.RWMutex
-}
 
 /*
 // Relation is a table with column and rows

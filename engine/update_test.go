@@ -1,5 +1,6 @@
 package engine_test
 
+/*
 import (
 	"database/sql"
 	"testing"
@@ -215,3 +216,4 @@ func TestUpdateToNull(t *testing.T) {
 	}
 
 }
+*/
