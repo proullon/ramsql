@@ -2,6 +2,7 @@ package agnostic
 
 type Index interface {
 	Truncate()
+	Add(*Tuple)
 }
 
 type BTreeIndex struct {

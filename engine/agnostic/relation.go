@@ -20,12 +20,17 @@ type Relation struct {
 	sync.RWMutex
 }
 
-func NewRelation(schema, name string) (*Relation, error) {
+func NewRelation(schema, name string, attributes []Attribute) (*Relation, error) {
 	r := &Relation{
-		name:      name,
-		schema:    schema,
-		attrIndex: make(map[string]int),
-		rows:      list.New(),
+		name:       name,
+		schema:     schema,
+		attributes: attributes,
+		attrIndex:  make(map[string]int),
+		rows:       list.New(),
+	}
+
+	for i, a := range r.attributes {
+		r.attrIndex[a.name] = i
 	}
 
 	return r, nil

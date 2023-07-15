@@ -30,14 +30,14 @@ func (e *Engine) Begin() (*Transaction, error) {
 	return t, err
 }
 
-func (e *Engine) createRelation(schema, relation string) (*Schema, *Relation, error) {
+func (e *Engine) createRelation(schema, relation string, attributes []Attribute) (*Schema, *Relation, error) {
 
 	s, err := e.schema(schema)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	r, err := NewRelation(schema, relation)
+	r, err := NewRelation(schema, relation, attributes)
 	if err != nil {
 		return nil, nil, err
 	}

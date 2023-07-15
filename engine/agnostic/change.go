@@ -1,8 +1,13 @@
 package agnostic
 
+import (
+	"container/list"
+)
+
 type ValueChange struct {
-	current *Tuple
-	old     *Tuple
+	current *list.Element
+	old     *list.Element
+	l       *list.List
 }
 
 type RelationChange struct {
@@ -12,8 +17,25 @@ type RelationChange struct {
 }
 
 func RollbackValueChange(c ValueChange) {
-	for i := range c.current.values {
-		c.current.values[i] = c.old.values[i]
+
+	// revert insert
+	if c.current != nil && c.old == nil {
+		c.l.Remove(c.current)
+	}
+
+	// revert delete
+	if c.current == nil && c.old != nil {
+		old := c.old.Value.(*Tuple)
+		c.l.InsertAfter(old, c.old.Prev())
+	}
+
+	// revert update
+	if c.current != nil && c.old != nil {
+		cur := c.current.Value.(*Tuple)
+		old := c.old.Value.(*Tuple)
+		for i, _ := range cur.values {
+			cur.values[i] = old.values[i]
+		}
 	}
 }
 
