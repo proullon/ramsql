@@ -1,10 +1,33 @@
 package engine
 
 import (
-	"errors"
+	"container/list"
+	//"errors"
 	"sync"
 )
 
+/*
+type Tuple struct {
+	values []any
+}
+*/
+
+type Relation struct {
+	name   string
+	schema string
+
+	attributes []Attribute
+	attrIndex  map[string]int
+
+	// list of Tuple
+	rows *list.List
+
+	indexes []Index
+
+	sync.RWMutex
+}
+
+/*
 // Relation is a table with column and rows
 // AKA File
 type Relation struct {
@@ -38,3 +61,4 @@ func (r *Relation) Get(attr string, t Tuple) (any, error) {
 	}
 	return nil, errors.New("not found")
 }
+*/

@@ -1,13 +1,15 @@
 package engine
 
 import (
-	"fmt"
-	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/parser"
-	"strconv"
-	"time"
+//"fmt"
+//"strconv"
+//"time"
+
+// "github.com/proullon/ramsql/engine/log"
+// "github.com/proullon/ramsql/engine/parser"
 )
 
+/*
 // Operator compares 2 values and return a boolean
 type Operator func(leftValue Value, rightValue Value) bool
 
@@ -216,3 +218,4 @@ func isNullOperator(leftValue Value, rightValue Value) bool {
 func isNotNullOperator(leftValue Value, rightValue Value) bool {
 	return leftValue.v != nil
 }
+*/

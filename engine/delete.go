@@ -1,10 +1,12 @@
 package engine
 
 import (
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+// "github.com/proullon/ramsql/engine/parser"
+//
+//	"github.com/proullon/ramsql/engine/protocol"
 )
 
+/*
 func deleteExecutor(e *Engine, deleteDecl *parser.Decl, conn protocol.EngineConn) error {
 
 	// get tables to be deleted
@@ -67,3 +69,4 @@ func deleteRows(e *Engine, tables []*Table, conn protocol.EngineConn, predicates
 
 	return conn.WriteResult(0, rowsDeleted)
 }
+*/

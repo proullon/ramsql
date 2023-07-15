@@ -1,12 +1,13 @@
 package engine
 
 import (
-	"fmt"
+//"fmt"
 
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+// "github.com/proullon/ramsql/engine/parser"
+// "github.com/proullon/ramsql/engine/protocol"
 )
 
+/*
 // Table is defined by a name and attributes
 // A table with data is called a Relation
 type Table struct {
@@ -126,3 +127,4 @@ func hasIfNotExists(tableDecl *parser.Decl) bool {
 
 	return false
 }
+*/

@@ -246,3 +246,34 @@ func main() {
     _ = err
 }
 ```
+
+## Architecture
+
+### Rows storage and garbage collector
+
+What options do we have to store objects:
+
+- unsafe memory paging
+- map
+- slice
+- linked list
+
+The issue with having a lot of objects (rows here) in memory is Garbage Collector pause. The processus will lock objects to determine if there is any pointers to it. This becomes an issue with `map[any]*Something` since GC will lock the map to check all pointers.
+
+Unsafe memory paging is a bit tricky to keep portable.
+
+Slices are nice, and could grow non linearly capped with available RAM.
+
+The simplest option regarding GC pause and rows storage is linked list. Easy to update and remove rows without overhead, while keeping GC functioning properly.
+
+### Indexes
+
+We want Hash index to fetch rows in `O(1)` time with `=` operator. This means we need to use a map, without using pointers. That's where `uintptr` comes to play. Hash index uses `map[string]uintptr` or `map[int64]uintptr` to keep track of pointer to linked list elements, while discarding GC checks.
+
+We also want Binary Tree index to fetch rows in `O(log(n))` time with `<, <=, >, >=` operators.
+
+### Transactions
+
+`RamSQL` only uses table level lock transactions. In case of error or call to `Rollback()`, changes will be reverted back into modified relation.
+
+`Commit()` releases the locks.

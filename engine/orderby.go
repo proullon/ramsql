@@ -1,13 +1,14 @@
 package engine
 
 import (
-	"fmt"
-	"sort"
+//"fmt"
+//"sort"
 
-	"github.com/proullon/ramsql/engine/parser"
-	"github.com/proullon/ramsql/engine/protocol"
+// "github.com/proullon/ramsql/engine/parser"
+// "github.com/proullon/ramsql/engine/protocol"
 )
 
+/*
 // |-> order
 //
 //	|-> age
@@ -297,3 +298,4 @@ func (o *genericOrderer) Write(conn protocol.EngineConn) error {
 }
 
 type comparator func(i interface{}, j interface{}) int
+*/
