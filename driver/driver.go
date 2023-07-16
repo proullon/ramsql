@@ -17,18 +17,6 @@ func init() {
 	log.SetLevel(log.WarningLevel)
 }
 
-// Server structs holds engine for each sql.DB instance.
-// This way a sql.DB cann open as much connection to engine as wanted
-// without colliding with another engine (during tests for example)
-// with the unique constraint of providing a unique DataSourceName
-type Server struct {
-	server *executor.Engine
-
-	// Kill server on last connection closing
-	sync.Mutex
-	connCount int64
-}
-
 // Driver is the driver entrypoint
 //
 // Drivers should implement Connector and DriverContext interaces.
@@ -36,16 +24,16 @@ type Server struct {
 // https://pkg.go.dev/database/sql/driver#Connector
 // https://pkg.go.dev/database/sql/driver#DriverContext
 type Driver struct {
-	// Mutex protect the map of Server
+	// Mutex protect the map of engine
 	sync.Mutex
 	// Holds all matching sql.DB instances of RamSQL engine
-	servers map[string]*Server
+	engines map[string]*executor.Engine
 }
 
 // NewDriver creates a driver object
 func NewDriver() *Driver {
 	d := &Driver{}
-	d.servers = make(map[string]*Server)
+	d.engines = make(map[string]*executor.Engine)
 	return d
 }
 
@@ -59,9 +47,9 @@ type connConf struct {
 	Timeout  time.Duration
 }
 
-// Open return an active connection so RamSQL server
-// If there is no connection in pool, start a new server.
-// After first instantiation of the server,
+// Open return an active connection so RamSQL engine
+// If there is no connection in pool, start a new engine.
+// After first instantiation of the engine,
 func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
 	rs.Lock()
 	defer rs.Unlock()
@@ -71,22 +59,19 @@ func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
 		return nil, err
 	}
 
-	dsnServer, exist := rs.servers[dsn]
+	dsnengine, exist := rs.engines[dsn]
 	if !exist {
-		server, err := executor.NewEngine()
+		e, err := executor.NewEngine()
 		if err != nil {
 			return nil, err
 		}
 
-		s := &Server{
-			server: server,
-		}
-		rs.servers[dsn] = s
+		rs.engines[dsn] = e
 
-		return newConn(s), nil
+		return newConn(e), nil
 	}
 
-	return newConn(dsnServer), err
+	return newConn(dsnengine), err
 }
 
 // The uri need to have the following syntax:
@@ -94,7 +79,7 @@ func (rs *Driver) Open(dsn string) (conn driver.Conn, err error) {
 //	[PROTOCOL_SPECFIIC*]DBNAME/USER/PASSWD
 //
 // where protocol spercific part may be empty (this means connection to
-// local server using default protocol). Currently possible forms:
+// local engine using default protocol). Currently possible forms:
 //
 //	DBNAME/USER/PASSWD
 //	unix:SOCKPATH*DBNAME/USER/PASSWD
@@ -165,21 +150,4 @@ func parseConnectionURI(uri string) (*connConf, error) {
 	c.User = dup[1]
 	c.Password = dup[2]
 	return c, nil
-}
-
-func (s *Server) openingConn() {
-
-	s.Lock()
-	defer s.Unlock()
-	s.connCount++
-}
-
-func (s *Server) closingConn() {
-	s.Lock()
-	defer s.Unlock()
-	s.connCount--
-
-	if s.connCount == 0 {
-		s.server.Stop()
-	}
 }

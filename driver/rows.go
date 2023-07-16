@@ -3,40 +3,21 @@ package ramsql
 import (
 	"database/sql/driver"
 	"errors"
-	"fmt"
 	"io"
-	"sync"
 
-	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/parser"
+	"github.com/proullon/ramsql/engine/executor"
 )
 
 // Rows implements the sql/driver Rows interface
 type Rows struct {
-	rowsChannel chan []any
-	columns     []string
+	columns []string
 
-	sync.Mutex
+	tx *executor.Tx
 }
 
-func newRows(channel chan []any) *Rows {
-	var c []any
-	var ok bool
+func newRows() *Rows {
 
-	r := &Rows{rowsChannel: channel}
-	c, ok = <-channel
-	if !ok {
-		log.Critical("Cannot receive column names from channel")
-		return nil
-	}
-
-	for i := range c {
-		if val, ok := c[i].(string); ok {
-			r.columns = append(r.columns, val)
-		} else {
-			r.columns = append(r.columns, "<unknown>")
-		}
-	}
+	r := &Rows{}
 	return r
 }
 
@@ -50,21 +31,21 @@ func (r *Rows) Columns() []string {
 
 // Close closes the rows iterator.
 func (r *Rows) Close() error {
-	r.Lock()
-	defer r.Unlock()
 
-	if r.rowsChannel == nil {
-		return nil
-	}
+	/*
+		if r.rowsChannel == nil {
+			return nil
+		}
 
-	_, ok := <-r.rowsChannel
-	if !ok {
-		return nil
-	}
+		_, ok := <-r.rowsChannel
+		if !ok {
+			return nil
+		}
 
-	// Tels UnlimitedRowsChannel to close itself
-	//r.rowsChannel <- []string{}
-	r.rowsChannel = nil
+		// Tels UnlimitedRowsChannel to close itself
+		//r.rowsChannel <- []string{}
+		r.rowsChannel = nil
+	*/
 	return nil
 }
 
@@ -78,44 +59,44 @@ func (r *Rows) Close() error {
 //
 // Next should return io.EOF when there are no more rows.
 func (r *Rows) Next(dest []driver.Value) (err error) {
-	r.Lock()
-	defer r.Unlock()
-
-	if r.rowsChannel == nil {
-		return io.EOF
-	}
-
-	value, ok := <-r.rowsChannel
-	if !ok {
-		r.rowsChannel = nil
-		return io.EOF
-	}
-
-	if len(dest) < len(value) {
-		return fmt.Errorf("slice too short (%d slots for %d values)", len(dest), len(value))
-	}
-
-	for i, v := range value {
-		if v == "<nil>" {
-			dest[i] = nil
-			continue
+	return io.EOF
+	/*
+		if r.rowsChannel == nil {
+			return io.EOF
 		}
 
-		switch v.(type) {
-		case string:
-			val, _ := v.(string)
-			// TODO: make rowsChannel send virtualRows,
-			// so we have the type and don't blindy try to parse date here
-			if t, err := parser.ParseDate(val); err == nil {
-				dest[i] = *t
-			} else {
-				dest[i] = []byte(val)
+		value, ok := <-r.rowsChannel
+		if !ok {
+			r.rowsChannel = nil
+			return io.EOF
+		}
+
+		if len(dest) < len(value) {
+			return fmt.Errorf("slice too short (%d slots for %d values)", len(dest), len(value))
+		}
+
+		for i, v := range value {
+			if v == "<nil>" {
+				dest[i] = nil
+				continue
 			}
-		default:
-			dest[i] = v
-		}
 
-	}
+			switch v.(type) {
+			case string:
+				val, _ := v.(string)
+				// TODO: make rowsChannel send virtualRows,
+				// so we have the type and don't blindy try to parse date here
+				if t, err := parser.ParseDate(val); err == nil {
+					dest[i] = *t
+				} else {
+					dest[i] = []byte(val)
+				}
+			default:
+				dest[i] = v
+			}
+
+		}
+	*/
 
 	return nil
 }
