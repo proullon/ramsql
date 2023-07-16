@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"context"
+	"database/sql"
 	//"errors"
 	//"fmt"
 	//"io"
@@ -16,23 +18,15 @@ type executorFunc func(*Engine, *parser.Decl) error
 type Engine struct {
 	opsExecutors map[int]executorFunc
 
-	// Any value send to this channel (through Engine.stop)
-	// Will stop the listening loop
-	stop chan bool
-
-	agnostic.Engine
+	memstore *agnostic.Engine
 }
 
 // New initialize a new RamSQL server
 func NewEngine() (e *Engine, err error) {
 
 	e = &Engine{
-		nil,
-		make(chan bool),
-		*agnostic.NewEngine(),
+		memstore: agnostic.NewEngine(),
 	}
-
-	e.stop = make(chan bool)
 
 	e.opsExecutors = map[int]executorFunc{
 		//		parser.CreateToken:   createExecutor,
@@ -52,6 +46,15 @@ func NewEngine() (e *Engine, err error) {
 	}
 
 	return
+}
+
+func (e *Engine) Begin() (*Tx, error) {
+	tx, err := NewTx(context.Background(), e, sql.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
 }
 
 func (e *Engine) Stop() {

@@ -1,21 +1,24 @@
 package ramsql
 
+//
+// Tx doesn't need to be in driver package.
+//
+// Implementation doesn't depend on any sql/driver type, and can live in executor package.
+//
+
+/*
 import (
-	"fmt"
+	"context"
+	"database/sql/driver"
+
+	"github.com/proullon/ramsql/engine/agnostic"
+	"github.com/proullon/ramsql/engine/executor"
 )
 
 // Tx implements SQL transaction method
 type Tx struct {
-	conn *Conn
+	e  *executor.Engine
+	tx *agnostic.Transaction
 }
 
-// Commit the transaction on server
-func (t *Tx) Commit() error {
-	// TODO: Not implemented
-	return nil
-}
-
-// Rollback all changes
-func (t *Tx) Rollback() error {
-	return fmt.Errorf("rollback not implemented")
-}
+*/
