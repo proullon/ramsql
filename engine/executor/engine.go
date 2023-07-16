@@ -4,10 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"reflect"
-	//"fmt"
-	//"io"
 
 	"github.com/proullon/ramsql/engine/agnostic"
 	//"github.com/proullon/ramsql/engine/log"
@@ -68,6 +65,11 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl) (int64, int64, chan *agn
 
 	// Check for specific attribute
 	for i < len(tableDecl.Decl) {
+		if tableDecl.Decl[i].Token == parser.IfToken {
+			i++
+			continue
+		}
+
 		if t.opsExecutors[tableDecl.Decl[i].Token] == nil {
 			break
 		}
@@ -195,7 +197,10 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl) (int64, int64, chan
 	var tuples []*agnostic.Tuple
 	valuesDecl := insertDecl.Decl[1]
 	for _, valueListDecl := range valuesDecl.Decl {
-		values := getValues(specifiedAttrs, valueListDecl)
+		values, err := getValues(specifiedAttrs, valueListDecl)
+		if err != nil {
+			return 0, 0, nil, err
+		}
 		tuple, err := t.tx.Insert(schemaName, relationName, values)
 		if err != nil {
 			return 0, 0, nil, err
@@ -234,7 +239,6 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl) (int64, int64, chan
 		ch <- returningTuple
 	}
 
-	fmt.Printf("DEON\n")
 	return lastInsertedID, int64(len(tuples)), ch, nil
 
 	/*
@@ -306,14 +310,34 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl) (int64, int64, chan
 	*/
 }
 
-func getValues(specifiedAttrs []string, valuesDecl *parser.Decl) map[string]any {
+func getValues(specifiedAttrs []string, valuesDecl *parser.Decl) (map[string]any, error) {
+	var typeName string
 	values := make(map[string]any)
 
 	for i, d := range valuesDecl.Decl {
-		values[specifiedAttrs[i]] = d.Lexeme
+		switch d.Token {
+		case parser.IntToken, parser.NumberToken:
+			typeName = "bigint"
+		case parser.DateToken:
+			typeName = "timestamp"
+		case parser.TextToken:
+			typeName = "text"
+		default:
+			typeName = "text"
+			if _, err := agnostic.ToInstance(d.Lexeme, "timestamp"); err == nil {
+				typeName = "timestamp"
+			}
+		}
+
+		v, err := agnostic.ToInstance(d.Lexeme, typeName)
+		if err != nil {
+			return nil, err
+		}
+
+		values[specifiedAttrs[i]] = v
 	}
 
-	return values
+	return values, nil
 }
 
 func hasIfNotExists(tableDecl *parser.Decl) bool {

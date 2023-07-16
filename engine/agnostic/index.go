@@ -10,25 +10,32 @@ type Index interface {
 	Truncate()
 	Add(*Tuple)
 	CanUse( /* predicate */ ) bool
+	Name() string
 }
 
 type BTreeIndex struct {
 }
 
 type HashIndex struct {
+	name  string
 	attrs []int
 	m     map[uint64]uintptr
 
 	maphash.Hash
 }
 
-func NewHashIndex(attrs []int) *HashIndex {
+func NewHashIndex(name string, attrs []int) *HashIndex {
 	h := &HashIndex{
+		name:  name,
 		attrs: attrs,
 		m:     make(map[uint64]uintptr),
 	}
 	h.SetSeed(maphash.MakeSeed())
 	return h
+}
+
+func (h *HashIndex) Name() string {
+	return h.name
 }
 
 func (h *HashIndex) Add(t *Tuple) {
