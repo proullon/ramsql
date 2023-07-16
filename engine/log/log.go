@@ -1,7 +1,6 @@
 package log
 
 import (
-	// TODO: add a file logger
 	"log"
 	"sync"
 	"testing"
