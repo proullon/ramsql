@@ -19,3 +19,7 @@ func NewTuple(values ...any) *Tuple {
 func (t *Tuple) Append(value any) {
 	t.values = append(t.values, value)
 }
+
+func (t *Tuple) Values() []any {
+	return t.values
+}

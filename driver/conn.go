@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"fmt"
 
 	"github.com/proullon/ramsql/engine/executor"
 )
@@ -120,13 +121,13 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 		a[i].Value = arg.Value
 	}
 
-	something, err := tx.QueryContext(ctx, query, a)
+	ch, err := tx.QueryContext(ctx, query, a)
 	if err != nil {
 		return nil, err
 	}
 
-	_ = something
-	return newRows(), nil
+	fmt.Printf("QUERYCONTEXXT CALLED for %s\n", query)
+	return newRows(ch), nil
 }
 
 // ExecContext is the sql package prefered way to run Exec
@@ -147,5 +148,11 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 
 	r := &Result{}
 	r.lastInsertedID, r.rowsAffected, r.err = tx.ExecContext(ctx, query, a)
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
 	return r, r.err
 }
