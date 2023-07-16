@@ -83,7 +83,7 @@ func typeInstanceFromName(name string) reflect.Type {
 	case "bool", "boolean":
 		var v bool
 		return reflect.TypeOf(v)
-	case "timestamp":
+	case "timestamp", "date":
 		var v time.Time
 		return reflect.TypeOf(v)
 	default:
@@ -113,7 +113,7 @@ func ToInstance(value, typeName string) (any, error) {
 			return nil, err
 		}
 		return v, nil
-	case "timestamp":
+	case "timestamp", "date":
 		v, err := parseDate(value)
 		if err != nil {
 			return nil, err
