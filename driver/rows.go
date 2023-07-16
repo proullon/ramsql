@@ -3,21 +3,28 @@ package ramsql
 import (
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"io"
 
+	"github.com/proullon/ramsql/engine/agnostic"
 	"github.com/proullon/ramsql/engine/executor"
 )
 
 // Rows implements the sql/driver Rows interface
 type Rows struct {
 	columns []string
-
-	tx *executor.Tx
+	ch      chan *agnostic.Tuple
+	tx      *executor.Tx
 }
 
-func newRows() *Rows {
+func newRows(ch chan *agnostic.Tuple) *Rows {
 
-	r := &Rows{}
+	r := &Rows{ch: ch}
+	t := <-ch
+	values := t.Values()
+	for _, v := range values {
+		r.columns = append(r.columns, v.(string))
+	}
 	return r
 }
 
@@ -32,6 +39,8 @@ func (r *Rows) Columns() []string {
 // Close closes the rows iterator.
 func (r *Rows) Close() error {
 
+	close(r.ch)
+	r.ch = nil
 	/*
 		if r.rowsChannel == nil {
 			return nil
@@ -59,12 +68,27 @@ func (r *Rows) Close() error {
 //
 // Next should return io.EOF when there are no more rows.
 func (r *Rows) Next(dest []driver.Value) (err error) {
-	return io.EOF
-	/*
-		if r.rowsChannel == nil {
-			return io.EOF
-		}
+	if r.ch == nil {
+		return io.EOF
+	}
 
+	tuple, ok := <-r.ch
+	if !ok {
+		r.ch = nil
+		return io.EOF
+	}
+
+	values := tuple.Values()
+	if len(dest) < len(values) {
+		return fmt.Errorf("slice too short (%d slots for %d values)", len(dest), len(values))
+	}
+
+	for i, v := range values {
+		dest[i] = v
+	}
+
+	return nil
+	/*
 		value, ok := <-r.rowsChannel
 		if !ok {
 			r.rowsChannel = nil
@@ -96,9 +120,9 @@ func (r *Rows) Next(dest []driver.Value) (err error) {
 			}
 
 		}
-	*/
 
-	return nil
+		return nil
+	*/
 }
 
 func (r *Rows) setColumns(columns []string) {

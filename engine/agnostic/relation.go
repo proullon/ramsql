@@ -2,6 +2,7 @@ package agnostic
 
 import (
 	"container/list"
+	"errors"
 	"sync"
 )
 
@@ -52,6 +53,14 @@ func NewRelation(schema, name string, attributes []Attribute, pk []string) (*Rel
 	}
 
 	return r, nil
+}
+
+func (r *Relation) Attribute(name string) (int, Attribute, error) {
+	index, ok := r.attrIndex[name]
+	if !ok {
+		return 0, Attribute{}, errors.New("attribute not defined")
+	}
+	return index, r.attributes[index], nil
 }
 
 func (r *Relation) CreateIndex() error {

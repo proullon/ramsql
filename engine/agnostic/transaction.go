@@ -77,6 +77,42 @@ func (t Transaction) Error() error {
 	return t.err
 }
 
+func (t *Transaction) RelationAttribute(schName, relName, attrName string) (int, Attribute, error) {
+	if err := t.aborted(); err != nil {
+		return 0, Attribute{}, err
+	}
+
+	s, err := t.e.schema(schName)
+	if err != nil {
+		return 0, Attribute{}, err
+	}
+
+	r, err := s.Relation(relName)
+	if err != nil {
+		return 0, Attribute{}, err
+	}
+
+	return r.Attribute(attrName)
+}
+
+func (t *Transaction) CheckRelation(schemaName, relName string) bool {
+	if err := t.aborted(); err != nil {
+		return false
+	}
+
+	s, err := t.e.schema(schemaName)
+	if err != nil {
+		return false
+	}
+
+	_, err = s.Relation(relName)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
 func (t *Transaction) CreateRelation(schemaName, relName string, attributes []Attribute, pk []string) error {
 	if err := t.aborted(); err != nil {
 		return err
@@ -147,7 +183,7 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 	t.lock(r)
 
 	tuple := &Tuple{}
-	for _, attr := range r.attributes {
+	for i, attr := range r.attributes {
 		val, specified := values[attr.name]
 		if !specified {
 			if attr.defaultValue != nil {
@@ -156,7 +192,7 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 			}
 			if attr.autoIncrement {
 				tuple.Append(reflect.ValueOf(attr.nextValue).Convert(attr.typeInstance).Interface())
-				attr.nextValue++
+				r.attributes[i].nextValue++
 				continue
 			}
 		}

@@ -51,6 +51,10 @@ func (a Attribute) WithAutoIncrement() Attribute {
 	return a
 }
 
+func (a Attribute) HasAutoIncrement() bool {
+	return a.autoIncrement
+}
+
 func (a Attribute) WithDefaultConst(defaultValue any) Attribute {
 	a.defaultValue = func() any {
 		return reflect.ValueOf(defaultValue).Convert(a.typeInstance).Interface()
