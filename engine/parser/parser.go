@@ -861,41 +861,41 @@ func (p *parser) isNot(tokenTypes ...int) bool {
 func (p *parser) isNext(tokenTypes ...int) (t Token, err error) {
 
 	if !p.hasNext() {
-		debug("parser.isNext: has no next")
+		log.Debug("parser.isNext: has no next")
 		return t, p.syntaxError()
 	}
 
-	debug("parser.isNext %v", tokenTypes)
+	log.Debug("parser.isNext %v", tokenTypes)
 	for _, tokenType := range tokenTypes {
 		if p.tokens[p.index+1].Token == tokenType {
 			return p.tokens[p.index+1], nil
 		}
 	}
 
-	debug("parser.isNext: Next (%v) is not among %v", p.cur(), tokenTypes)
+	log.Debug("parser.isNext: Next (%v) is not among %v", p.cur(), tokenTypes)
 	return t, p.syntaxError()
 }
 
 func (p *parser) mustHaveNext(tokenTypes ...int) (t Token, err error) {
 
 	if !p.hasNext() {
-		debug("parser.mustHaveNext: has no next")
+		log.Debug("parser.mustHaveNext: has no next")
 		return t, p.syntaxError()
 	}
 
 	if err = p.next(); err != nil {
-		debug("parser.mustHaveNext: error getting next")
+		log.Debug("parser.mustHaveNext: error getting next")
 		return t, err
 	}
 
-	debug("parser.mustHaveNext %v", tokenTypes)
+	log.Debug("parser.mustHaveNext %v", tokenTypes)
 	for _, tokenType := range tokenTypes {
 		if p.is(tokenType) {
 			return p.tokens[p.index], nil
 		}
 	}
 
-	debug("parser.mustHaveNext: Next (%v) is not among %v", p.cur(), tokenTypes)
+	log.Debug("parser.mustHaveNext: Next (%v) is not among %v", p.cur(), tokenTypes)
 	return t, p.syntaxError()
 }
 
