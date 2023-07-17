@@ -277,3 +277,8 @@ We also want Binary Tree index to fetch rows in `O(log(n))` time with `<, <=, >,
 `RamSQL` only uses table level lock transactions. In case of error or call to `Rollback()`, changes will be reverted back into modified relation.
 
 `Commit()` releases the locks.
+
+## TODO
+
+- `agnostic` -> `memstore`
+- `executor` -> `sql`

@@ -7,7 +7,6 @@ import (
 	"reflect"
 
 	"github.com/proullon/ramsql/engine/agnostic"
-	//"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 )
 
@@ -117,43 +116,6 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl) (int64, int64, chan *agn
 		return 0, 0, nil, err
 	}
 	return 0, 1, nil, nil
-
-	/*
-
-
-
-			// Check if table does not exists
-			_, err := e.relation(schema, tableDecl.Decl[i].Lexeme)
-			if err == nil && !ifNotExists {
-				return fmt.Errorf("table %s already exists", tableDecl.Decl[i].Lexeme)
-			}
-
-			// Fetch table name
-			t := NewTable(schema, tableDecl.Decl[i].Lexeme)
-
-			// Fetch attributes
-			i++
-			for i < len(tableDecl.Decl) {
-				attr, err := parseAttribute(tableDecl.Decl[i])
-				if err != nil {
-					return err
-				}
-				err = t.AddAttribute(attr)
-				if err != nil {
-					return err
-				}
-
-				i++
-			}
-
-			s, err := e.schema(schema)
-			if err != nil {
-				return err
-			}
-			s.add(t.name, NewRelation(t))
-			conn.WriteResult(0, 1)
-		return nil
-	*/
 }
 
 /*
@@ -240,74 +202,6 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl) (int64, int64, chan
 	}
 
 	return lastInsertedID, int64(len(tuples)), ch, nil
-
-	/*
-		// Get table and concerned attributes and write lock it
-		intoDecl := insertDecl.Decl[0]
-		r, attributes, err := getRelation(e, intoDecl)
-		if err != nil {
-			return err
-		}
-		r.Lock()
-		defer r.Unlock()
-
-		// Check for RETURNING clause
-		var returnedAttribute string
-		if len(insertDecl.Decl) > 2 {
-			for i := range insertDecl.Decl {
-				if insertDecl.Decl[i].Token == parser.ReturningToken {
-					returningDecl := insertDecl.Decl[i]
-					returnedAttribute = returningDecl.Decl[0].Lexeme
-					break
-				}
-			}
-		}
-
-		// Create a new tuple with values
-		var tuples []Tuple
-		valuesDecl := insertDecl.Decl[1]
-		for _, valueListDecl := range valuesDecl.Decl {
-			// TODO handle all inserts atomically
-			t, err := insert(r, attributes, valueListDecl.Decl, returnedAttribute)
-			if err != nil {
-				return err
-			}
-			tuples = append(tuples, *t)
-		}
-
-		// if RETURNING decl is present
-		if returnedAttribute != "" {
-			conn.WriteRowHeader([]string{returnedAttribute})
-			for _, t := range tuples {
-				val, err := r.Get(returnedAttribute, t)
-				if err != nil {
-					continue
-				}
-				conn.WriteRow([]any{val})
-			}
-			conn.WriteRowEnd()
-			return nil
-		}
-
-		if len(tuples) == 0 {
-			conn.WriteResult(0, 0)
-			return nil
-		}
-
-		value, err := r.Get("id", tuples[len(tuples)-1])
-		if err != nil {
-			conn.WriteResult(0, (int64)(len(tuples)))
-			return nil
-		}
-
-		if val, ok := value.(int64); ok {
-			conn.WriteResult(val, (int64)(len(tuples)))
-			return nil
-		}
-
-		conn.WriteResult(0, (int64)(len(tuples)))
-		return nil
-	*/
 }
 
 func getValues(specifiedAttrs []string, valuesDecl *parser.Decl) (map[string]any, error) {
@@ -356,80 +250,102 @@ func hasIfNotExists(tableDecl *parser.Decl) bool {
 }
 
 /*
-func lalalal() {
-	autocommit := true
-	for {
-		stmt, err := conn.ReadStatement()
-		if err == io.EOF {
-			return
-		}
-		if err != nil {
-			log.Warning("Enginge.handleConnection: cannot read : %s", err)
-			return
+|-> SELECT
+
+	|-> *
+	|-> FROM
+		|-> account
+	|-> WHERE
+		|-> email
+			|-> =
+			|-> foo@bar.com
+*/
+func selectExecutor(t *Tx, selectDecl *parser.Decl) (int64, int64, chan *agnostic.Tuple, error) {
+	ch := make(chan *agnostic.Tuple)
+
+	return 0, 0, ch, nil
+	/*
+		var attributes []Attribute
+		var tables []*Table
+		var predicates []PredicateLinker
+		var functors []selectFunctor
+		var joiners []joiner
+		var schema string
+		var err error
+
+		for i := range selectDecl.Decl {
+			switch selectDecl.Decl[i].Token {
+			case parser.FromToken:
+				// get selected tables
+				tables = fromExecutor(selectDecl.Decl[i])
+				if len(tables) > 0 {
+					schema = tables[0].schema
+				}
+			case parser.WhereToken:
+				// get WHERE declaration
+				pred, err := whereExecutor2(e, selectDecl.Decl[i].Decl, schema, tables[0].name)
+				if err != nil {
+					return err
+				}
+				predicates = []PredicateLinker{pred}
+			case parser.JoinToken:
+				j, err := joinExecutor(selectDecl.Decl[i])
+				if err != nil {
+					return err
+				}
+				joiners = append(joiners, j)
+			case parser.OrderToken:
+				orderFunctor, err := orderbyExecutor(selectDecl.Decl[i], tables)
+				if err != nil {
+					return err
+				}
+				functors = append(functors, orderFunctor)
+			case parser.LimitToken:
+				limit, err := strconv.Atoi(selectDecl.Decl[i].Decl[0].Lexeme)
+				if err != nil {
+					return fmt.Errorf("wrong limit value: %s", err)
+				}
+				conn = limitedConn(conn, limit)
+			case parser.OffsetToken:
+				offset, err := strconv.Atoi(selectDecl.Decl[i].Decl[0].Lexeme)
+				if err != nil {
+					return fmt.Errorf("wrong offset value: %s", err)
+				}
+				conn = offsetedConn(conn, offset)
+			case parser.DistinctToken:
+				conn = distinctedConn(conn, len(selectDecl.Decl[i].Decl))
+			}
 		}
 
-		instructions, err := parser.ParseInstruction(stmt)
-		if err != nil {
-			conn.WriteError(err)
-			continue
-		}
-
-		if tx == nil {
-			tx, err = e.Begin()
-			if err != nil {
-				conn.WriteError(err)
+		for i := range selectDecl.Decl {
+			if selectDecl.Decl[i].Token != parser.StringToken &&
+				selectDecl.Decl[i].Token != parser.StarToken &&
+				selectDecl.Decl[i].Token != parser.CountToken {
 				continue
 			}
-		}
 
-		err = e.executeQueries(tx, instructions, conn)
-		if err != nil {
-			conn.WriteError(err)
-			continue
-		}
-
-		if autocommit {
-			err = tx.Commit()
+			// get attribute to selected
+			attr, err := getSelectedAttribute(e, selectDecl.Decl[i], tables)
 			if err != nil {
-				conn.WriteError(err)
+				return err
 			}
-			tx = nil
-			continue
-		}
-	}
-}
+			attributes = append(attributes, attr...)
 
-func (e *Engine) executeQueries(instructions []parser.Instruction, conn protocol.EngineConn) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("fatal error: %s", r)
-			return
 		}
-	}()
 
-	for _, i := range instructions {
-		err = e.executeQuery(i, conn)
+		if len(functors) == 0 {
+			// Instantiate a new select functor
+			functors, err = getSelectFunctors(selectDecl)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = generateVirtualRows(e, attributes, conn, schema, tables[0].name, joiners, predicates, functors)
 		if err != nil {
 			return err
 		}
-	}
 
-	return nil
+		return nil
+	*/
 }
-*/
-
-//func (e *Engine) executeQuery(i parser.Instruction, conn protocol.EngineConn) error {
-/*
-	i.Decls[0].Stringy(0,
-		func(format string, varargs ...any) {
-			fmt.Printf(format, varargs...)
-		})
-*/
-/*
-	if e.opsExecutors[i.Decls[0].Token] != nil {
-		return e.opsExecutors[i.Decls[0].Token](e, i.Decls[0], conn)
-	}
-
-	return errors.New("Not Implemented")
-}
-*/

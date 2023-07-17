@@ -16,7 +16,7 @@ type RelationChange struct {
 	old     *Relation
 }
 
-func RollbackValueChange(c ValueChange) {
+func (t *Transaction) rollbackValueChange(c ValueChange) {
 
 	// revert insert
 	if c.current != nil && c.old == nil {
@@ -39,7 +39,7 @@ func RollbackValueChange(c ValueChange) {
 	}
 }
 
-func RollbackRelationChange(c RelationChange, e *Engine) {
+func (t *Transaction) rollbackRelationChange(c RelationChange) {
 	// revert relation creation
 	if c.current != nil && c.old == nil {
 		c.schema.Remove(c.current.name)

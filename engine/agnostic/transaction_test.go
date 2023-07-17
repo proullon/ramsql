@@ -3,6 +3,8 @@ package agnostic
 import (
 	"reflect"
 	"testing"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 func TestTransactionEmptyCommit(t *testing.T) {
@@ -397,4 +399,113 @@ func TestIndexCreation(t *testing.T) {
 	if l != 2 {
 		t.Fatalf("expected 2 indexes for relation, got %d", l)
 	}
+}
+
+func TestQuery(t *testing.T) {
+	e := NewEngine()
+	log.SetLevel(log.DebugLevel)
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	if len(e.schemas[DefaultSchema].relations) != 0 {
+		t.Fatalf("expected 0 relation in default schema, got %d", len(e.schemas[DefaultSchema].relations))
+	}
+
+	attrs := []Attribute{
+		NewAttribute("id", "BIGINT").WithAutoIncrement(),
+		NewAttribute("default_answer", "INT").WithDefaultConst(42),
+		NewAttribute("foo", "TEXT").WithUnique(),
+	}
+
+	schema := DefaultSchema
+	relation := "myrel"
+
+	err = tx.CreateRelation(schema, relation, attrs, []string{"id"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	values := make(map[string]any)
+	values["foo"] = `a`
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert values: %s", err)
+	}
+
+	values["foo"] = `b`
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert values: %s", err)
+	}
+
+	values["foo"] = `c`
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert values: %s", err)
+	}
+
+	_, err = tx.Commit()
+	if err != nil {
+		t.Fatalf("cannot commit tx: %s", err)
+	}
+
+	tx, err = e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin 2nd tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	schema = DefaultSchema
+	relation = "task"
+	attrs = []Attribute{
+		NewAttribute("id", "BIGINT").WithAutoIncrement(),
+		NewAttribute("val", "INT").WithDefaultConst(42),
+		NewAttribute("name", "TEXT").WithUnique(),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"id"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	schema = DefaultSchema
+	relation = "task_link"
+	attrs = []Attribute{
+		NewAttribute("parent_id", "BIGINT"),
+		NewAttribute("child_id", "BIGINT"),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"parent_id", "child_id"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	relation = "myrel"
+	columns, ch, err := tx.Query(DefaultSchema, []Selector{&StarSelector{relation: relation}}, NewTruePredicate())
+	if err != nil {
+		t.Fatalf("unexpected error on Query: %s", err)
+	}
+
+	l := len(columns)
+	if l != 3 {
+		t.Fatalf("expected 3 columns in query return, got %d", l)
+	}
+
+	var tuples []*Tuple
+	for t := range ch {
+		tuples = append(tuples, t)
+	}
+
+	l = len(tuples)
+	if l != 3 {
+		t.Fatalf("expected 3 tuples in query result, got %d", l)
+	}
+
+	_, err = tx.Commit()
+	if err != nil {
+		t.Fatalf("cannot commit tx: %s", err)
+	}
+
 }

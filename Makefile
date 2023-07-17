@@ -10,7 +10,7 @@ install: ## install binaries
 	go install ./...
 
 test: ## test
-	go test ./...
+	go test -timeout 10s ./...
 
 bench:
 	go test -bench=. -count 6 | tee newbench.txt
@@ -18,3 +18,6 @@ bench:
 
 format:
 	mdformat README.md
+
+doc: format
+	pkgsite --http localhost:8086

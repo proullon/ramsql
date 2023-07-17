@@ -4,6 +4,8 @@ import (
 	"container/list"
 	"fmt"
 	"reflect"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 type Transaction struct {
@@ -60,11 +62,11 @@ func (t *Transaction) Rollback() {
 		switch b.Value.(type) {
 		case ValueChange:
 			c := b.Value.(ValueChange)
-			RollbackValueChange(c)
+			t.rollbackValueChange(c)
 			break
 		case RelationChange:
 			c := b.Value.(RelationChange)
-			RollbackRelationChange(c, t.e)
+			t.rollbackRelationChange(c)
 			break
 		}
 		t.changes.Remove(b)
@@ -240,6 +242,151 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 	t.changes.PushBack(c)
 
 	return tuple, nil
+}
+
+// Query data from relations
+//
+// cf: https://en.wikipedia.org/wiki/Query_optimization
+// cf: https://en.wikipedia.org/wiki/Relational_algebra
+//
+// (1) Transaction safety : list all touched relations and lock them
+// (2) Sourcing           : evaluate which indexes query can use for each relation. HashIndex > Btree > SeqScan
+// (3) Join ordering      : estimate the cardinality (Join selection factor) of each relation after predicates filtering, then order the join by lower cardinality
+// (4) Selection          : build filtered relations on each leaf (parallelisation possible)
+// (5) Join               : join filtered relations on each node recursively
+// (6) Return result      : return result to user with selectors
+func (t *Transaction) Query(schema string, selectors []Selector, p Predicate) ([]string, chan *Tuple, error) {
+	if err := t.aborted(); err != nil {
+		return nil, nil, err
+	}
+
+	s, err := t.e.schema(schema)
+	if err != nil {
+		return nil, nil, t.abort(err)
+	}
+
+	// (1)
+	relations := make(map[string]*Relation)
+	err = t.recLock(schema, relations, p)
+	if err != nil {
+		return nil, nil, t.abort(err)
+	}
+	for _, sel := range selectors {
+		rel := sel.Relation()
+		r, err := s.Relation(rel)
+		if err != nil {
+			return nil, nil, t.abort(err)
+		}
+		t.lock(r)
+		relations[rel] = r
+	}
+
+	// (2)
+	sources := make(map[string]Source)
+	var sourceCost int64
+	for _, r := range relations {
+		log.Debug("this query needs relation '%s'\n", r.name)
+		for _, index := range r.indexes {
+			cost, ok, p := recCanUseIndex(r.name, index, p)
+			if ok {
+				log.Debug("this query can use index %s for relation %s", index, r)
+			}
+			if ok && cost < sourceCost {
+				sourceCost = cost
+				sources[r.name] = NewHashIndexSource(index, p)
+				log.Debug("choosing %s as source for relation %s", index, r)
+			}
+		}
+		log.Debug("could not find suitable index for relation %s, using seq scan", r)
+		sources[r.name] = NewSeqScan(r)
+	}
+
+	// (3)
+
+	// assign an index to each predicate
+	//
+	// level for each predicate:
+	// - no source
+	// - can use hashmap
+	// - can use btree
+	// - need use seqscan
+	//
+	// hey i'm writing a query planner here lol
+	//
+	//
+	//
+	// hmm JOIN predicate need to check 2 relation, so 2 index level
+	// AND, OR have 2 indirect index level as well
+	//
+	// TRUE predicate has 1 value of NONE
+	// then
+	// example:
+	// SELECT "hello" from 1;    best level: No source
+	// SELECT foo.test, bar.test FROM foo JOIN bar ON foo.id = bar.id WHERE foo.baz = 2;  best level: JOIN (2 hash level) or EQ (1 hash level)
+	// SELECT * FROM foo WHERE attr_a = 2 AND attr_b > 3;   best level: first EQ  (1 hash level) because 2n EQ is max 2 btree level
+	//
+	// TODO: foreign keys should have hashmap index
+	// So first each Predicate returns its best source
+
+	// Query planning implementation
+	// Relation source selection with lower cardinality
+	// Join ordering
+
+	return nil, nil, fmt.Errorf("lol")
+}
+
+func (t *Transaction) recLock(schema string, relations map[string]*Relation, p Predicate) error {
+
+	s, err := t.e.schema(schema)
+	if err != nil {
+		return err
+	}
+	if rel := p.Relation(); rel != "" {
+		r, err := s.Relation(rel)
+		if err != nil {
+			return err
+		}
+
+		relations[p.Relation()] = r
+		t.lock(r)
+	}
+
+	if lp, ok := p.Left(); ok {
+		err = t.recLock(schema, relations, lp)
+		if err != nil {
+			return err
+		}
+	}
+	if rp, ok := p.Right(); ok {
+		err = t.recLock(schema, relations, rp)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func recCanUseIndex(relName string, index Index, p Predicate) (int64, bool, Predicate) {
+	if ok, cost := index.CanSourceWith(p); ok {
+		return cost, ok, p
+	}
+
+	if lp, ok := p.Left(); ok {
+		cost, ok, cp := recCanUseIndex(relName, index, lp)
+		if ok {
+			return cost, ok, cp
+		}
+	}
+
+	if rp, ok := p.Right(); ok {
+		cost, ok, cp := recCanUseIndex(relName, index, rp)
+		if ok {
+			return cost, ok, cp
+		}
+	}
+
+	return 0, false, nil
 }
 
 // Lock relations if not already done
