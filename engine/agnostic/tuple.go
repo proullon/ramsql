@@ -16,8 +16,8 @@ func NewTuple(values ...any) *Tuple {
 }
 
 // Append add a value to the tuple
-func (t *Tuple) Append(value any) {
-	t.values = append(t.values, value)
+func (t *Tuple) Append(values ...any) {
+	t.values = append(t.values, values...)
 }
 
 func (t *Tuple) Values() []any {

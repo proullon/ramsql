@@ -19,6 +19,7 @@ type BTreeIndex struct {
 type HashIndex struct {
 	name      string
 	relName   string
+	relAttrs  []string
 	attrs     []int
 	attrsName []string
 	m         map[uint64]uintptr
@@ -26,7 +27,7 @@ type HashIndex struct {
 	maphash.Hash
 }
 
-func NewHashIndex(name string, relName string, attrsName []string, attrs []int) *HashIndex {
+func NewHashIndex(name string, relName string, relAttrs []Attribute, attrsName []string, attrs []int) *HashIndex {
 	h := &HashIndex{
 		name:      name,
 		relName:   relName,
@@ -35,6 +36,9 @@ func NewHashIndex(name string, relName string, attrsName []string, attrs []int) 
 		m:         make(map[uint64]uintptr),
 	}
 	h.SetSeed(maphash.MakeSeed())
+	for _, a := range relAttrs {
+		h.relAttrs = append(h.relAttrs, a.name)
+	}
 	return h
 }
 

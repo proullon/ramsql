@@ -43,7 +43,7 @@ type Picker interface {
 // ...
 type Selector interface {
 	Picker
-	Select([]*Tuple) ([]Tuple, error)
+	Select([]*Tuple) ([]*Tuple, error)
 }
 
 // Predicate defines filter to be applied on spcified relation row
@@ -58,27 +58,48 @@ type Predicate interface {
 type Source interface {
 	HasNext() bool
 	Next() *Tuple
+	EstimateCardinal() int64
+	Columns() []string
 }
 
 // Node is an element of a quey plan
 //
-// Joiner and Scanner implement Node.
+// Joiner, Sorter and Scanner implement Node.
 type Node interface {
-	Exec() ([]*Tuple, error)
+	Exec() ([]string, []*Tuple, error)
+	EstimateCardinal() int64
+	Children() []Node
 }
 
 // Joiner joins two relation together.
 //
 // Should be able to estimate cardinality of join for cost optimization.
 //
-// NaturalJoiner
-// LeftOuterJoiner
-// RightOuterJoiner
-// FullOuterJoiner
+// Possible implementations:
+// * NaturalJoiner
+// * LeftOuterJoiner
+// * RightOuterJoiner
+// * FullOuterJoiner
 type Joiner interface {
 	Node
-	// LeftRelation() string
-	// RightRelation() string
+	Left() string
+	SetLeft(n Node)
+	Right() string
+	SetRight(n Node)
+}
+
+type Joiners []Joiner
+
+func (js Joiners) Len() int {
+	return len(js)
+}
+
+func (js Joiners) Less(i, j int) bool {
+	return js[i].EstimateCardinal() < js[i].EstimateCardinal()
+}
+
+func (js Joiners) Swap(i, j int) {
+	js[i], js[j] = js[j], js[j]
 }
 
 // Scanner produce results by scanning the relation.
@@ -87,6 +108,19 @@ type Joiner interface {
 // * The best source possible regarding cost (Hashmap, Btree, SeqScan)
 // * A (possibly) recursive predicate to filter on
 type Scanner interface {
+	Node
+	Append(Predicate)
+}
+
+// Sorter produce a sorted result from single child node
+//
+// Possible implementations:
+// * AscendingSort
+// * DescendingSort
+// * HavingSort
+// * Limit ?
+// * Offset ?
+type Sorter interface {
 	Node
 }
 
@@ -112,11 +146,8 @@ func (s *StarSelector) Relation() string {
 	return s.relation
 }
 
-func (s *StarSelector) Select(in []*Tuple) (out []Tuple, err error) {
-	out = make([]Tuple, len(in))
-	for i, t := range in {
-		out[i] = *t
-	}
+func (s *StarSelector) Select(in []*Tuple) (out []*Tuple, err error) {
+	out = in
 	return
 }
 
@@ -131,6 +162,10 @@ type TruePredicate struct {
 
 func NewTruePredicate() *TruePredicate {
 	return &TruePredicate{}
+}
+
+func (p TruePredicate) String() string {
+	return "TRUE"
 }
 
 func (p *TruePredicate) Type() PredicateType {
@@ -162,6 +197,10 @@ type FalsePredicate struct {
 
 func NewFalsePredicate() *FalsePredicate {
 	return &FalsePredicate{}
+}
+
+func (p FalsePredicate) String() string {
+	return "FALSE"
 }
 
 func (p *FalsePredicate) Type() PredicateType {
@@ -200,6 +239,10 @@ func NewAndPredicate(left, right Predicate) *AndPredicate {
 	}
 
 	return p
+}
+
+func (p AndPredicate) String() string {
+	return "AND"
 }
 
 func (p *AndPredicate) Type() PredicateType {
@@ -294,4 +337,74 @@ func (p *EqPredicate) Relation() string {
 
 func (p *EqPredicate) Attribute() []string {
 	return []string{p.attrName}
+}
+
+type SelectorNode struct {
+	selectors []Selector
+	child     Node
+	columns   []string
+}
+
+func NewSelectorNode(selectors []Selector, n Node) *SelectorNode {
+	sn := &SelectorNode{
+		selectors: selectors,
+		child:     n,
+	}
+
+	for _, selector := range sn.selectors {
+		sn.columns = append(sn.columns, selector.Attribute()...)
+	}
+
+	return sn
+}
+
+func (sn SelectorNode) String() string {
+	return fmt.Sprintf("Select %s", sn.columns)
+}
+
+func (sn *SelectorNode) Exec() ([]string, []*Tuple, error) {
+	cols, srcs, err := sn.child.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// group by somewhere in here
+
+	outs := make([][]*Tuple, len(sn.selectors))
+
+	var prevLen int
+	for i, selector := range sn.selectors {
+		out, err := selector.Select(srcs)
+		if err != nil {
+			return nil, nil, err
+		}
+		outs[i] = out
+		if i != 0 && len(out) != prevLen {
+			return nil, nil, fmt.Errorf("selectors have different cardinals (%d and %d)", len(out), prevLen)
+		}
+		prevLen = len(out)
+	}
+
+	res := make([]*Tuple, prevLen)
+	for i := 0; i < prevLen; i++ {
+		t := NewTuple()
+		for _, out := range outs {
+			t.Append(out[i].values...)
+		}
+		res[i] = t
+	}
+
+	return cols, res, nil
+}
+
+func (sn *SelectorNode) Columns() []string {
+	return sn.columns
+}
+
+func (sn *SelectorNode) EstimateCardinal() int64 {
+	return sn.child.EstimateCardinal()
+}
+
+func (sn *SelectorNode) Children() []Node {
+	return []Node{sn.child}
 }
