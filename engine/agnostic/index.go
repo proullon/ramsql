@@ -9,26 +9,30 @@ import (
 type Index interface {
 	Truncate()
 	Add(*Tuple)
-	CanUse( /* predicate */ ) bool
 	Name() string
+	CanSourceWith(p Predicate) (bool, int64)
 }
 
 type BTreeIndex struct {
 }
 
 type HashIndex struct {
-	name  string
-	attrs []int
-	m     map[uint64]uintptr
+	name      string
+	relName   string
+	attrs     []int
+	attrsName []string
+	m         map[uint64]uintptr
 
 	maphash.Hash
 }
 
-func NewHashIndex(name string, attrs []int) *HashIndex {
+func NewHashIndex(name string, relName string, attrsName []string, attrs []int) *HashIndex {
 	h := &HashIndex{
-		name:  name,
-		attrs: attrs,
-		m:     make(map[uint64]uintptr),
+		name:      name,
+		relName:   relName,
+		attrs:     attrs,
+		attrsName: attrsName,
+		m:         make(map[uint64]uintptr),
 	}
 	h.SetSeed(maphash.MakeSeed())
 	return h
@@ -47,10 +51,38 @@ func (h *HashIndex) Add(t *Tuple) {
 	h.m[sum] = uintptr(unsafe.Pointer(t))
 }
 
+func (h *HashIndex) Get(values []any) (*Tuple, error) {
+	for _, v := range values {
+		h.Write([]byte(fmt.Sprintf("%v", v)))
+	}
+	sum := h.Sum64()
+	h.Reset()
+
+	var t *Tuple
+	ptr, ok := h.m[sum]
+	if !ok {
+		return nil, fmt.Errorf("could not find sum '%d' (%v) in index %s", sum, values, h)
+	}
+	t = (*Tuple)(unsafe.Pointer(ptr))
+	return t, nil
+}
+
 func (h *HashIndex) Truncate() {
 	h.m = make(map[uint64]uintptr)
 }
 
-func (h *HashIndex) CanUse() bool {
-	return false
+func (h *HashIndex) String() string {
+	return h.Name()
+}
+
+func (h *HashIndex) CanSourceWith(p Predicate) (bool, int64) {
+	if p.Relation() != h.relName {
+		return false, 0
+	}
+
+	if p.Type() != Eq {
+		return false, 0
+	}
+
+	return true, 1
 }
