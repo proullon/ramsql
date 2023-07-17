@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"reflect"
+	"sort"
 
 	"github.com/proullon/ramsql/engine/log"
 )
@@ -247,15 +248,18 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 // Query data from relations
 //
 // cf: https://en.wikipedia.org/wiki/Query_optimization
+//
 // cf: https://en.wikipedia.org/wiki/Relational_algebra
 //
-// (1) Transaction safety : list all touched relations and lock them
-// (2) Sourcing           : evaluate which indexes query can use for each relation. HashIndex > Btree > SeqScan
-// (3) Join ordering      : estimate the cardinality (Join selection factor) of each relation after predicates filtering, then order the join by lower cardinality
-// (4) Selection          : build filtered relations on each leaf (parallelisation possible)
-// (5) Join               : join filtered relations on each node recursively
-// (6) Return result      : return result to user with selectors
-func (t *Transaction) Query(schema string, selectors []Selector, p Predicate) ([]string, chan *Tuple, error) {
+// * (1) Transaction safety : list all touched relations and lock them
+// * (2) Sourcing           : evaluate which indexes query can use for each relation. HashIndex > Btree > SeqScan
+// * (3) Join ordering      : estimate the cardinality (Join selection factor) of each relation after predicates filtering, then order the join by lower cardinality
+// * (4) Selection          : build filtered relations on each leaf (parallelisation possible)
+// * (5) Join               : join filtered relations on each node recursively
+// * (6) Return result      : return result to user with selectors
+//
+// TODO: foreign keys should have hashmap index
+func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, joiners []Joiner) ([]string, []*Tuple, error) {
 	if err := t.aborted(); err != nil {
 		return nil, nil, err
 	}
@@ -302,37 +306,83 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate) ([
 	}
 
 	// (3)
+	// build nodes for each relations
+	scanners := make(map[string]Scanner)
+	for _, r := range relations {
+		sc := NewRelationScanner(sources[r.name], nil)
+		recAppendPredicates(r.name, sc, p)
+		scanners[r.name] = sc
+	}
+	// assign scanner nodes to joiner nodes
+	for _, j := range joiners {
+		sc, ok := scanners[j.Left()]
+		if !ok {
+			return nil, nil, t.abort(fmt.Errorf("cannot join %s, scanner for %s not found", j, j.Left()))
+		}
+		j.SetLeft(sc)
+		sc, ok = scanners[j.Right()]
+		if !ok {
+			return nil, nil, t.abort(fmt.Errorf("cannot join %s, scanner for %s not found", j, j.Right()))
+		}
+		j.SetRight(sc)
+	}
+	// sort joins by estimated cardinal
+	sort.Sort(Joiners(joiners))
+	// now we need to build tree by replacing gradually already joined relation in bigger join
+	seen := make(map[string]Node)
+	for _, n := range joiners {
+		child, ok := seen[n.Left()]
+		if !ok {
+			seen[n.Left()] = n
+		} else {
+			n.SetLeft(child)
+		}
+		child, ok = seen[n.Right()]
+		if !ok {
+			seen[n.Right()] = n
+		} else {
+			n.SetRight(child)
+		}
+	}
+	var headJoin Node
+	if len(joiners) > 0 {
+		headJoin = joiners[len(joiners)-1]
+	} else if len(scanners) == 1 {
+		// should have only on scanner then ?
+		for _, v := range scanners {
+			headJoin = v
+		}
+	} else {
+		return nil, nil, t.abort(fmt.Errorf("no join, but got %d scan", len(scanners)))
+	}
 
-	// assign an index to each predicate
-	//
-	// level for each predicate:
-	// - no source
-	// - can use hashmap
-	// - can use btree
-	// - need use seqscan
-	//
-	// hey i'm writing a query planner here lol
-	//
-	//
-	//
-	// hmm JOIN predicate need to check 2 relation, so 2 index level
-	// AND, OR have 2 indirect index level as well
-	//
-	// TRUE predicate has 1 value of NONE
-	// then
-	// example:
-	// SELECT "hello" from 1;    best level: No source
-	// SELECT foo.test, bar.test FROM foo JOIN bar ON foo.id = bar.id WHERE foo.baz = 2;  best level: JOIN (2 hash level) or EQ (1 hash level)
-	// SELECT * FROM foo WHERE attr_a = 2 AND attr_b > 3;   best level: first EQ  (1 hash level) because 2n EQ is max 2 btree level
-	//
-	// TODO: foreign keys should have hashmap index
-	// So first each Predicate returns its best source
+	// append selectors
+	n := NewSelectorNode(selectors, headJoin)
+	// append sorters
 
-	// Query planning implementation
-	// Relation source selection with lower cardinality
-	// Join ordering
+	PrintQueryPlan(n, 0, nil)
 
-	return nil, nil, fmt.Errorf("lol")
+	// (4), (5), (6)
+	columns, res, err := n.Exec()
+	if err != nil {
+		return nil, nil, t.abort(err)
+	}
+
+	return columns, res, nil
+}
+
+func recAppendPredicates(rname string, sc Scanner, p Predicate) {
+	if p.Relation() == rname {
+		sc.Append(p)
+		return
+	}
+
+	if lp, ok := p.Left(); ok {
+		recAppendPredicates(rname, sc, lp)
+	}
+	if rp, ok := p.Right(); ok {
+		recAppendPredicates(rname, sc, rp)
+	}
 }
 
 func (t *Transaction) recLock(schema string, relations map[string]*Relation, p Predicate) error {
@@ -419,4 +469,25 @@ func (t *Transaction) abort(err error) error {
 	t.Rollback()
 	t.err = err
 	return err
+}
+
+// PrintQueryPlan
+func PrintQueryPlan(n Node, depth int, printer func(fmt string, varargs ...any)) {
+	printer = func(format string, varargs ...any) {
+		fmt.Printf(format, varargs...)
+	}
+
+	if printer == nil {
+		return
+	}
+
+	indent := ""
+	for i := 0; i < depth; i++ {
+		indent = fmt.Sprintf("%s    ", indent)
+	}
+
+	printer("%s|-> %s (|A| = %d)\n", indent, n, n.EstimateCardinal())
+	for _, child := range n.Children() {
+		PrintQueryPlan(child, depth+1, printer)
+	}
 }

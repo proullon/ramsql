@@ -483,7 +483,7 @@ func TestQuery(t *testing.T) {
 	}
 
 	relation = "myrel"
-	columns, ch, err := tx.Query(DefaultSchema, []Selector{&StarSelector{relation: relation}}, NewTruePredicate())
+	columns, tuples, err := tx.Query(DefaultSchema, []Selector{&StarSelector{relation: relation}}, NewTruePredicate(), nil)
 	if err != nil {
 		t.Fatalf("unexpected error on Query: %s", err)
 	}
@@ -491,11 +491,6 @@ func TestQuery(t *testing.T) {
 	l := len(columns)
 	if l != 3 {
 		t.Fatalf("expected 3 columns in query return, got %d", l)
-	}
-
-	var tuples []*Tuple
-	for t := range ch {
-		tuples = append(tuples, t)
 	}
 
 	l = len(tuples)

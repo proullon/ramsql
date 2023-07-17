@@ -42,13 +42,13 @@ func NewRelation(schema, name string, attributes []Attribute, pk []string) (*Rel
 
 	// if primary key is specified, create Hash index
 	if len(r.pk) != 0 {
-		r.indexes = append(r.indexes, NewHashIndex("pk_"+schema+"_"+name, name, pk, r.pk))
+		r.indexes = append(r.indexes, NewHashIndex("pk_"+schema+"_"+name, name, attributes, pk, r.pk))
 	}
 
 	// if unique is specified, create Hash index
 	for i, a := range r.attributes {
 		if a.unique {
-			r.indexes = append(r.indexes, NewHashIndex("unique_"+schema+"_"+name+"_"+a.name, name, []string{a.name}, []int{i}))
+			r.indexes = append(r.indexes, NewHashIndex("unique_"+schema+"_"+name+"_"+a.name, name, attributes, []string{a.name}, []int{i}))
 		}
 	}
 
