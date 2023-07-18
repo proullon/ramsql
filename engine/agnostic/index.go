@@ -65,8 +65,10 @@ func (h *HashIndex) Get(values []any) (*Tuple, error) {
 	var t *Tuple
 	ptr, ok := h.m[sum]
 	if !ok {
-		return nil, fmt.Errorf("could not find sum '%d' (%v) in index %s", sum, values, h)
+		return nil, nil
+		//		return nil, fmt.Errorf("could not find sum '%d' (%v) in index %s", sum, values, h)
 	}
+
 	t = (*Tuple)(unsafe.Pointer(ptr))
 	return t, nil
 }
@@ -86,6 +88,20 @@ func (h *HashIndex) CanSourceWith(p Predicate) (bool, int64) {
 
 	if p.Type() != Eq {
 		return false, 0
+	}
+
+	var found bool
+	for _, l := range h.attrsName {
+		found = false
+		for _, r := range p.Attribute() {
+			if l == r || h.relName+"."+l == r {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false, 0
+		}
 	}
 
 	return true, 1

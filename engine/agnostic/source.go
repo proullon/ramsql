@@ -2,8 +2,7 @@ package agnostic
 
 import (
 	"container/list"
-
-	"github.com/proullon/ramsql/engine/log"
+	"fmt"
 )
 
 type IndexSrc struct {
@@ -13,30 +12,31 @@ type IndexSrc struct {
 	cols    []string
 }
 
-func NewHashIndexSource(index Index, p Predicate) *IndexSrc {
+func NewHashIndexSource(index Index, p Predicate) (*IndexSrc, error) {
 	s := &IndexSrc{}
 
 	i, ok := index.(*HashIndex)
 	if !ok {
-		return s
+		return nil, fmt.Errorf("index %s is not a HashIndex", index)
 	}
 	s.rname = i.relName
 	s.cols = i.relAttrs
 
 	eq, ok := p.(*EqPredicate)
 	if !ok {
-		return s
+		return nil, fmt.Errorf("predicate %s is not a Eq predicate", p)
 	}
 
 	t, err := i.Get([]any{eq.v})
 	if err != nil {
-		log.Debug("cannot create NewHashIndexSource(%s,%s): %s", index, p, err)
-		return s
+		return nil, fmt.Errorf("cannot create NewHashIndexSource(%s,%s): %s", index, p, err)
 	}
 
 	s.tuple = t
-	s.hasNext = true
-	return s
+	if t != nil {
+		s.hasNext = true
+	}
+	return s, nil
 }
 
 func (s IndexSrc) String() string {
@@ -60,7 +60,10 @@ func (s *IndexSrc) Columns() []string {
 }
 
 func (s *IndexSrc) EstimateCardinal() int64 {
-	return 1
+	if s.tuple != nil {
+		return 1
+	}
+	return 0
 }
 
 type SeqScanSrc struct {
