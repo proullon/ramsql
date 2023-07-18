@@ -42,12 +42,12 @@ func (s *RelationScanner) Exec() ([]string, []*Tuple, error) {
 		canAppend = true
 		for _, p := range s.predicates {
 			ok, err = p.Eval(cols, t)
+			if err != nil {
+				return nil, nil, fmt.Errorf("RelationScanner.Exec: %s(%v) : %w", p, t, err)
+			}
 			if !ok {
 				canAppend = false
 				break
-			}
-			if err != nil {
-				return nil, nil, fmt.Errorf("RelationScanner.Exec: %s(%v) : %w", p, t, err)
 			}
 		}
 		if canAppend {
