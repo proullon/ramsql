@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/proullon/ramsql/engine/agnostic"
 	"github.com/proullon/ramsql/engine/parser"
@@ -55,8 +56,42 @@ func NewTx(ctx context.Context, e *Engine, opts sql.TxOptions) (*Tx, error) {
 	return t, nil
 }
 
-func (t *Tx) QueryContext(ctx context.Context, query string, args []NamedValue) (chan *agnostic.Tuple, error) {
-	return nil, NotImplemented
+func (t *Tx) QueryContext(ctx context.Context, query string, args []NamedValue) ([]string, chan *agnostic.Tuple, error) {
+
+	instructions, err := parser.ParseInstruction(query)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(instructions) != 1 {
+		return nil, nil, fmt.Errorf("exected 1 query, got %d", len(instructions))
+	}
+
+	inst := instructions[0]
+	_ = inst
+
+	var schema string
+	var selectors []agnostic.Selector
+	var predicate agnostic.Predicate
+	var joiners []agnostic.Joiner
+
+	cols, res, err := t.tx.Query(schema, selectors, predicate, joiners)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ch := make(chan *agnostic.Tuple, len(res))
+	go func() {
+		for _, r := range res {
+			ch <- r
+		}
+		close(ch)
+	}()
+
+	return cols, ch, nil
+}
+
+func (t *Tx) queryQuery(ch chan *agnostic.Tuple, i parser.Instruction) error {
+	return nil
 }
 
 // Commit the transaction on server
