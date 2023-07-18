@@ -464,7 +464,7 @@ func TestQuery(t *testing.T) {
 	attrs = []Attribute{
 		NewAttribute("id", "BIGINT").WithAutoIncrement(),
 		NewAttribute("val", "INT").WithDefaultConst(42),
-		NewAttribute("name", "TEXT").WithUnique(),
+		NewAttribute("name", "TEXT").WithUnique().WithDefault(NewRandString(20)),
 	}
 	err = tx.CreateRelation(schema, relation, attrs, []string{"id"})
 	if err != nil {
@@ -496,6 +496,37 @@ func TestQuery(t *testing.T) {
 	l = len(tuples)
 	if l != 3 {
 		t.Fatalf("expected 3 tuples in query result, got %d", l)
+	}
+
+	columns, tuples, err = tx.Query(
+		DefaultSchema,
+		[]Selector{
+			NewAttributeSelector("task", []string{"id", "val", "name"}),
+			NewAttributeSelector("task_link", []string{"child_id"}),
+		},
+		NewEqPredicate("task", "id", 0, 23),
+		[]Joiner{
+			NewNaturalJoin("task", "id", "task_link", "parent_id"),
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error on Query: %s", err)
+	}
+
+	l = len(columns)
+	if l != 4 {
+		t.Fatalf("expected 4 columns in query return, got %d", l)
+	}
+
+	l = len(tuples)
+	if l != 0 {
+		t.Fatalf("expected 3 tuples in query result, got %d", l)
+	}
+
+	values["foo"] = `c`
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert values: %s", err)
 	}
 
 	_, err = tx.Commit()

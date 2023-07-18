@@ -43,7 +43,7 @@ type Picker interface {
 // ...
 type Selector interface {
 	Picker
-	Select([]*Tuple) ([]*Tuple, error)
+	Select([]string, []*Tuple) ([]*Tuple, error)
 }
 
 // Predicate defines filter to be applied on spcified relation row
@@ -125,29 +125,83 @@ type Sorter interface {
 }
 
 type AttributeSelector struct {
-	Relation  string
-	Attribute string
+	relation   string
+	attributes []string
+}
+
+func NewAttributeSelector(rel string, attrs []string) *AttributeSelector {
+	s := &AttributeSelector{
+		relation:   rel,
+		attributes: attrs,
+	}
+
+	return s
+}
+
+func (s AttributeSelector) String() string {
+	return fmt.Sprintf("%s.%s", s.relation, s.attributes)
+}
+
+func (s *AttributeSelector) Attribute() []string {
+	return s.attributes
+}
+
+func (s *AttributeSelector) Relation() string {
+	return s.relation
+}
+
+func (s *AttributeSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err error) {
+	idx := make([]int, len(s.attributes))
+	for attrIdx, attr := range s.attributes {
+		idx[attrIdx] = -1
+		for i, c := range cols {
+			if c == s.relation+"."+attr {
+				idx[attrIdx] = i
+				break
+			}
+			if c == attr {
+				idx[attrIdx] = i
+				break
+			}
+		}
+		if idx[attrIdx] == -1 {
+			return nil, fmt.Errorf("AttributeSelector(%s) not found in %s", attr, cols)
+		}
+	}
+
+	for _, srct := range in {
+		t := NewTuple()
+		for _, id := range idx {
+			v := srct.values[id]
+			t.Append(v)
+		}
+		out = append(out, t)
+	}
+
+	return
 }
 
 type CountSelector struct {
-	Relation  string
-	Attribute string
+	relation  string
+	attribute string
 }
 
 type StarSelector struct {
 	relation string
+	cols     []string
 }
 
 func (s *StarSelector) Attribute() []string {
-	return nil
+	return s.cols
 }
 
 func (s *StarSelector) Relation() string {
 	return s.relation
 }
 
-func (s *StarSelector) Select(in []*Tuple) (out []*Tuple, err error) {
+func (s *StarSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err error) {
 	out = in
+	s.cols = cols
 	return
 }
 
@@ -371,10 +425,11 @@ func (sn *SelectorNode) Exec() ([]string, []*Tuple, error) {
 	// group by somewhere in here
 
 	outs := make([][]*Tuple, len(sn.selectors))
+	var resc []string
 
 	var prevLen int
 	for i, selector := range sn.selectors {
-		out, err := selector.Select(srcs)
+		out, err := selector.Select(cols, srcs)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -383,6 +438,7 @@ func (sn *SelectorNode) Exec() ([]string, []*Tuple, error) {
 			return nil, nil, fmt.Errorf("selectors have different cardinals (%d and %d)", len(out), prevLen)
 		}
 		prevLen = len(out)
+		resc = append(resc, selector.Attribute()...)
 	}
 
 	res := make([]*Tuple, prevLen)
@@ -394,7 +450,7 @@ func (sn *SelectorNode) Exec() ([]string, []*Tuple, error) {
 		res[i] = t
 	}
 
-	return cols, res, nil
+	return resc, res, nil
 }
 
 func (sn *SelectorNode) Columns() []string {
@@ -407,4 +463,124 @@ func (sn *SelectorNode) EstimateCardinal() int64 {
 
 func (sn *SelectorNode) Children() []Node {
 	return []Node{sn.child}
+}
+
+type NaturalJoin struct {
+	//Left() string
+	//SetLeft(n Node)
+	//Right() string
+	//SetRight(n Node)
+	//Exec() ([]string, []*Tuple, error)
+	//EstimateCardinal() int64
+	//Children() []Node
+	leftr string
+	lefta string
+	left  Node
+
+	rightr string
+	righta string
+	right  Node
+}
+
+func NewNaturalJoin(leftRel, leftAttr, rightRel, rightAttr string) *NaturalJoin {
+	j := &NaturalJoin{
+		leftr:  leftRel,
+		lefta:  leftAttr,
+		rightr: rightRel,
+		righta: rightAttr,
+	}
+	return j
+}
+
+func (j NaturalJoin) String() string {
+	return "JOIN " + j.leftr + "." + j.lefta + " >< " + j.rightr + "." + j.righta
+}
+
+func (j *NaturalJoin) Left() string {
+	return j.leftr
+}
+
+func (j *NaturalJoin) SetLeft(n Node) {
+	j.left = n
+}
+
+func (j *NaturalJoin) Right() string {
+	return j.rightr
+}
+
+func (j *NaturalJoin) SetRight(n Node) {
+	j.right = n
+}
+
+func (j *NaturalJoin) EstimateCardinal() int64 {
+	if j.left == nil || j.right == nil {
+		return 0
+	}
+
+	return int64((j.left.EstimateCardinal() * j.right.EstimateCardinal()) / 2)
+}
+
+func (j *NaturalJoin) Children() []Node {
+	return []Node{j.left, j.right}
+}
+
+func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
+
+	lcols, lefts, err := j.left.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+	var lidx int
+	lidx = -1
+	for i, c := range lcols {
+		if c == j.lefta || c == j.leftr+"."+j.lefta {
+			lidx = i
+			break
+		}
+	}
+	if lidx == -1 {
+		return nil, nil, fmt.Errorf("%s: columns not found in left node", j)
+	}
+
+	rcols, rights, err := j.right.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+	var ridx int
+	ridx = -1
+	for i, c := range rcols {
+		if c == j.righta || c == j.rightr+"."+j.righta {
+			ridx = i
+			break
+		}
+	}
+	if ridx == -1 {
+		return nil, nil, fmt.Errorf("%s: columns not found in right node", j)
+	}
+
+	cols := make([]string, len(lcols)+len(rcols))
+	var idx int
+	for _, c := range lcols {
+		cols[idx] = c
+		idx++
+	}
+	for _, c := range rcols {
+		cols[idx] = c
+		idx++
+	}
+
+	// prepare for worst case cross join
+	res := make([]*Tuple, len(lefts)*len(rights))
+	for _, left := range lefts {
+		for _, right := range rights {
+			if reflect.DeepEqual(left.values[lidx], right.values[ridx]) {
+				t := NewTuple(left.values)
+				t.Append(right.values...)
+				res[idx] = t
+				idx++
+			}
+		}
+	}
+
+	return cols, res, nil
 }

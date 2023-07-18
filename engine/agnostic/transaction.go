@@ -293,16 +293,23 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 		for _, index := range r.indexes {
 			cost, ok, p := recCanUseIndex(r.name, index, p)
 			if ok {
-				log.Debug("this query can use index %s for relation %s", index, r)
+				log.Debug("this query can use index %s for relation %s (cost: %d)", index, r, cost)
 			}
-			if ok && cost < sourceCost {
-				sourceCost = cost
-				sources[r.name] = NewHashIndexSource(index, p)
+			if ok && (sourceCost == 0 || cost < sourceCost) {
 				log.Debug("choosing %s as source for relation %s", index, r)
+				newsrc, err := NewHashIndexSource(index, p)
+				if err != nil {
+					log.Debug("cannot create source with index %s for relation %s: %s", index, r, err)
+					continue
+				}
+				sources[r.name] = newsrc
+				sourceCost = cost
 			}
 		}
-		log.Debug("could not find suitable index for relation %s, using seq scan", r)
-		sources[r.name] = NewSeqScan(r)
+		if _, ok := sources[r.name]; !ok {
+			log.Debug("could not find suitable index for relation %s, using seq scan", r)
+			sources[r.name] = NewSeqScan(r)
+		}
 	}
 
 	// (3)

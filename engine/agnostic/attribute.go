@@ -2,6 +2,7 @@ package agnostic
 
 import (
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strconv"
 	"strings"
@@ -153,4 +154,21 @@ func parseDate(data string) (time.Time, error) {
 	}
 
 	return time.Time{}, fmt.Errorf("cannot use '%s' as date", data)
+}
+
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func NewRandString(n int) Defaulter {
+	rand.Seed(time.Now().UnixNano())
+
+	f := func() any {
+		sb := strings.Builder{}
+		sb.Grow(n)
+		for i := 0; i < n; i++ {
+			sb.WriteByte(charset[rand.Intn(len(charset))])
+		}
+		return sb.String()
+	}
+
+	return f
 }
