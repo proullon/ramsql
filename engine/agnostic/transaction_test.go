@@ -523,10 +523,49 @@ func TestQuery(t *testing.T) {
 		t.Fatalf("expected 3 tuples in query result, got %d", l)
 	}
 
-	values["foo"] = `c`
-	_, err = tx.Insert(schema, relation, values)
+	for i := 0; i < 100; i++ {
+		_, err = tx.Insert(schema, "task", values)
+		if err != nil {
+			t.Fatalf("cannot insert values: %s", err)
+		}
+
+		if i == 0 {
+			continue
+		}
+
+		for j := 50; j < 100; j++ {
+			values["parent_id"] = i
+			values["child_id"] = j
+			_, err = tx.Insert(schema, "task_link", values)
+			if err != nil {
+				t.Fatalf("cannot insert values: %s", err)
+			}
+		}
+	}
+
+	columns, tuples, err = tx.Query(
+		DefaultSchema,
+		[]Selector{
+			NewAttributeSelector("task", []string{"id", "val", "name"}),
+			NewAttributeSelector("task_link", []string{"child_id"}),
+		},
+		NewEqPredicate("task", "id", 0, 23),
+		[]Joiner{
+			NewNaturalJoin("task", "id", "task_link", "parent_id"),
+		},
+	)
 	if err != nil {
-		t.Fatalf("cannot insert values: %s", err)
+		t.Fatalf("unexpected error on Query: %s", err)
+	}
+
+	l = len(columns)
+	if l != 4 {
+		t.Fatalf("expected 4 columns in query return, got %d", l)
+	}
+
+	l = len(tuples)
+	if l != 50 {
+		t.Fatalf("expected 50 tuples in query result, got %d", l)
 	}
 
 	_, err = tx.Commit()

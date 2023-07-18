@@ -3,6 +3,8 @@ package agnostic
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 type PredicateType int
@@ -168,8 +170,17 @@ func (s *AttributeSelector) Select(cols []string, in []*Tuple) (out []*Tuple, er
 			return nil, fmt.Errorf("AttributeSelector(%s) not found in %s", attr, cols)
 		}
 	}
+	log.Debug("Selecting %s FROM %s", s.attributes, cols)
 
+	colsLen := len(cols)
 	for _, srct := range in {
+		if srct == nil {
+			return nil, fmt.Errorf("provided tuple is nil")
+		}
+		if len(srct.values) != colsLen {
+			return nil, fmt.Errorf("provided tuple %v does not match anounced columns %s", srct.values, cols)
+		}
+
 		t := NewTuple()
 		for _, id := range idx {
 			v := srct.values[id]
@@ -466,13 +477,6 @@ func (sn *SelectorNode) Children() []Node {
 }
 
 type NaturalJoin struct {
-	//Left() string
-	//SetLeft(n Node)
-	//Right() string
-	//SetRight(n Node)
-	//Exec() ([]string, []*Tuple, error)
-	//EstimateCardinal() int64
-	//Children() []Node
 	leftr string
 	lefta string
 	left  Node
@@ -571,16 +575,18 @@ func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
 
 	// prepare for worst case cross join
 	res := make([]*Tuple, len(lefts)*len(rights))
+	idx = 0
 	for _, left := range lefts {
 		for _, right := range rights {
 			if reflect.DeepEqual(left.values[lidx], right.values[ridx]) {
-				t := NewTuple(left.values)
+				t := NewTuple(left.values...)
 				t.Append(right.values...)
 				res[idx] = t
 				idx++
 			}
 		}
 	}
+	res = res[:idx]
 
 	return cols, res, nil
 }
