@@ -38,7 +38,6 @@ func (r *Rows) Columns() []string {
 // Close closes the rows iterator.
 func (r *Rows) Close() error {
 
-	close(r.ch)
 	r.ch = nil
 	/*
 		if r.rowsChannel == nil {

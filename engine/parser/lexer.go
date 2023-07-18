@@ -132,6 +132,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchSimpleQuoteToken)
 	matchers = append(matchers, l.genericByteMatcher('=', EqualityToken))
 	matchers = append(matchers, l.genericStringMatcher("<>", DistinctnessToken))
+	matchers = append(matchers, l.genericStringMatcher("!=", DistinctnessToken))
 	matchers = append(matchers, l.genericByteMatcher('.', PeriodToken))
 	matchers = append(matchers, l.MatchDoubleQuoteToken)
 	matchers = append(matchers, l.genericStringMatcher("<=", LessOrEqualToken))
@@ -514,4 +515,17 @@ func (l *lexer) Match(str []byte, token int) bool {
 	l.tokens = append(l.tokens, t)
 	l.pos += len(t.Lexeme)
 	return true
+}
+
+func TypeNameFromToken(tk int) string {
+	switch tk {
+	case IntToken, NumberToken:
+		return "int"
+	case DateToken:
+		return "date"
+	case TextToken, StringToken:
+		return "text"
+	default:
+		return "unknown"
+	}
 }
