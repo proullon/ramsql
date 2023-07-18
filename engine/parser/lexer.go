@@ -96,6 +96,8 @@ const (
 	StringToken
 	NumberToken
 	DateToken
+
+	ArgToken
 )
 
 // Token struct holds token id and it's lexeme
@@ -122,6 +124,8 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	securityPos := 0
 
 	var matchers []Matcher
+	matchers = append(matchers, l.MatchArgTokenODBC)
+	matchers = append(matchers, l.MatchArgToken)
 	// Punctuation Matcher
 	matchers = append(matchers, l.MatchSpaceToken)
 	matchers = append(matchers, l.genericByteMatcher(';', SemicolonToken))
@@ -223,6 +227,51 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	}
 
 	return l.tokens, nil
+}
+
+func (l *lexer) MatchArgTokenODBC() bool {
+
+	i := l.pos
+	if l.instruction[i] != '?' {
+		return false
+	}
+	if len(l.tokens) < 1 {
+		return false
+	}
+	if l.tokens[len(l.tokens)-1].Token == SimpleQuoteToken || l.tokens[len(l.tokens)-1].Token == DoubleQuoteToken {
+		return false
+	}
+	i++
+	t := Token{
+		Token:  ArgToken,
+		Lexeme: "?",
+	}
+	l.tokens = append(l.tokens, t)
+	l.pos = i
+	return true
+}
+
+func (l *lexer) MatchArgToken() bool {
+
+	i := l.pos
+	if l.instruction[i] != '$' {
+		return false
+	}
+	i++
+	for i < l.instructionLen && unicode.IsDigit(rune(l.instruction[i])) {
+		i++
+	}
+	if i > l.pos+1 {
+		t := Token{
+			Token:  ArgToken,
+			Lexeme: string(l.instruction[l.pos+1 : i]),
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos = i
+		return true
+	}
+
+	return false
 }
 
 func (l *lexer) MatchSpaceToken() bool {
