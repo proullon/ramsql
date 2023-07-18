@@ -120,9 +120,8 @@ func ToInstance(value, typeName string) (any, error) {
 			return nil, err
 		}
 		return v, nil
-	case "json", "jsonb", "text", "varchar":
-		v := value
-		return v, nil
+	case "json", "jsonb", "varchar":
+		return value, nil
 	default: // try everyting
 		if v, err := strconv.ParseUint(value, 10, 64); err == nil {
 			return v, nil
@@ -133,6 +132,7 @@ func ToInstance(value, typeName string) (any, error) {
 		if v, err := strconv.ParseBool(value); err == nil {
 			return v, nil
 		}
+		return value, nil
 	}
 
 	return nil, fmt.Errorf("cannot convert %v to instance of type %s", value, typeName)

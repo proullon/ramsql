@@ -520,8 +520,10 @@ func (p EqPredicate) String() string {
 
 func (p *EqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 
-	l := reflect.ValueOf(p.left.Value(cols, t))
-	r := reflect.ValueOf(p.right.Value(cols, t))
+	vl := p.left.Value(cols, t)
+	l := reflect.ValueOf(vl)
+	vr := p.right.Value(cols, t)
+	r := reflect.ValueOf(vr)
 
 	if l.Kind() == r.Kind() {
 		return l.Equal(r), nil
@@ -561,6 +563,18 @@ func (p *EqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 		return l.String() == r.String(), nil
 	case reflect.Chan, reflect.Pointer, reflect.UnsafePointer:
 		return l.Pointer() == r.Pointer(), nil
+	case reflect.Struct: // time.Time ?
+		switch vl.(type) {
+		case time.Time:
+			ltime := vl.(time.Time)
+			rtime, ok := vr.(time.Time)
+			if !ok {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return ltime.Unix() == rtime.Unix(), nil
+		default:
+			return false, fmt.Errorf("%s not comparable", p)
+		}
 	}
 }
 
@@ -796,7 +810,7 @@ func (f *ConstValueFunctor) Attribute() []string {
 }
 
 func (f ConstValueFunctor) String() string {
-	return fmt.Sprintf("const %v", f.v)
+	return fmt.Sprintf("const %v (%s)", f.v, reflect.TypeOf(f.v))
 }
 
 type AttributeValueFunctor struct {
@@ -880,17 +894,18 @@ func NewGeqPredicate(left, right ValueFunctor) *GeqPredicate {
 }
 
 func (p *GeqPredicate) Type() PredicateType {
-	return Eq
+	return Geq
 }
 
 func (p GeqPredicate) String() string {
-	return fmt.Sprintf("%s = %s", p.left, p.right)
+	return fmt.Sprintf("%s >= %s", p.left, p.right)
 }
 
 func (p *GeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
-
-	l := reflect.ValueOf(p.left.Value(cols, t))
-	r := reflect.ValueOf(p.right.Value(cols, t))
+	vl := p.left.Value(cols, t)
+	l := reflect.ValueOf(vl)
+	vr := p.right.Value(cols, t)
+	r := reflect.ValueOf(vr)
 
 	switch l.Kind() {
 	default:
@@ -912,6 +927,18 @@ func (p *GeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 		return l.Float() >= r.Float(), nil
 	case reflect.String:
 		return l.String() >= r.String(), nil
+	case reflect.Struct: // time.Time ?
+		switch vl.(type) {
+		case time.Time:
+			ltime := vl.(time.Time)
+			rtime, ok := vr.(time.Time)
+			if !ok {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return ltime.Unix() >= rtime.Unix(), nil
+		default:
+			return false, fmt.Errorf("%s not comparable", p)
+		}
 	}
 }
 
@@ -950,17 +977,18 @@ func NewLeqPredicate(left, right ValueFunctor) *LeqPredicate {
 }
 
 func (p *LeqPredicate) Type() PredicateType {
-	return Eq
+	return Leq
 }
 
 func (p LeqPredicate) String() string {
-	return fmt.Sprintf("%s = %s", p.left, p.right)
+	return fmt.Sprintf("%s <= %s", p.left, p.right)
 }
 
 func (p *LeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
-
-	l := reflect.ValueOf(p.left.Value(cols, t))
-	r := reflect.ValueOf(p.right.Value(cols, t))
+	vl := p.left.Value(cols, t)
+	l := reflect.ValueOf(vl)
+	vr := p.right.Value(cols, t)
+	r := reflect.ValueOf(vr)
 
 	switch l.Kind() {
 	default:
@@ -982,6 +1010,18 @@ func (p *LeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 		return l.Float() <= r.Float(), nil
 	case reflect.String:
 		return l.String() <= r.String(), nil
+	case reflect.Struct: // time.Time ?
+		switch vl.(type) {
+		case time.Time:
+			ltime := vl.(time.Time)
+			rtime, ok := vr.(time.Time)
+			if !ok {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return ltime.Unix() <= rtime.Unix(), nil
+		default:
+			return false, fmt.Errorf("%s not comparable", p)
+		}
 	}
 }
 
@@ -1020,17 +1060,18 @@ func NewLePredicate(left, right ValueFunctor) *LePredicate {
 }
 
 func (p *LePredicate) Type() PredicateType {
-	return Eq
+	return Le
 }
 
 func (p LePredicate) String() string {
-	return fmt.Sprintf("%s = %s", p.left, p.right)
+	return fmt.Sprintf("%s < %s", p.left, p.right)
 }
 
 func (p *LePredicate) Eval(cols []string, t *Tuple) (bool, error) {
-
-	l := reflect.ValueOf(p.left.Value(cols, t))
-	r := reflect.ValueOf(p.right.Value(cols, t))
+	vl := p.left.Value(cols, t)
+	l := reflect.ValueOf(vl)
+	vr := p.right.Value(cols, t)
+	r := reflect.ValueOf(vr)
 
 	switch l.Kind() {
 	default:
@@ -1052,6 +1093,18 @@ func (p *LePredicate) Eval(cols []string, t *Tuple) (bool, error) {
 		return l.Float() < r.Float(), nil
 	case reflect.String:
 		return l.String() < r.String(), nil
+	case reflect.Struct: // time.Time ?
+		switch vl.(type) {
+		case time.Time:
+			ltime := vl.(time.Time)
+			rtime, ok := vr.(time.Time)
+			if !ok {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return ltime.Before(rtime), nil
+		default:
+			return false, fmt.Errorf("%s not comparable", p)
+		}
 	}
 }
 
@@ -1090,21 +1143,22 @@ func NewGePredicate(left, right ValueFunctor) *GePredicate {
 }
 
 func (p *GePredicate) Type() PredicateType {
-	return Eq
+	return Ge
 }
 
 func (p GePredicate) String() string {
-	return fmt.Sprintf("%s = %s", p.left, p.right)
+	return fmt.Sprintf("%s > %s", p.left, p.right)
 }
 
 func (p *GePredicate) Eval(cols []string, t *Tuple) (bool, error) {
-
-	l := reflect.ValueOf(p.left.Value(cols, t))
-	r := reflect.ValueOf(p.right.Value(cols, t))
+	vl := p.left.Value(cols, t)
+	l := reflect.ValueOf(vl)
+	vr := p.right.Value(cols, t)
+	r := reflect.ValueOf(vr)
 
 	switch l.Kind() {
 	default:
-		return false, fmt.Errorf("%s not comparable", l)
+		return false, fmt.Errorf("%s not comparable", p)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if !r.CanInt() {
 			return false, fmt.Errorf("%s not comparable", p)
@@ -1122,6 +1176,18 @@ func (p *GePredicate) Eval(cols []string, t *Tuple) (bool, error) {
 		return l.Float() > r.Float(), nil
 	case reflect.String:
 		return l.String() > r.String(), nil
+	case reflect.Struct: // time.Time ?
+		switch vl.(type) {
+		case time.Time:
+			ltime := vl.(time.Time)
+			rtime, ok := vr.(time.Time)
+			if !ok {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return ltime.After(rtime), nil
+		default:
+			return false, fmt.Errorf("%s not comparable", p)
+		}
 	}
 }
 
@@ -1160,17 +1226,18 @@ func NewNeqPredicate(left, right ValueFunctor) *NeqPredicate {
 }
 
 func (p *NeqPredicate) Type() PredicateType {
-	return Eq
+	return Neq
 }
 
 func (p NeqPredicate) String() string {
-	return fmt.Sprintf("%s = %s", p.left, p.right)
+	return fmt.Sprintf("%s != %s", p.left, p.right)
 }
 
 func (p *NeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
-
-	l := reflect.ValueOf(p.left.Value(cols, t))
-	r := reflect.ValueOf(p.right.Value(cols, t))
+	vl := p.left.Value(cols, t)
+	l := reflect.ValueOf(vl)
+	vr := p.right.Value(cols, t)
+	r := reflect.ValueOf(vr)
 
 	if l.Kind() == r.Kind() {
 		return !l.Equal(r), nil
@@ -1208,6 +1275,18 @@ func (p *NeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 		return l.String() != r.String(), nil
 	case reflect.Chan, reflect.Pointer, reflect.UnsafePointer:
 		return l.Pointer() != r.Pointer(), nil
+	case reflect.Struct: // time.Time ?
+		switch vl.(type) {
+		case time.Time:
+			ltime := vl.(time.Time)
+			rtime, ok := vr.(time.Time)
+			if !ok {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return ltime.Unix() != rtime.Unix(), nil
+		default:
+			return false, fmt.Errorf("%s not comparable", p)
+		}
 	}
 }
 

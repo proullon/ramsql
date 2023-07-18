@@ -457,10 +457,10 @@ func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName st
 func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName string) (agnostic.Predicate, error) {
 
 	if len(left) == 0 {
-		return nil, fmt.Errorf("no predicate before AND")
+		return nil, fmt.Errorf("no predicate before OR")
 	}
 	if len(right) == 0 {
-		return nil, fmt.Errorf("no predicate after AND")
+		return nil, fmt.Errorf("no predicate after OR")
 	}
 
 	lp, err := t.getPredicates(left, schema, tableName)
