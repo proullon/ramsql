@@ -359,7 +359,7 @@ func TestCompareDateGT(t *testing.T) {
 	}
 
 	if nb != 2 {
-		t.Fatalf("Unwanted number of rows %d", nb)
+		t.Fatalf("Unwanted number of rows :%d", nb)
 	}
 
 }
@@ -779,7 +779,7 @@ func TestDefaultTimestamp(t *testing.T) {
 	var seen time.Time
 	err = db.QueryRow(query).Scan(&name, &montype, &seen)
 	if err != nil {
-		t.Fatalf("cannot load charmander: %s\n", err)
+		t.Fatalf("cannot load charmander row: %s\n", err)
 	}
 
 	if seen.IsZero() {
@@ -796,7 +796,7 @@ func TestDefaultTimestamp(t *testing.T) {
 	var seen2 time.Time
 	err = db.QueryRow(query).Scan(&seen2)
 	if err != nil {
-		t.Fatalf("cannot load charmander: %s\n", err)
+		t.Fatalf("cannot load charmander last seen: %s\n", err)
 	}
 
 	if seen2.IsZero() {
@@ -817,7 +817,7 @@ func TestDefaultTimestamp(t *testing.T) {
 	var seen3 time.Time
 	err = db.QueryRow(query).Scan(&seen3)
 	if err != nil {
-		t.Fatalf("cannot load charmander: %s\n", err)
+		t.Fatalf("cannot load charmander last seen after update: %s\n", err)
 	}
 
 	if seen3.IsZero() {
