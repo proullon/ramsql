@@ -2,6 +2,8 @@ package agnostic
 
 import (
 	"fmt"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 type RelationScanner struct {
@@ -30,20 +32,27 @@ func (s *RelationScanner) Exec() ([]string, []*Tuple, error) {
 	var ok bool
 	var err error
 	var res []*Tuple
+	var canAppend bool
+
+	log.Debug("starting %s", s.src)
 
 	cols := s.src.Columns()
 	for s.src.HasNext() {
 		t := s.src.Next()
+		canAppend = true
 		for _, p := range s.predicates {
 			ok, err = p.Eval(cols, t)
 			if !ok {
+				canAppend = false
 				break
 			}
 			if err != nil {
 				return nil, nil, fmt.Errorf("RelationScanner.Exec: %s(%v) : %w", p, t, err)
 			}
 		}
-		res = append(res, t)
+		if canAppend {
+			res = append(res, t)
+		}
 	}
 
 	return cols, res, nil
