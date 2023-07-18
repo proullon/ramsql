@@ -241,9 +241,21 @@ func (s *CountSelector) Relation() string {
 }
 
 func (s *CountSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err error) {
-	c := int64(len(in))
+	var idx int
+	idx = -1
+	for i, c := range cols {
+		if c == s.attribute || c == s.relation+"."+s.attribute {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return nil, fmt.Errorf("%s.%s: columns not found in left node", s.relation, s.attribute)
+	}
+
 	s.cols = []string{"COUNT(" + s.attribute + ")"}
-	t := NewTuple(c)
+	log.Warning("UOKOK %d\n", len(in))
+	t := NewTuple(int64(len(in)))
 	out = append(out, t)
 	return
 }
