@@ -3,12 +3,9 @@ package ramsql
 import (
 	"database/sql"
 	"testing"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 func TestIn(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
@@ -62,7 +59,6 @@ func TestIn(t *testing.T) {
 }
 
 func TestNotIn(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,

@@ -1,14 +1,33 @@
 package log
 
 import (
-	"log"
-	"sync"
-	"testing"
+	"context"
+	"fmt"
+	"golang.org/x/exp/slog"
+	"os"
+	"path/filepath"
+	"runtime"
+	"time"
+)
+
+var (
+	logger *slog.Logger
+	level  *slog.LevelVar
 )
 
 func init() {
-	level = WarningLevel
-	logger = BaseLogger{}
+	replace := func(groups []string, a slog.Attr) slog.Attr {
+		// Remove the directory from the source's filename.
+		if a.Key == slog.SourceKey {
+			source := a.Value.Any().(*slog.Source)
+			source.File = filepath.Base(source.File)
+		}
+		return a
+	}
+	level = new(slog.LevelVar)
+	logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{AddSource: true, Level: level, ReplaceAttr: replace}))
+	slog.SetDefault(logger)
+	SetLevel(WarningLevel)
 }
 
 // Level of logging trigger
@@ -18,15 +37,8 @@ type Level int
 const (
 	DebugLevel Level = iota
 	InfoLevel
-	NoticeLevel
 	WarningLevel
-	CriticalLevel
-)
-
-var (
-	logger Logger
-	level  Level
-	mu     sync.Mutex
+	ErrorLevel
 )
 
 // Logger defines the logs levels used by RamSQL engine
@@ -36,75 +48,54 @@ type Logger interface {
 
 // SetLevel controls the categories of logs written
 func SetLevel(lvl Level) {
-	mu.Lock()
-	level = lvl
-	mu.Unlock()
-}
-
-func lvl() Level {
-	mu.Lock()
-	defer mu.Unlock()
-	return level
-}
-
-// Debug prints debug log
-func Debug(format string, values ...interface{}) {
-	if lvl() <= DebugLevel {
-		logger.Logf("[DEBUG]    "+format, values...)
+	switch lvl {
+	case DebugLevel:
+		level.Set(slog.LevelDebug)
+	case WarningLevel:
+		level.Set(slog.LevelWarn)
+	case ErrorLevel:
+		level.Set(slog.LevelError)
+	default:
+		level.Set(slog.LevelInfo)
 	}
 }
 
-// Info prints information log
-func Info(format string, values ...interface{}) {
-	if lvl() <= InfoLevel {
-		logger.Logf("[INFO]     "+format, values...)
+func Debug(format string, args ...any) {
+	if !logger.Enabled(context.Background(), slog.LevelDebug) {
+		return
 	}
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:]) // skip [Callers, Infof]
+	r := slog.NewRecord(time.Now(), slog.LevelDebug, fmt.Sprintf(format, args...), pcs[0])
+	_ = logger.Handler().Handle(context.Background(), r)
 }
 
-// Notice prints information that should be seen
-func Notice(format string, values ...interface{}) {
-	if lvl() <= NoticeLevel {
-		logger.Logf("[NOTICE]   "+format, values...)
+func Info(format string, args ...any) {
+	if !logger.Enabled(context.Background(), slog.LevelInfo) {
+		return
 	}
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:]) // skip [Callers, Infof]
+	r := slog.NewRecord(time.Now(), slog.LevelInfo, fmt.Sprintf(format, args...), pcs[0])
+	_ = logger.Handler().Handle(context.Background(), r)
 }
 
-// Warning prints warnings for user
-func Warning(format string, values ...interface{}) {
-	if lvl() <= WarningLevel {
-		logger.Logf("[WARNING]  "+format, values...)
+func Warn(format string, args ...any) {
+	if !logger.Enabled(context.Background(), slog.LevelWarn) {
+		return
 	}
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:]) // skip [Callers, Infof]
+	r := slog.NewRecord(time.Now(), slog.LevelWarn, fmt.Sprintf(format, args...), pcs[0])
+	_ = logger.Handler().Handle(context.Background(), r)
 }
 
-// Critical prints error informations
-func Critical(format string, values ...interface{}) {
-	mu.Lock()
-	logger.Logf("[CRITICAL] "+format, values...)
-	mu.Unlock()
-}
-
-// BaseLogger logs on stdout
-type BaseLogger struct {
-}
-
-// Logf logs on stdout
-func (l BaseLogger) Logf(fmt string, values ...interface{}) {
-	log.Printf(fmt, values...)
-}
-
-// TestLogger uses *testing.T as a backend for RamSQL logs
-type TestLogger struct {
-	t *testing.T
-}
-
-// Logf logs in testing log buffer
-func (l TestLogger) Logf(fmt string, values ...interface{}) {
-	l.t.Logf(fmt, values...)
-}
-
-// UseTestLogger should be used only by unit tests
-func UseTestLogger(t testing.TB) {
-	mu.Lock()
-	logger = t
-	mu.Unlock()
-	SetLevel(WarningLevel)
+func Error(format string, args ...any) {
+	if !logger.Enabled(context.Background(), slog.LevelError) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(2, pcs[:]) // skip [Callers, Infof]
+	r := slog.NewRecord(time.Now(), slog.LevelError, fmt.Sprintf(format, args...), pcs[0])
+	_ = logger.Handler().Handle(context.Background(), r)
 }

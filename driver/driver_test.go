@@ -12,7 +12,6 @@ import (
 )
 
 func TestCreateTable(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestCreateTable")
 	if err != nil {
@@ -32,7 +31,6 @@ func TestCreateTable(t *testing.T) {
 }
 
 func TestInsertEmptyString(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestInsertEmptyString")
 	if err != nil {
@@ -53,7 +51,6 @@ func TestInsertEmptyString(t *testing.T) {
 }
 
 func TestCreateTableIfNotExists(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestCreateTableIfNotExists")
 	if err != nil {
@@ -83,7 +80,6 @@ func TestCreateTableIfNotExists(t *testing.T) {
 }
 
 func TestInsertTable(t *testing.T) {
-	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "TestInsertTable")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
@@ -118,7 +114,6 @@ func TestInsertTable(t *testing.T) {
 }
 
 func TestSelectWhereAttribute(t *testing.T) {
-	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "TestSelectWhereAttribute")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
@@ -157,7 +152,6 @@ func TestSelectWhereAttribute(t *testing.T) {
 }
 
 func TestSelectSimplePredicate(t *testing.T) {
-	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "TestSelectSimplePredicate")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
@@ -196,7 +190,6 @@ func TestSelectSimplePredicate(t *testing.T) {
 }
 
 func TestMultipleCreate(t *testing.T) {
-	log.UseTestLogger(t)
 	db, err := sql.Open("ramsql", "TestMultipleCreate")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
@@ -215,7 +208,6 @@ func TestMultipleCreate(t *testing.T) {
 }
 
 func TestCreateTableWithTimestamp(t *testing.T) {
-	log.UseTestLogger(t)
 
 	query := `create table if not exists "refresh_token" ("uuid" text not null primary key,
 	"hash_token" text,
@@ -264,7 +256,7 @@ func LoadUserAddresses(db *sql.DB, userID int64) ([]string, error) {
 }
 
 func TestBatch(t *testing.T) {
-	log.UseTestLogger(t)
+	log.SetLevel(log.DebugLevel)
 
 	batch := []string{
 		`CREATE TABLE address (id BIGSERIAL PRIMARY KEY, street TEXT, street_number INT);`,
@@ -308,7 +300,6 @@ func TestBatch(t *testing.T) {
 }
 
 func TestCompareDateGT(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestCompareDateGT")
 	if err != nil {
@@ -365,7 +356,6 @@ func TestCompareDateGT(t *testing.T) {
 }
 
 func TestCompareDateLT(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestCompareDateLT")
 	if err != nil {
@@ -422,7 +412,6 @@ func TestCompareDateLT(t *testing.T) {
 }
 
 func TestDate(t *testing.T) {
-	log.UseTestLogger(t)
 
 	query := `
 	insert into "token" ("uuid","hash_token","user_id","expires")
@@ -469,7 +458,6 @@ func TestDate(t *testing.T) {
 }
 
 func TestAnd(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
@@ -531,7 +519,6 @@ func TestAnd(t *testing.T) {
 }
 
 func TestEqualAndDistinct(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
@@ -586,7 +573,6 @@ func TestEqualAndDistinct(t *testing.T) {
 }
 
 func TestGreaterThanOrEqualAndLessThanOrEqual(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
@@ -642,7 +628,6 @@ func TestGreaterThanOrEqualAndLessThanOrEqual(t *testing.T) {
 }
 
 func TestGreaterThanAndLessThan(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
@@ -698,7 +683,6 @@ func TestGreaterThanAndLessThan(t *testing.T) {
 }
 
 func TestOr(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
@@ -754,7 +738,6 @@ func TestOr(t *testing.T) {
 }
 
 func TestDefaultTimestamp(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE pokemon (name TEXT, type TEXT, seen TIMESTAMP WITH TIME ZONE DEFAULT LOCALTIMESTAMP)`,
@@ -845,7 +828,6 @@ func TestDefaultTimestamp(t *testing.T) {
 }
 
 func TestOffset(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE pokemon (name TEXT)`,
@@ -890,7 +872,6 @@ func TestOffset(t *testing.T) {
 }
 
 func TestUnique(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE pokemon (id BIGSERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL)`,
@@ -920,7 +901,6 @@ func TestUnique(t *testing.T) {
 }
 
 func TestJSON(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE test (sequence_number BIGSERIAL PRIMARY KEY, data JSON)`,
@@ -982,7 +962,6 @@ func TestJSON(t *testing.T) {
 }
 
 func TestDistinct(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
@@ -1041,7 +1020,6 @@ func TestDistinct(t *testing.T) {
 }
 
 func TestBracketWhereClause(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age INT);`,
@@ -1076,7 +1054,6 @@ func TestBracketWhereClause(t *testing.T) {
 }
 
 func TestInsertByteArray(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestInsertByteArray")
 	if err != nil {
@@ -1106,7 +1083,6 @@ func TestInsertByteArray(t *testing.T) {
 }
 
 func TestInsertByteArrayODBC(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestInsertByteArrayODBC")
 	if err != nil {
@@ -1137,7 +1113,6 @@ func TestInsertByteArrayODBC(t *testing.T) {
 }
 
 func TestSchema(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestSchema")
 	if err != nil {

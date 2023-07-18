@@ -2,8 +2,6 @@ package parser
 
 import (
 	"testing"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 func TestParserCreateTableSimple(t *testing.T) {
@@ -344,7 +342,6 @@ func TestSchema(t *testing.T) {
 }
 
 func parse(query string, instructionNumber int, t *testing.T) []Instruction {
-	log.UseTestLogger(t)
 
 	parser := parser{}
 	lexer := lexer{}

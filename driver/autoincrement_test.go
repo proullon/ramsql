@@ -3,12 +3,9 @@ package ramsql
 import (
 	"database/sql"
 	"testing"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 func TestAutoIncrementSimple(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestAutoIncrementSimple")
 	if err != nil {
@@ -51,7 +48,6 @@ func TestAutoIncrementSimple(t *testing.T) {
 }
 
 func TestAutoIncrementAlternativeSimple(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestAutoIncrementAlternativeSimple")
 	if err != nil {

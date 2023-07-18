@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/go-gorp/gorp"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 type User struct {
@@ -25,7 +23,6 @@ type UserProject struct {
 }
 
 func TestJoin(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestJoin")
 	if err != nil {
