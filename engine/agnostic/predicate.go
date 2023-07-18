@@ -254,7 +254,6 @@ func (s *CountSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err er
 	}
 
 	s.cols = []string{"COUNT(" + s.attribute + ")"}
-	log.Warning("UOKOK %d\n", len(in))
 	t := NewTuple(int64(len(in)))
 	out = append(out, t)
 	return
@@ -521,11 +520,48 @@ func (p EqPredicate) String() string {
 
 func (p *EqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 
-	if reflect.DeepEqual(p.left.Value(cols, t), p.right.Value(cols, t)) {
-		return true, nil
+	l := reflect.ValueOf(p.left.Value(cols, t))
+	r := reflect.ValueOf(p.right.Value(cols, t))
+
+	if l.Kind() == r.Kind() {
+		return l.Equal(r), nil
 	}
 
-	return false, nil
+	switch l.Kind() {
+	default:
+		return false, fmt.Errorf("%s not comparable", l)
+	case reflect.Func, reflect.Map, reflect.Slice:
+		return false, fmt.Errorf("%s not comparable", l)
+	case reflect.Bool:
+		if r.Kind() != reflect.Bool {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Bool() == r.Bool(), nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if !r.CanInt() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Int() == r.Int(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if !r.CanUint() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Uint() == r.Uint(), nil
+	case reflect.Float32, reflect.Float64:
+		if !r.CanFloat() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Float() == r.Float(), nil
+	case reflect.Complex64, reflect.Complex128:
+		if !r.CanComplex() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Complex() == r.Complex(), nil
+	case reflect.String:
+		return l.String() == r.String(), nil
+	case reflect.Chan, reflect.Pointer, reflect.UnsafePointer:
+		return l.Pointer() == r.Pointer(), nil
+	}
 }
 
 func (p *EqPredicate) Left() (Predicate, bool) {
