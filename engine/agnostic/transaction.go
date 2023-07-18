@@ -486,7 +486,7 @@ func (t *Transaction) abort(err error) error {
 // PrintQueryPlan
 func PrintQueryPlan(n Node, depth int, printer func(fmt string, varargs ...any)) {
 	printer = func(format string, varargs ...any) {
-		fmt.Printf(format, varargs...)
+		log.Debug(format, varargs...)
 	}
 
 	if printer == nil {
