@@ -27,7 +27,7 @@ func NewHashIndexSource(index Index, p Predicate) (*IndexSrc, error) {
 		return nil, fmt.Errorf("predicate %s is not a Eq predicate", p)
 	}
 
-	t, err := i.Get([]any{eq.v})
+	t, err := i.Get([]any{eq.right.Value(nil, nil)})
 	if err != nil {
 		return nil, fmt.Errorf("cannot create NewHashIndexSource(%s,%s): %s", index, p, err)
 	}

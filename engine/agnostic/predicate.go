@@ -1,8 +1,10 @@
 package agnostic
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/proullon/ramsql/engine/log"
 )
@@ -24,6 +26,10 @@ const (
 	False
 )
 
+var (
+	NotImplemented = errors.New("not implemented")
+)
+
 // Picker interface is used by query planner to define
 // which relations and attributes are used in a query.
 //
@@ -35,14 +41,26 @@ type Picker interface {
 	Attribute() []string
 }
 
+// ValueFunctor is used by Predicate to compare values
+//
+// Possible ValueFunctor implementation:
+//   - ConstValueFunctor
+//   - AttributeValueFunctor
+//   - NowValueFunctor
+type ValueFunctor interface {
+	Picker
+	Value(columns []string, tuple *Tuple) any
+}
+
 // Selector defines values to be returned to user
 //
-// Attribute
-// Star
-// Max
-// Min
-// Avg
-// ...
+// Possible Selector implementations:
+//   - Attribute
+//   - Star
+//   - Max
+//   - Min
+//   - Avg
+//   - ...
 type Selector interface {
 	Picker
 	Select([]string, []*Tuple) ([]*Tuple, error)
@@ -54,7 +72,7 @@ type Predicate interface {
 	Type() PredicateType
 	Left() (Predicate, bool)
 	Right() (Predicate, bool)
-	Eval(t *Tuple) (bool, error)
+	Eval([]string, *Tuple) (bool, error)
 }
 
 type Source interface {
@@ -78,10 +96,10 @@ type Node interface {
 // Should be able to estimate cardinality of join for cost optimization.
 //
 // Possible implementations:
-// * NaturalJoiner
-// * LeftOuterJoiner
-// * RightOuterJoiner
-// * FullOuterJoiner
+//   - NaturalJoiner
+//   - LeftOuterJoiner
+//   - RightOuterJoiner
+//   - FullOuterJoiner
 type Joiner interface {
 	Node
 	Left() string
@@ -195,11 +213,51 @@ func (s *AttributeSelector) Select(cols []string, in []*Tuple) (out []*Tuple, er
 type CountSelector struct {
 	relation  string
 	attribute string
+	cols      []string
+}
+
+func NewCountSelector(rname string, attr string) *CountSelector {
+	s := &CountSelector{
+		relation:  rname,
+		attribute: attr,
+	}
+	return s
+}
+
+func (s *CountSelector) Attribute() []string {
+	if s.cols != nil {
+		return s.cols
+	}
+
+	if s.attribute == "*" {
+		return nil
+	}
+
+	return []string{s.attribute}
+}
+
+func (s *CountSelector) Relation() string {
+	return s.relation
+}
+
+func (s *CountSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err error) {
+	c := int64(len(in))
+	s.cols = []string{"COUNT(" + s.attribute + ")"}
+	t := NewTuple(c)
+	out = append(out, t)
+	return
 }
 
 type StarSelector struct {
 	relation string
 	cols     []string
+}
+
+func NewStarSelector(rname string) *StarSelector {
+	s := &StarSelector{
+		relation: rname,
+	}
+	return s
 }
 
 func (s *StarSelector) Attribute() []string {
@@ -222,6 +280,27 @@ type AvgSelector struct {
 type MaxSelector struct {
 }
 
+func NewComparisonPredicate(left ValueFunctor, t PredicateType, right ValueFunctor) (Predicate, error) {
+
+	switch t {
+	case Eq:
+		return NewEqPredicate(left, right), nil
+	case Geq:
+		return nil, NotImplemented
+	case Leq:
+		return nil, NotImplemented
+	case Le:
+		return nil, NotImplemented
+	case Ge:
+		return nil, NotImplemented
+	case Neq:
+		return nil, NotImplemented
+	default:
+		return nil, fmt.Errorf("unknown predicate type %v", t)
+	}
+
+}
+
 type TruePredicate struct {
 }
 
@@ -237,7 +316,7 @@ func (p *TruePredicate) Type() PredicateType {
 	return True
 }
 
-func (p *TruePredicate) Eval(*Tuple) (bool, error) {
+func (p *TruePredicate) Eval([]string, *Tuple) (bool, error) {
 	return true, nil
 }
 
@@ -272,7 +351,7 @@ func (p *FalsePredicate) Type() PredicateType {
 	return False
 }
 
-func (p *FalsePredicate) Eval(*Tuple) (bool, error) {
+func (p *FalsePredicate) Eval([]string, *Tuple) (bool, error) {
 	return false, nil
 }
 
@@ -307,21 +386,21 @@ func NewAndPredicate(left, right Predicate) *AndPredicate {
 }
 
 func (p AndPredicate) String() string {
-	return "AND"
+	return fmt.Sprintf("%s AND %s", p.left, p.right)
 }
 
 func (p *AndPredicate) Type() PredicateType {
 	return And
 }
 
-func (p *AndPredicate) Eval(t *Tuple) (bool, error) {
+func (p *AndPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 
-	l, err := p.left.Eval(t)
+	l, err := p.left.Eval(cols, t)
 	if err != nil {
 		return false, err
 	}
 
-	r, err := p.right.Eval(t)
+	r, err := p.right.Eval(cols, t)
 	if err != nil {
 		return false, err
 	}
@@ -349,19 +428,72 @@ func (p *AndPredicate) Attribute() []string {
 	return append(p.left.Attribute(), p.right.Attribute()...)
 }
 
-type EqPredicate struct {
-	relName  string
-	attrName string
-	attr     int
-	v        any
+type OrPredicate struct {
+	left  Predicate
+	right Predicate
 }
 
-func NewEqPredicate(relName, attrName string, attr int, v any) *EqPredicate {
+func NewOrPredicate(left, right Predicate) *OrPredicate {
+	p := &OrPredicate{
+		left:  left,
+		right: right,
+	}
+
+	return p
+}
+
+func (p OrPredicate) String() string {
+	return fmt.Sprintf("%s OR %s", p.left, p.right)
+}
+
+func (p *OrPredicate) Type() PredicateType {
+	return And
+}
+
+func (p *OrPredicate) Eval(cols []string, t *Tuple) (bool, error) {
+
+	l, err := p.left.Eval(cols, t)
+	if err != nil {
+		return false, err
+	}
+
+	r, err := p.right.Eval(cols, t)
+	if err != nil {
+		return false, err
+	}
+
+	if l || r {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (p *OrPredicate) Left() (Predicate, bool) {
+	return p.left, true
+}
+
+func (p *OrPredicate) Right() (Predicate, bool) {
+	return p.right, true
+}
+
+func (p *OrPredicate) Relation() string {
+	return ""
+}
+
+func (p *OrPredicate) Attribute() []string {
+	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+type EqPredicate struct {
+	left  ValueFunctor
+	right ValueFunctor
+}
+
+func NewEqPredicate(left, right ValueFunctor) *EqPredicate {
 	p := &EqPredicate{
-		relName:  relName,
-		attrName: attrName,
-		attr:     attr,
-		v:        v,
+		left:  left,
+		right: right,
 	}
 
 	return p
@@ -372,16 +504,12 @@ func (p *EqPredicate) Type() PredicateType {
 }
 
 func (p EqPredicate) String() string {
-	return fmt.Sprintf("%s.%s=%v", p.relName, p.attrName, p.v)
+	return fmt.Sprintf("%s = %s", p.left, p.right)
 }
 
-func (p *EqPredicate) Eval(t *Tuple) (bool, error) {
+func (p *EqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 
-	if len(t.values) <= p.attr {
-		return false, fmt.Errorf("cannot eval equality for %s with tuple %v", p, t)
-	}
-
-	if reflect.DeepEqual(t.values[p.attr], p.v) {
+	if reflect.DeepEqual(p.left.Value(cols, t), p.right.Value(cols, t)) {
 		return true, nil
 	}
 
@@ -397,11 +525,15 @@ func (p *EqPredicate) Right() (Predicate, bool) {
 }
 
 func (p *EqPredicate) Relation() string {
-	return p.relName
+	if p.left.Relation() != "" {
+		return p.left.Relation()
+	}
+
+	return p.right.Relation()
 }
 
 func (p *EqPredicate) Attribute() []string {
-	return []string{p.attrName}
+	return append(p.left.Attribute(), p.right.Attribute()...)
 }
 
 type SelectorNode struct {
@@ -589,4 +721,98 @@ func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
 	res = res[:idx]
 
 	return cols, res, nil
+}
+
+type ConstValueFunctor struct {
+	v any
+}
+
+// NewConstValueFunctor creates a ValueFunctor returning v
+func NewConstValueFunctor(v any) ValueFunctor {
+	f := &ConstValueFunctor{
+		v: v,
+	}
+	return f
+}
+
+func (f *ConstValueFunctor) Value([]string, *Tuple) any {
+	return f.v
+}
+
+func (f *ConstValueFunctor) Relation() string {
+	return ""
+}
+
+func (f *ConstValueFunctor) Attribute() []string {
+	return nil
+}
+
+func (f ConstValueFunctor) String() string {
+	return fmt.Sprintf("const %v", f.v)
+}
+
+type AttributeValueFunctor struct {
+	rname string
+	aname string
+}
+
+// NewAttributeValueFunctor creates a ValueFunctor returning attribute value in given tuple
+func NewAttributeValueFunctor(rname, aname string) ValueFunctor {
+	f := &AttributeValueFunctor{
+		rname: rname,
+		aname: aname,
+	}
+
+	return f
+}
+
+func (f *AttributeValueFunctor) Value(cols []string, t *Tuple) any {
+	var idx = -1
+	for i, c := range cols {
+		if c == f.aname || c == f.rname+"."+f.aname {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		return nil
+	}
+	return t.values[idx]
+}
+
+func (f *AttributeValueFunctor) Relation() string {
+	return f.rname
+}
+
+func (f *AttributeValueFunctor) Attribute() []string {
+	return []string{f.aname}
+}
+
+func (f AttributeValueFunctor) String() string {
+	return f.rname + "." + f.aname
+}
+
+type NowValueFunctor struct {
+}
+
+// NewNowValueFunctor creates a ValueFunctor returning time.Now()
+func NewNowValueFunctor() ValueFunctor {
+	f := &NowValueFunctor{}
+	return f
+}
+
+func (f *NowValueFunctor) Value([]string, *Tuple) any {
+	return time.Now()
+}
+
+func (f *NowValueFunctor) Relation() string {
+	return ""
+}
+
+func (f *NowValueFunctor) Attribute() []string {
+	return nil
+}
+
+func (f NowValueFunctor) String() string {
+	return "now()"
 }

@@ -31,10 +31,11 @@ func (s *RelationScanner) Exec() ([]string, []*Tuple, error) {
 	var err error
 	var res []*Tuple
 
+	cols := s.src.Columns()
 	for s.src.HasNext() {
 		t := s.src.Next()
 		for _, p := range s.predicates {
-			ok, err = p.Eval(t)
+			ok, err = p.Eval(cols, t)
 			if !ok {
 				break
 			}
@@ -45,7 +46,7 @@ func (s *RelationScanner) Exec() ([]string, []*Tuple, error) {
 		res = append(res, t)
 	}
 
-	return s.src.Columns(), res, nil
+	return cols, res, nil
 }
 
 // No idea on how to estimate cardinal of scanner given predicates
