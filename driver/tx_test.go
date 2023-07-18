@@ -45,7 +45,7 @@ func TestTransaction(t *testing.T) {
 		t.Fatalf("cannot query row in tx: %s\n", err)
 	}
 	if count != 3 {
-		t.Fatalf("expected 3 row, got %d", count)
+		t.Fatalf("expected COUNT(user_id)=3 row, got %d", count)
 	}
 
 	err = tx.Commit()

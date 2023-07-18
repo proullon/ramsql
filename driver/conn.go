@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	"fmt"
 
 	"github.com/proullon/ramsql/engine/executor"
 )
@@ -132,7 +131,6 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 		return nil, err
 	}
 
-	fmt.Printf("QUERYCONTEXXT CALLED for %s\n", query)
 	return newRows(cols, ch), nil
 }
 

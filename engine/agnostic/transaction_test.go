@@ -580,3 +580,95 @@ func TestQuery(t *testing.T) {
 	}
 
 }
+
+func TestCount(t *testing.T) {
+	e := NewEngine()
+	log.SetLevel(log.DebugLevel)
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	schema := DefaultSchema
+	relation := "task"
+	attrs := []Attribute{
+		NewAttribute("id", "BIGINT").WithAutoIncrement(),
+		NewAttribute("val", "INT").WithDefaultConst(42),
+		NewAttribute("name", "TEXT").WithUnique().WithDefault(NewRandString(20)),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"id"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	values := make(map[string]any)
+	for i := 0; i < 100; i++ {
+		_, err = tx.Insert(schema, "task", values)
+		if err != nil {
+			t.Fatalf("cannot insert values: %s", err)
+		}
+	}
+
+	columns, tuples, err := tx.Query(
+		DefaultSchema,
+		[]Selector{
+			NewCountSelector("task", "id"),
+		},
+		NewTruePredicate(),
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error on Query: %s", err)
+	}
+
+	l := len(columns)
+	if l != 1 {
+		t.Fatalf("expected 1 column, got %d", l)
+	}
+	if columns[0] != "COUNT(id)" {
+		t.Fatalf("unexpected column name: got %s", columns[0])
+	}
+
+	l = len(tuples)
+	if l != 1 {
+		t.Fatalf("expected 1 tuple, got %d", l)
+	}
+	count := tuples[0].values[0].(int64)
+	if count != 100 {
+		t.Fatalf("expected count to be 100, got %d", count)
+	}
+
+	columns, tuples, err = tx.Query(
+		DefaultSchema,
+		[]Selector{
+			NewCountSelector("task", "id"),
+		},
+		NewEqPredicate(
+			NewAttributeValueFunctor("task", "id"),
+			NewConstValueFunctor(23),
+		),
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error on Query: %s", err)
+	}
+
+	l = len(columns)
+	if l != 1 {
+		t.Fatalf("expected 1 column, got %d", l)
+	}
+	if columns[0] != "COUNT(id)" {
+		t.Fatalf("unexpected column name: got %s", columns[0])
+	}
+
+	l = len(tuples)
+	if l != 1 {
+		t.Fatalf("expected 1 tuple, got %d", l)
+	}
+	count = tuples[0].values[0].(int64)
+	if count != 1 {
+		t.Fatalf("expected count to be 1, got %d", count)
+	}
+}
