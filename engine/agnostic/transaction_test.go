@@ -504,7 +504,10 @@ func TestQuery(t *testing.T) {
 			NewAttributeSelector("task", []string{"id", "val", "name"}),
 			NewAttributeSelector("task_link", []string{"child_id"}),
 		},
-		NewEqPredicate("task", "id", 0, 23),
+		NewEqPredicate(
+			NewAttributeValueFunctor("task", "id"),
+			NewConstValueFunctor(23),
+		),
 		[]Joiner{
 			NewNaturalJoin("task", "id", "task_link", "parent_id"),
 		},
@@ -549,7 +552,10 @@ func TestQuery(t *testing.T) {
 			NewAttributeSelector("task", []string{"id", "val", "name"}),
 			NewAttributeSelector("task_link", []string{"child_id"}),
 		},
-		NewEqPredicate("task", "id", 0, 23),
+		NewEqPredicate(
+			NewAttributeValueFunctor("task", "id"),
+			NewConstValueFunctor(23),
+		),
 		[]Joiner{
 			NewNaturalJoin("task", "id", "task_link", "parent_id"),
 		},
