@@ -395,19 +395,49 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string) (a
 		return nil, fmt.Errorf("Malformed predicate \"%s\"", cond.Lexeme)
 	}
 
+	// TODO: fixme: only comparison from attribute value (on left) and const (on right) is possible right now
+
 	// The first element of the list is then the relation of the attribute
 	op := cond.Decl[0]
 	val := cond.Decl[1]
+	/*
+		p.Operator, err = NewOperator(op.Token, op.Lexeme)
+		if err != nil {
+			return nil, err
+		}
+		p.RightValue.lexeme = val.Lexeme
+		p.RightValue.valid = true
 
-	p.Operator, err = NewOperator(op.Token, op.Lexeme)
+		p.LeftValue.table = fromTableName
+	*/
+
+	left := agnostic.NewAttributeValueFunctor(fromTableName, pLeftValue)
+
+	v, err := agnostic.ToInstance(val.Lexeme, parser.TypeNameFromToken(val.Token))
 	if err != nil {
 		return nil, err
 	}
-	p.RightValue.lexeme = val.Lexeme
-	p.RightValue.valid = true
+	right := agnostic.NewConstValueFunctor(v)
 
-	p.LeftValue.table = fromTableName
-	return p, nil
+	var ptype agnostic.PredicateType
+	switch op.Token {
+	case parser.EqualityToken:
+		ptype = agnostic.Eq
+	case parser.LessOrEqualToken:
+		ptype = agnostic.Leq
+	case parser.GreaterOrEqualToken:
+		ptype = agnostic.Geq
+	case parser.DistinctnessToken:
+		ptype = agnostic.Neq
+	case parser.LeftDipleToken:
+		ptype = agnostic.Le
+	case parser.RightDipleToken:
+		ptype = agnostic.Ge
+	default:
+		return nil, fmt.Errorf("unknown comparison token %s", op.Lexeme)
+	}
+
+	return agnostic.NewComparisonPredicate(left, ptype, right)
 }
 
 func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName string) (agnostic.Predicate, error) {
@@ -429,7 +459,7 @@ func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName st
 		return nil, err
 	}
 
-	return NewAndPredicate(left, right), nil
+	return agnostic.NewAndPredicate(lp, rp), nil
 }
 
 func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName string) (agnostic.Predicate, error) {
@@ -451,5 +481,5 @@ func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName str
 		return nil, err
 	}
 
-	return NewOrPredicate(left, right), nil
+	return agnostic.NewOrPredicate(lp, rp), nil
 }

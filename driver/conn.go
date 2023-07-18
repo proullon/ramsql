@@ -113,6 +113,7 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Rollback()
 
 	a := make([]executor.NamedValue, len(args))
 	for i, arg := range args {
@@ -122,6 +123,11 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 	}
 
 	cols, ch, err := tx.QueryContext(ctx, query, a)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
