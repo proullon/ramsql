@@ -2,6 +2,7 @@ package agnostic
 
 import (
 	"container/list"
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -267,6 +268,10 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 	s, err := t.e.schema(schema)
 	if err != nil {
 		return nil, nil, t.abort(err)
+	}
+
+	if p == nil {
+		return nil, nil, t.abort(errors.New("query requires 1 predicate"))
 	}
 
 	// (1)

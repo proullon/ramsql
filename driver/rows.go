@@ -17,14 +17,13 @@ type Rows struct {
 	tx      *executor.Tx
 }
 
-func newRows(ch chan *agnostic.Tuple) *Rows {
+func newRows(cols []string, ch chan *agnostic.Tuple) *Rows {
 
-	r := &Rows{ch: ch}
-	t := <-ch
-	values := t.Values()
-	for _, v := range values {
-		r.columns = append(r.columns, v.(string))
+	r := &Rows{
+		ch:      ch,
+		columns: cols,
 	}
+
 	return r
 }
 
