@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	log.SetLevel(log.CriticalLevel)
+	log.SetLevel(log.ErrorLevel)
 }
 
 func exec(db *sql.DB, stmt string) {

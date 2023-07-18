@@ -3,12 +3,9 @@ package ramsql
 import (
 	"database/sql"
 	"testing"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 func TestTransaction(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestTransaction")
 	if err != nil {
@@ -57,7 +54,6 @@ func TestTransaction(t *testing.T) {
 }
 
 func TestCheckAttributes(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestCheckAttribute")
 	if err != nil {

@@ -220,7 +220,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 		}
 
 		if l.pos == securityPos {
-			log.Warning("Cannot lex <%s>, stuck at pos %d -> [%c]", l.instruction, l.pos, l.instruction[l.pos])
+			log.Warn("Cannot lex <%s>, stuck at pos %d -> [%c]", l.instruction, l.pos, l.instruction[l.pos])
 			return nil, fmt.Errorf("Cannot lex instruction. Syntax error near %s", instruction[l.pos:])
 		}
 		securityPos = l.pos

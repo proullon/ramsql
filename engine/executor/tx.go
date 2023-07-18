@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/proullon/ramsql/engine/agnostic"
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 )
 
@@ -386,6 +387,8 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string) (a
 	if len(cond.Decl) < 2 {
 		return nil, fmt.Errorf("Malformed predicate \"%s\"", cond.Lexeme)
 	}
+
+	cond.Stringy(0, log.Debug)
 
 	// TODO: fixme: only comparison from attribute value (on left) and const (on right) is possible right now
 
