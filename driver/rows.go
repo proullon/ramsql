@@ -68,7 +68,7 @@ func (r *Rows) Close() error {
 //
 // Next should return io.EOF when there are no more rows.
 func (r *Rows) Next(dest []driver.Value) (err error) {
-	if r.idx >= r.end {
+	if r.idx > r.end {
 		return io.EOF
 	}
 

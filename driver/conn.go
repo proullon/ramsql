@@ -121,7 +121,7 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 		a[i].Value = arg.Value
 	}
 
-	cols, ch, err := tx.QueryContext(ctx, query, a)
+	cols, tuples, err := tx.QueryContext(ctx, query, a)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 		return nil, err
 	}
 
-	return newRows(cols, ch), nil
+	return newRows(cols, tuples), nil
 }
 
 // ExecContext is the sql package prefered way to run Exec
