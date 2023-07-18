@@ -297,15 +297,15 @@ func NewComparisonPredicate(left ValueFunctor, t PredicateType, right ValueFunct
 	case Eq:
 		return NewEqPredicate(left, right), nil
 	case Geq:
-		return nil, NotImplemented
+		return NewGeqPredicate(left, right), nil
 	case Leq:
-		return nil, NotImplemented
+		return NewLeqPredicate(left, right), nil
 	case Le:
-		return nil, NotImplemented
+		return NewLePredicate(left, right), nil
 	case Ge:
-		return nil, NotImplemented
+		return NewGePredicate(left, right), nil
 	case Neq:
-		return nil, NotImplemented
+		return NewNeqPredicate(left, right), nil
 	default:
 		return nil, fmt.Errorf("unknown predicate type %v", t)
 	}
@@ -863,4 +863,370 @@ func (f *NowValueFunctor) Attribute() []string {
 
 func (f NowValueFunctor) String() string {
 	return "now()"
+}
+
+type GeqPredicate struct {
+	left  ValueFunctor
+	right ValueFunctor
+}
+
+func NewGeqPredicate(left, right ValueFunctor) *GeqPredicate {
+	p := &GeqPredicate{
+		left:  left,
+		right: right,
+	}
+
+	return p
+}
+
+func (p *GeqPredicate) Type() PredicateType {
+	return Eq
+}
+
+func (p GeqPredicate) String() string {
+	return fmt.Sprintf("%s = %s", p.left, p.right)
+}
+
+func (p *GeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
+
+	l := reflect.ValueOf(p.left.Value(cols, t))
+	r := reflect.ValueOf(p.right.Value(cols, t))
+
+	switch l.Kind() {
+	default:
+		return false, fmt.Errorf("%s not comparable", l)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if !r.CanInt() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Int() >= r.Int(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if !r.CanUint() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Uint() >= r.Uint(), nil
+	case reflect.Float32, reflect.Float64:
+		if !r.CanFloat() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Float() >= r.Float(), nil
+	case reflect.String:
+		return l.String() >= r.String(), nil
+	}
+}
+
+func (p *GeqPredicate) Left() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *GeqPredicate) Right() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *GeqPredicate) Relation() string {
+	if p.left.Relation() != "" {
+		return p.left.Relation()
+	}
+
+	return p.right.Relation()
+}
+
+func (p *GeqPredicate) Attribute() []string {
+	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+type LeqPredicate struct {
+	left  ValueFunctor
+	right ValueFunctor
+}
+
+func NewLeqPredicate(left, right ValueFunctor) *LeqPredicate {
+	p := &LeqPredicate{
+		left:  left,
+		right: right,
+	}
+
+	return p
+}
+
+func (p *LeqPredicate) Type() PredicateType {
+	return Eq
+}
+
+func (p LeqPredicate) String() string {
+	return fmt.Sprintf("%s = %s", p.left, p.right)
+}
+
+func (p *LeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
+
+	l := reflect.ValueOf(p.left.Value(cols, t))
+	r := reflect.ValueOf(p.right.Value(cols, t))
+
+	switch l.Kind() {
+	default:
+		return false, fmt.Errorf("%s not comparable", l)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if !r.CanInt() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Int() <= r.Int(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if !r.CanUint() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Uint() <= r.Uint(), nil
+	case reflect.Float32, reflect.Float64:
+		if !r.CanFloat() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Float() <= r.Float(), nil
+	case reflect.String:
+		return l.String() <= r.String(), nil
+	}
+}
+
+func (p *LeqPredicate) Left() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *LeqPredicate) Right() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *LeqPredicate) Relation() string {
+	if p.left.Relation() != "" {
+		return p.left.Relation()
+	}
+
+	return p.right.Relation()
+}
+
+func (p *LeqPredicate) Attribute() []string {
+	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+type LePredicate struct {
+	left  ValueFunctor
+	right ValueFunctor
+}
+
+func NewLePredicate(left, right ValueFunctor) *LePredicate {
+	p := &LePredicate{
+		left:  left,
+		right: right,
+	}
+
+	return p
+}
+
+func (p *LePredicate) Type() PredicateType {
+	return Eq
+}
+
+func (p LePredicate) String() string {
+	return fmt.Sprintf("%s = %s", p.left, p.right)
+}
+
+func (p *LePredicate) Eval(cols []string, t *Tuple) (bool, error) {
+
+	l := reflect.ValueOf(p.left.Value(cols, t))
+	r := reflect.ValueOf(p.right.Value(cols, t))
+
+	switch l.Kind() {
+	default:
+		return false, fmt.Errorf("%s not comparable", l)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if !r.CanInt() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Int() < r.Int(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if !r.CanUint() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Uint() < r.Uint(), nil
+	case reflect.Float32, reflect.Float64:
+		if !r.CanFloat() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Float() < r.Float(), nil
+	case reflect.String:
+		return l.String() < r.String(), nil
+	}
+}
+
+func (p *LePredicate) Left() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *LePredicate) Right() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *LePredicate) Relation() string {
+	if p.left.Relation() != "" {
+		return p.left.Relation()
+	}
+
+	return p.right.Relation()
+}
+
+func (p *LePredicate) Attribute() []string {
+	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+type GePredicate struct {
+	left  ValueFunctor
+	right ValueFunctor
+}
+
+func NewGePredicate(left, right ValueFunctor) *GePredicate {
+	p := &GePredicate{
+		left:  left,
+		right: right,
+	}
+
+	return p
+}
+
+func (p *GePredicate) Type() PredicateType {
+	return Eq
+}
+
+func (p GePredicate) String() string {
+	return fmt.Sprintf("%s = %s", p.left, p.right)
+}
+
+func (p *GePredicate) Eval(cols []string, t *Tuple) (bool, error) {
+
+	l := reflect.ValueOf(p.left.Value(cols, t))
+	r := reflect.ValueOf(p.right.Value(cols, t))
+
+	switch l.Kind() {
+	default:
+		return false, fmt.Errorf("%s not comparable", l)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if !r.CanInt() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Int() > r.Int(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if !r.CanUint() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Uint() > r.Uint(), nil
+	case reflect.Float32, reflect.Float64:
+		if !r.CanFloat() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Float() > r.Float(), nil
+	case reflect.String:
+		return l.String() > r.String(), nil
+	}
+}
+
+func (p *GePredicate) Left() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *GePredicate) Right() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *GePredicate) Relation() string {
+	if p.left.Relation() != "" {
+		return p.left.Relation()
+	}
+
+	return p.right.Relation()
+}
+
+func (p *GePredicate) Attribute() []string {
+	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+type NeqPredicate struct {
+	left  ValueFunctor
+	right ValueFunctor
+}
+
+func NewNeqPredicate(left, right ValueFunctor) *NeqPredicate {
+	p := &NeqPredicate{
+		left:  left,
+		right: right,
+	}
+
+	return p
+}
+
+func (p *NeqPredicate) Type() PredicateType {
+	return Eq
+}
+
+func (p NeqPredicate) String() string {
+	return fmt.Sprintf("%s = %s", p.left, p.right)
+}
+
+func (p *NeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
+
+	l := reflect.ValueOf(p.left.Value(cols, t))
+	r := reflect.ValueOf(p.right.Value(cols, t))
+
+	if l.Kind() == r.Kind() {
+		return !l.Equal(r), nil
+	}
+
+	switch l.Kind() {
+	default:
+		return false, fmt.Errorf("%s not comparable", l)
+	case reflect.Bool:
+		if r.Kind() != reflect.Bool {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Bool() != r.Bool(), nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if !r.CanInt() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Int() != r.Int(), nil
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if !r.CanUint() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Uint() != r.Uint(), nil
+	case reflect.Float32, reflect.Float64:
+		if !r.CanFloat() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Float() != r.Float(), nil
+	case reflect.Complex64, reflect.Complex128:
+		if !r.CanComplex() {
+			return false, fmt.Errorf("%s not comparable", p)
+		}
+		return l.Complex() != r.Complex(), nil
+	case reflect.String:
+		return l.String() != r.String(), nil
+	case reflect.Chan, reflect.Pointer, reflect.UnsafePointer:
+		return l.Pointer() != r.Pointer(), nil
+	}
+}
+
+func (p *NeqPredicate) Left() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *NeqPredicate) Right() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *NeqPredicate) Relation() string {
+	if p.left.Relation() != "" {
+		return p.left.Relation()
+	}
+
+	return p.right.Relation()
+}
+
+func (p *NeqPredicate) Attribute() []string {
+	return append(p.left.Attribute(), p.right.Attribute()...)
 }

@@ -13,15 +13,18 @@ import (
 // Rows implements the sql/driver Rows interface
 type Rows struct {
 	columns []string
-	ch      chan *agnostic.Tuple
+	tuples  []*agnostic.Tuple
 	tx      *executor.Tx
+	idx     int
+	end     int
 }
 
-func newRows(cols []string, ch chan *agnostic.Tuple) *Rows {
+func newRows(cols []string, tuples []*agnostic.Tuple) *Rows {
 
 	r := &Rows{
-		ch:      ch,
+		tuples:  tuples,
 		columns: cols,
+		end:     len(tuples) - 1,
 	}
 
 	return r
@@ -38,7 +41,6 @@ func (r *Rows) Columns() []string {
 // Close closes the rows iterator.
 func (r *Rows) Close() error {
 
-	r.ch = nil
 	/*
 		if r.rowsChannel == nil {
 			return nil
@@ -66,15 +68,12 @@ func (r *Rows) Close() error {
 //
 // Next should return io.EOF when there are no more rows.
 func (r *Rows) Next(dest []driver.Value) (err error) {
-	if r.ch == nil {
+	if r.idx >= r.end {
 		return io.EOF
 	}
 
-	tuple, ok := <-r.ch
-	if !ok {
-		r.ch = nil
-		return io.EOF
-	}
+	tuple := r.tuples[r.idx]
+	r.idx++
 
 	values := tuple.Values()
 	if len(dest) < len(values) {

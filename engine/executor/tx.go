@@ -57,7 +57,7 @@ func NewTx(ctx context.Context, e *Engine, opts sql.TxOptions) (*Tx, error) {
 	return t, nil
 }
 
-func (t *Tx) QueryContext(ctx context.Context, query string, args []NamedValue) ([]string, chan *agnostic.Tuple, error) {
+func (t *Tx) QueryContext(ctx context.Context, query string, args []NamedValue) ([]string, []*agnostic.Tuple, error) {
 
 	instructions, err := parser.ParseInstruction(query)
 	if err != nil {
@@ -178,15 +178,7 @@ func (t *Tx) QueryContext(ctx context.Context, query string, args []NamedValue) 
 		return nil, nil, err
 	}
 
-	ch := make(chan *agnostic.Tuple, len(res))
-	go func() {
-		for _, r := range res {
-			ch <- r
-		}
-		close(ch)
-	}()
-
-	return cols, ch, nil
+	return cols, res, nil
 }
 
 // Commit the transaction on server
