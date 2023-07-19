@@ -85,5 +85,8 @@ func (r *Relation) Truncate() {
 }
 
 func (r Relation) String() string {
-	return r.schema + "." + r.name
+	if r.schema != "" {
+		return r.schema + "." + r.name
+	}
+	return r.name
 }
