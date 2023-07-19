@@ -2,6 +2,8 @@ package parser
 
 import (
 	"testing"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 func TestParserCreateTableSimple(t *testing.T) {
@@ -338,6 +340,24 @@ func TestSchema(t *testing.T) {
 		if d.Token != DropToken {
 			t.Errorf("expected DropToken (%d), got (%d)", DropToken, d.Token)
 		}
+	}
+}
+
+func TestArguments(t *testing.T) {
+	log.SetLevel(log.DebugLevel)
+	defer log.SetLevel(log.InfoLevel)
+
+	queries := []string{
+		`SELECT * FROM foo WHERE bar = $1 and enabled = true`,
+		`UPDATE foo SET bar = $1, elabled = $2 WHERE bar = $3`,
+		`SELECT * FROM foo WHERE bar = ? and enabled = true`,
+		`UPDATE foo SET bar = ?, elabled = ? WHERE bar = ?`,
+		`INSERT INTO test (data) VALUES ($1)`,
+		`INSERT INTO test (data) VALUES (?)`,
+	}
+
+	for _, q := range queries {
+		parse(q, 1, t)
 	}
 }
 

@@ -256,7 +256,6 @@ func LoadUserAddresses(db *sql.DB, userID int64) ([]string, error) {
 }
 
 func TestBatch(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 
 	batch := []string{
 		`CREATE TABLE address (id BIGSERIAL PRIMARY KEY, street TEXT, street_number INT);`,
@@ -287,6 +286,9 @@ func TestBatch(t *testing.T) {
 			t.Fatalf("sql.Exec: Error: %s\n", err)
 		}
 	}
+
+	log.SetLevel(log.DebugLevel)
+	defer log.SetLevel(log.InfoLevel)
 
 	addresses, err := LoadUserAddresses(db, 1)
 	if err != nil {
