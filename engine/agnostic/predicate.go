@@ -188,10 +188,11 @@ func (s *AttributeSelector) Select(cols []string, in []*Tuple) (out []*Tuple, er
 			return nil, fmt.Errorf("AttributeSelector(%s) not found in %s", attr, cols)
 		}
 	}
-	log.Debug("Selecting %s FROM %s", s.attributes, cols)
+	log.Debug("Selecting %s FROM %s (%d rows)", s.attributes, cols, len(in))
 
 	colsLen := len(cols)
 	for _, srct := range in {
+		log.Debug("Select: %v", srct.values)
 		if srct == nil {
 			return nil, fmt.Errorf("provided tuple is nil")
 		}
@@ -521,63 +522,67 @@ func (p EqPredicate) String() string {
 func (p *EqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 
 	vl := p.left.Value(cols, t)
-	l := reflect.ValueOf(vl)
+	//l := reflect.ValueOf(vl)
 	vr := p.right.Value(cols, t)
-	r := reflect.ValueOf(vr)
+	//	r := reflect.ValueOf(vr)
 
-	if l.Kind() == r.Kind() {
-		return l.Equal(r), nil
-	}
-
-	switch l.Kind() {
-	default:
-		return false, fmt.Errorf("%s not comparable", l)
-	case reflect.Func, reflect.Map, reflect.Slice:
-		return false, fmt.Errorf("%s not comparable", l)
-	case reflect.Bool:
-		if r.Kind() != reflect.Bool {
-			return false, fmt.Errorf("%s not comparable", p)
-		}
-		return l.Bool() == r.Bool(), nil
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if !r.CanInt() {
-			return false, fmt.Errorf("%s not comparable", p)
-		}
-		return l.Int() == r.Int(), nil
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		if !r.CanUint() {
-			return false, fmt.Errorf("%s not comparable", p)
-		}
-		return l.Uint() == r.Uint(), nil
-	case reflect.Float32, reflect.Float64:
-		if !r.CanFloat() {
-			return false, fmt.Errorf("%s not comparable", p)
-		}
-		return l.Float() == r.Float(), nil
-	case reflect.Complex64, reflect.Complex128:
-		if !r.CanComplex() {
-			return false, fmt.Errorf("%s not comparable", p)
-		}
-		return l.Complex() == r.Complex(), nil
-	case reflect.String:
-		return l.String() == r.String(), nil
-	case reflect.Chan, reflect.Pointer, reflect.UnsafePointer:
-		return l.Pointer() == r.Pointer(), nil
-	case reflect.Struct: // time.Time ?
-		switch vl.(type) {
-		case time.Time:
-			ltime := vl.(time.Time)
-			rtime, ok := vr.(time.Time)
-			if !ok {
-				return false, fmt.Errorf("%s not comparable", p)
-			}
-			return ltime.Unix() == rtime.Unix(), nil
-		default:
-			return false, fmt.Errorf("%s not comparable", p)
-		}
-	}
+	return equal(vl, vr)
 }
 
+/*
+		if l.Kind() == r.Kind() {
+			return l.Equal(r), nil
+		}
+
+		switch l.Kind() {
+		default:
+			return false, fmt.Errorf("%s not comparable", l)
+		case reflect.Func, reflect.Map, reflect.Slice:
+			return false, fmt.Errorf("%s not comparable", l)
+		case reflect.Bool:
+			if r.Kind() != reflect.Bool {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return l.Bool() == r.Bool(), nil
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if !r.CanInt() {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return l.Int() == r.Int(), nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			if !r.CanUint() {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return l.Uint() == r.Uint(), nil
+		case reflect.Float32, reflect.Float64:
+			if !r.CanFloat() {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return l.Float() == r.Float(), nil
+		case reflect.Complex64, reflect.Complex128:
+			if !r.CanComplex() {
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+			return l.Complex() == r.Complex(), nil
+		case reflect.String:
+			return l.String() == r.String(), nil
+		case reflect.Chan, reflect.Pointer, reflect.UnsafePointer:
+			return l.Pointer() == r.Pointer(), nil
+		case reflect.Struct: // time.Time ?
+			switch vl.(type) {
+			case time.Time:
+				ltime := vl.(time.Time)
+				rtime, ok := vr.(time.Time)
+				if !ok {
+					return false, fmt.Errorf("%s not comparable", p)
+				}
+				return ltime.Unix() == rtime.Unix(), nil
+			default:
+				return false, fmt.Errorf("%s not comparable", p)
+			}
+		}
+	}
+*/
 func (p *EqPredicate) Left() (Predicate, bool) {
 	return nil, false
 }
@@ -724,6 +729,8 @@ func (j *NaturalJoin) Children() []Node {
 
 func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
 
+	log.Debug("NaturalJoin.Exec")
+
 	lcols, lefts, err := j.left.Exec()
 	if err != nil {
 		return nil, nil, err
@@ -755,24 +762,32 @@ func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
 	if ridx == -1 {
 		return nil, nil, fmt.Errorf("%s: columns not found in right node", j)
 	}
+	log.Debug("NaturalJoin.Exec: Found right (%s) %d in %v", j.righta, ridx, rcols)
 
 	cols := make([]string, len(lcols)+len(rcols))
 	var idx int
 	for _, c := range lcols {
-		cols[idx] = c
+		cols[idx] = j.leftr + "." + c
 		idx++
 	}
 	for _, c := range rcols {
-		cols[idx] = c
+		cols[idx] = j.rightr + "." + c
 		idx++
 	}
+
+	log.Debug("NaturalJoin.Exec: New cols: %v", cols)
 
 	// prepare for worst case cross join
 	res := make([]*Tuple, len(lefts)*len(rights))
 	idx = 0
 	for _, left := range lefts {
 		for _, right := range rights {
-			if reflect.DeepEqual(left.values[lidx], right.values[ridx]) {
+			// Need to use Eq here
+			ok, err := equal(left.values[lidx], right.values[ridx])
+			if err != nil {
+				return nil, nil, err
+			}
+			if ok {
 				t := NewTuple(left.values...)
 				t.Append(right.values...)
 				res[idx] = t
@@ -1308,4 +1323,51 @@ func (p *NeqPredicate) Relation() string {
 
 func (p *NeqPredicate) Attribute() []string {
 	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+func equal(vl, vr any) (bool, error) {
+	l := reflect.ValueOf(vl)
+	r := reflect.ValueOf(vr)
+
+	if l.Kind() == r.Kind() {
+		return l.Equal(r), nil
+	}
+
+	switch l.Kind() {
+	case reflect.Bool:
+		if r.Kind() == reflect.Bool {
+			return l.Bool() == r.Bool(), nil
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if r.CanInt() {
+			return l.Int() == r.Int(), nil
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if r.CanUint() {
+			return l.Uint() == r.Uint(), nil
+		}
+	case reflect.Float32, reflect.Float64:
+		if r.CanFloat() {
+			return l.Float() == r.Float(), nil
+		}
+	case reflect.Complex64, reflect.Complex128:
+		if r.CanComplex() {
+			return l.Complex() == r.Complex(), nil
+		}
+	case reflect.String:
+		return l.String() == r.String(), nil
+	case reflect.Chan, reflect.Pointer, reflect.UnsafePointer:
+		return l.Pointer() == r.Pointer(), nil
+	case reflect.Struct: // time.Time ?
+		switch vl.(type) {
+		case time.Time:
+			ltime := vl.(time.Time)
+			rtime, ok := vr.(time.Time)
+			if ok {
+				return ltime.Unix() == rtime.Unix(), nil
+			}
+		}
+	}
+
+	return false, fmt.Errorf("%v (%v) and %v (%v) not comparable", vl, reflect.TypeOf(vl), vr, reflect.TypeOf(vr))
 }

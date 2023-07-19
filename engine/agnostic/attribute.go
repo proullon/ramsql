@@ -75,10 +75,7 @@ func (a Attribute) WithUnique() Attribute {
 
 func typeInstanceFromName(name string) reflect.Type {
 	switch strings.ToLower(name) {
-	case "serial", "bigserial":
-		var v uint64
-		return reflect.TypeOf(v)
-	case "int", "bigint":
+	case "serial", "bigserial", "int", "bigint":
 		var v int64
 		return reflect.TypeOf(v)
 	case "bool", "boolean":

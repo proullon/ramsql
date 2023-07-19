@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/proullon/ramsql/engine/agnostic"
@@ -85,24 +86,31 @@ func (t *Tx) QueryContext(ctx context.Context, query string, args []NamedValue) 
 		case parser.FromToken:
 			schema, tables = getSelectedTables(selectDecl.Decl[i])
 		case parser.WhereToken:
-			predicate, err = t.getPredicates(selectDecl.Decl[i].Decl, schema, tables[0])
-		}
-		if err != nil {
-			return nil, nil, err
-		}
-
-		for i := range selectDecl.Decl {
-			if selectDecl.Decl[i].Token != parser.StringToken &&
-				selectDecl.Decl[i].Token != parser.StarToken &&
-				selectDecl.Decl[i].Token != parser.CountToken {
-				continue
-			}
-			// get attribute to select
-			selectors, err = t.getSelectors(selectDecl.Decl[i], schema, tables)
+			predicate, err = t.getPredicates(selectDecl.Decl[i].Decl, schema, tables[0], args)
 			if err != nil {
 				return nil, nil, err
 			}
+		case parser.JoinToken:
+			j, err := t.getJoin(selectDecl.Decl[i], tables[0])
+			if err != nil {
+				return nil, nil, err
+			}
+			joiners = append(joiners, j)
 		}
+	}
+
+	for i := range selectDecl.Decl {
+		if selectDecl.Decl[i].Token != parser.StringToken &&
+			selectDecl.Decl[i].Token != parser.StarToken &&
+			selectDecl.Decl[i].Token != parser.CountToken {
+			continue
+		}
+		// get attribute to select
+		selector, err := t.getSelector(selectDecl.Decl[i], schema, tables)
+		if err != nil {
+			return nil, nil, err
+		}
+		selectors = append(selectors, selector)
 	}
 	/*
 		for i := range selectDecl.Decl {
@@ -234,33 +242,23 @@ func (t *Tx) executeQuery(i parser.Instruction) (int64, int64, error) {
 	return l, r, nil
 }
 
-func (t *Tx) getSelectors(attr *parser.Decl, schema string, tables []string) ([]agnostic.Selector, error) {
-	var selectors []agnostic.Selector
+func (t *Tx) getSelector(attr *parser.Decl, schema string, tables []string) (agnostic.Selector, error) {
 	var err error
-	var found bool
 
 	switch attr.Token {
 	case parser.StarToken:
-		for _, table := range tables {
-			selectors = append(selectors, agnostic.NewStarSelector(table))
-		}
+		return agnostic.NewStarSelector(tables[0]), nil
 	case parser.CountToken:
-		found = false
 		for _, table := range tables {
 			if attr.Decl[0].Lexeme == "*" {
-				found = true
-				break
+				return agnostic.NewCountSelector(table, "*"), nil
 			}
 			_, _, err = t.tx.RelationAttribute(schema, table, attr.Decl[0].Lexeme)
 			if err == nil {
-				found = true
-				selectors = append(selectors, agnostic.NewCountSelector(table, attr.Decl[0].Lexeme))
-				break
+				return agnostic.NewCountSelector(table, attr.Decl[0].Lexeme), nil
 			}
 		}
-		if !found {
-			return nil, err
-		}
+		return nil, err
 	case parser.StringToken:
 		attribute := attr.Lexeme
 		if len(attr.Decl) > 0 {
@@ -268,24 +266,18 @@ func (t *Tx) getSelectors(attr *parser.Decl, schema string, tables []string) ([]
 			if err != nil {
 				return nil, err
 			}
-			selectors = append(selectors, agnostic.NewAttributeSelector(attr.Decl[0].Lexeme, []string{attribute}))
-			break
+			return agnostic.NewAttributeSelector(attr.Decl[0].Lexeme, []string{attribute}), nil
 		}
-		found = false
 		for _, table := range tables {
 			_, _, err = t.tx.RelationAttribute(schema, table, attribute)
 			if err == nil {
-				found = true
-				selectors = append(selectors, agnostic.NewAttributeSelector(table, []string{attribute}))
-				break
+				return agnostic.NewAttributeSelector(table, []string{attribute}), nil
 			}
 		}
-		if !found {
-			return nil, err
-		}
+		return nil, err
 	}
 
-	return selectors, nil
+	return nil, fmt.Errorf("cannot handle %s", attr.Lexeme)
 }
 
 func getSelectedTables(fromDecl *parser.Decl) (string, []string) {
@@ -302,7 +294,7 @@ func getSelectedTables(fromDecl *parser.Decl) (string, []string) {
 	return schema, tables
 }
 
-func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string) (agnostic.Predicate, error) {
+func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, args []NamedValue) (agnostic.Predicate, error) {
 
 	for i, cond := range decl {
 
@@ -311,7 +303,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string) (a
 				return nil, fmt.Errorf("query error: AND not followed by any predicate")
 			}
 
-			p, err := t.and(decl[:i], decl[i+1:], schema, fromTableName)
+			p, err := t.and(decl[:i], decl[i+1:], schema, fromTableName, args)
 			return p, err
 		}
 
@@ -319,7 +311,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string) (a
 			if i+1 == len(decl) {
 				return nil, fmt.Errorf("query error: OR not followd by any predicate")
 			}
-			p, err := t.or(decl[:i], decl[i+1:], schema, fromTableName)
+			p, err := t.or(decl[:i], decl[i+1:], schema, fromTableName, args)
 			return p, err
 		}
 	}
@@ -389,30 +381,45 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string) (a
 	}
 
 	cond.Stringy(0, log.Debug)
+	leftS := cond
+	op := cond.Decl[0]
+	rightS := cond.Decl[1]
 
 	// TODO: fixme: only comparison from attribute value (on left) and const (on right) is possible right now
 
-	// The first element of the list is then the relation of the attribute
-	op := cond.Decl[0]
-	val := cond.Decl[1]
-	/*
-		p.Operator, err = NewOperator(op.Token, op.Lexeme)
+	var left, right agnostic.ValueFunctor
+
+	switch leftS.Token {
+	case parser.ArgToken:
+		idx, err := strconv.ParseInt(leftS.Lexeme, 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		p.RightValue.lexeme = val.Lexeme
-		p.RightValue.valid = true
-
-		p.LeftValue.table = fromTableName
-	*/
-
-	left := agnostic.NewAttributeValueFunctor(fromTableName, pLeftValue)
-
-	v, err := agnostic.ToInstance(val.Lexeme, parser.TypeNameFromToken(val.Token))
-	if err != nil {
-		return nil, err
+		if len(args) <= int(idx)-1 {
+			return nil, fmt.Errorf("reference to $%s, but only %d argument provided", leftS.Lexeme, len(args))
+		}
+		left = agnostic.NewConstValueFunctor(args[idx-1].Value)
+	default:
+		left = agnostic.NewAttributeValueFunctor(fromTableName, pLeftValue)
 	}
-	right := agnostic.NewConstValueFunctor(v)
+
+	switch rightS.Token {
+	case parser.ArgToken:
+		idx, err := strconv.ParseInt(rightS.Lexeme, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		if len(args) <= int(idx)-1 {
+			return nil, fmt.Errorf("reference to $%s, but only %d argument provided", rightS.Lexeme, len(args))
+		}
+		right = agnostic.NewConstValueFunctor(args[idx-1].Value)
+	default:
+		v, err := agnostic.ToInstance(rightS.Lexeme, parser.TypeNameFromToken(rightS.Token))
+		if err != nil {
+			return nil, err
+		}
+		right = agnostic.NewConstValueFunctor(v)
+	}
 
 	var ptype agnostic.PredicateType
 	switch op.Token {
@@ -435,7 +442,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string) (a
 	return agnostic.NewComparisonPredicate(left, ptype, right)
 }
 
-func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName string) (agnostic.Predicate, error) {
+func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName string, args []NamedValue) (agnostic.Predicate, error) {
 
 	if len(left) == 0 {
 		return nil, fmt.Errorf("no predicate before AND")
@@ -444,12 +451,12 @@ func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName st
 		return nil, fmt.Errorf("no predicate after AND")
 	}
 
-	lp, err := t.getPredicates(left, schema, tableName)
+	lp, err := t.getPredicates(left, schema, tableName, args)
 	if err != nil {
 		return nil, err
 	}
 
-	rp, err := t.getPredicates(right, schema, tableName)
+	rp, err := t.getPredicates(right, schema, tableName, args)
 	if err != nil {
 		return nil, err
 	}
@@ -457,7 +464,7 @@ func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName st
 	return agnostic.NewAndPredicate(lp, rp), nil
 }
 
-func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName string) (agnostic.Predicate, error) {
+func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName string, args []NamedValue) (agnostic.Predicate, error) {
 
 	if len(left) == 0 {
 		return nil, fmt.Errorf("no predicate before OR")
@@ -466,15 +473,43 @@ func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName str
 		return nil, fmt.Errorf("no predicate after OR")
 	}
 
-	lp, err := t.getPredicates(left, schema, tableName)
+	lp, err := t.getPredicates(left, schema, tableName, args)
 	if err != nil {
 		return nil, err
 	}
 
-	rp, err := t.getPredicates(right, schema, tableName)
+	rp, err := t.getPredicates(right, schema, tableName, args)
 	if err != nil {
 		return nil, err
 	}
 
 	return agnostic.NewOrPredicate(lp, rp), nil
+}
+
+func (t *Tx) getJoin(decl *parser.Decl, leftR string) (agnostic.Joiner, error) {
+	var leftA, rightA, rightR string
+
+	if decl.Decl[0].Token != parser.StringToken {
+		return nil, fmt.Errorf("expected joined relation name, got %v", decl.Decl[0])
+	}
+	rightR = decl.Decl[0].Lexeme
+
+	if decl.Decl[1].Token != parser.OnToken {
+		return nil, fmt.Errorf("expected join ON information, got %v", decl.Decl[1])
+	}
+	on := decl.Decl[1]
+
+	if len(on.Decl) != 3 {
+		return nil, fmt.Errorf("expected JOIN ON to have pivot")
+	}
+
+	if on.Decl[0].Decl[0].Lexeme == leftR {
+		leftA = on.Decl[0].Lexeme
+		rightA = on.Decl[2].Lexeme
+	} else {
+		leftA = on.Decl[2].Lexeme
+		rightA = on.Decl[0].Lexeme
+	}
+
+	return agnostic.NewNaturalJoin(leftR, leftA, rightR, rightA), nil
 }

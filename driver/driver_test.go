@@ -259,7 +259,7 @@ func TestBatch(t *testing.T) {
 
 	batch := []string{
 		`CREATE TABLE address (id BIGSERIAL PRIMARY KEY, street TEXT, street_number INT);`,
-		`CREATE TABLE user_addresses (address_id INT, user_id INT);`,
+		`CREATE TABLE user_addresses (address_id BIGINT, user_id BIGINT);`,
 		`INSERT INTO address (street, street_number) VALUES ('rue victor hugo', 32);`,
 		`INSERT INTO address (street, street_number) VALUES ('boulevard de la république', 23);`,
 		`INSERT INTO address (street, street_number) VALUES ('rue charles martel', 5);`,
@@ -274,6 +274,8 @@ func TestBatch(t *testing.T) {
 		`INSERT INTO user_addresses (address_id, user_id) VALUES (4, 5);`,
 	}
 
+	log.SetLevel(log.InfoLevel)
+
 	db, err := sql.Open("ramsql", "TestLoadUserAddresses")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
@@ -286,9 +288,6 @@ func TestBatch(t *testing.T) {
 			t.Fatalf("sql.Exec: Error: %s\n", err)
 		}
 	}
-
-	log.SetLevel(log.DebugLevel)
-	defer log.SetLevel(log.InfoLevel)
 
 	addresses, err := LoadUserAddresses(db, 1)
 	if err != nil {
