@@ -13,7 +13,7 @@ import (
 	"github.com/proullon/ramsql/engine/parser"
 )
 
-type executorFunc func(*Tx, *parser.Decl) (int64, int64, chan *agnostic.Tuple, error)
+type executorFunc func(*Tx, *parser.Decl, []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error)
 
 var (
 	NotImplemented = errors.New("not implemented")
@@ -53,7 +53,7 @@ func NewTx(ctx context.Context, e *Engine, opts sql.TxOptions) (*Tx, error) {
 		//		parser.DeleteToken:   deleteExecutor,
 		//		parser.UpdateToken:   updateExecutor,
 		//		parser.TruncateToken: truncateExecutor,
-		//		parser.DropToken:     dropExecutor,
+		parser.DropToken:  dropExecutor,
 		parser.GrantToken: grantExecutor,
 	}
 	return t, nil
@@ -73,116 +73,12 @@ func (t *Tx) QueryContext(ctx context.Context, query string, args []NamedValue) 
 	if len(inst.Decls) == 0 {
 		return nil, nil, fmt.Errorf("expected 1 query")
 	}
-	selectDecl := inst.Decls[0]
 
-	var schema string
-	var selectors []agnostic.Selector
-	var predicate agnostic.Predicate
-	var joiners []agnostic.Joiner
-	var tables []string
-
-	for i := range selectDecl.Decl {
-		switch selectDecl.Decl[i].Token {
-		case parser.FromToken:
-			schema, tables = getSelectedTables(selectDecl.Decl[i])
-		case parser.WhereToken:
-			predicate, err = t.getPredicates(selectDecl.Decl[i].Decl, schema, tables[0], args)
-			if err != nil {
-				return nil, nil, err
-			}
-		case parser.JoinToken:
-			j, err := t.getJoin(selectDecl.Decl[i], tables[0])
-			if err != nil {
-				return nil, nil, err
-			}
-			joiners = append(joiners, j)
-		}
+	if t.opsExecutors[inst.Decls[0].Token] == nil {
+		return nil, nil, NotImplemented
 	}
 
-	for i := range selectDecl.Decl {
-		if selectDecl.Decl[i].Token != parser.StringToken &&
-			selectDecl.Decl[i].Token != parser.StarToken &&
-			selectDecl.Decl[i].Token != parser.CountToken {
-			continue
-		}
-		// get attribute to select
-		selector, err := t.getSelector(selectDecl.Decl[i], schema, tables)
-		if err != nil {
-			return nil, nil, err
-		}
-		selectors = append(selectors, selector)
-	}
-	/*
-		for i := range selectDecl.Decl {
-			switch selectDecl.Decl[i].Token {
-			case parser.FromToken:
-				// get selected tables
-				tables = fromExecutor(selectDecl.Decl[i])
-				if len(tables) > 0 {
-					schema = tables[0].schema
-				}
-			case parser.WhereToken:
-				// get WHERE declaration
-				pred, err := whereExecutor2(e, selectDecl.Decl[i].Decl, schema, tables[0].name)
-				if err != nil {
-					return err
-				}
-				predicates = []PredicateLinker{pred}
-			case parser.JoinToken:
-				j, err := joinExecutor(selectDecl.Decl[i])
-				if err != nil {
-					return err
-				}
-				joiners = append(joiners, j)
-			case parser.OrderToken:
-				orderFunctor, err := orderbyExecutor(selectDecl.Decl[i], tables)
-				if err != nil {
-					return err
-				}
-				functors = append(functors, orderFunctor)
-			case parser.LimitToken:
-				limit, err := strconv.Atoi(selectDecl.Decl[i].Decl[0].Lexeme)
-				if err != nil {
-					return fmt.Errorf("wrong limit value: %s", err)
-				}
-				conn = limitedConn(conn, limit)
-			case parser.OffsetToken:
-				offset, err := strconv.Atoi(selectDecl.Decl[i].Decl[0].Lexeme)
-				if err != nil {
-					return fmt.Errorf("wrong offset value: %s", err)
-				}
-				conn = offsetedConn(conn, offset)
-			case parser.DistinctToken:
-				conn = distinctedConn(conn, len(selectDecl.Decl[i].Decl))
-			}
-		}
-
-		for i := range selectDecl.Decl {
-			if selectDecl.Decl[i].Token != parser.StringToken &&
-				selectDecl.Decl[i].Token != parser.StarToken &&
-				selectDecl.Decl[i].Token != parser.CountToken {
-				continue
-			}
-
-			// get attribute to selected
-			attr, err := getSelectedAttribute(e, selectDecl.Decl[i], tables)
-			if err != nil {
-				return err
-			}
-			attributes = append(attributes, attr...)
-
-		}
-
-		if len(functors) == 0 {
-			// Instantiate a new select functor
-			functors, err = getSelectFunctors(selectDecl)
-			if err != nil {
-				return err
-			}
-		}
-	*/
-
-	cols, res, err := t.tx.Query(schema, selectors, predicate, joiners)
+	_, _, cols, res, err := t.opsExecutors[inst.Decls[0].Token](t, inst.Decls[0], args)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -211,7 +107,7 @@ func (t *Tx) ExecContext(ctx context.Context, query string, args []NamedValue) (
 
 	var lastInsertedID, rowsAffected, aff int64
 	for _, instruct := range instructions {
-		lastInsertedID, aff, err = t.executeQuery(instruct)
+		lastInsertedID, aff, err = t.executeQuery(instruct, args)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -221,7 +117,7 @@ func (t *Tx) ExecContext(ctx context.Context, query string, args []NamedValue) (
 	return lastInsertedID, rowsAffected, nil
 }
 
-func (t *Tx) executeQuery(i parser.Instruction) (int64, int64, error) {
+func (t *Tx) executeQuery(i parser.Instruction, args []NamedValue) (int64, int64, error) {
 
 	/*
 		i.Decls[0].Stringy(0,
@@ -234,7 +130,7 @@ func (t *Tx) executeQuery(i parser.Instruction) (int64, int64, error) {
 		return 0, 0, NotImplemented
 	}
 
-	l, r, _, err := t.opsExecutors[i.Decls[0].Token](t, i.Decls[0])
+	l, r, _, _, err := t.opsExecutors[i.Decls[0].Token](t, i.Decls[0], args)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -385,11 +281,11 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	op := cond.Decl[0]
 	rightS := cond.Decl[1]
 
-	// TODO: fixme: only comparison from attribute value (on left) and const (on right) is possible right now
-
 	var left, right agnostic.ValueFunctor
 
 	switch leftS.Token {
+	case parser.CurrentSchemaToken:
+		left = agnostic.NewConstValueFunctor(schema)
 	case parser.ArgToken:
 		idx, err := strconv.ParseInt(leftS.Lexeme, 10, 64)
 		if err != nil {
@@ -404,6 +300,8 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	}
 
 	switch rightS.Token {
+	case parser.CurrentSchemaToken:
+		left = agnostic.NewConstValueFunctor(schema)
 	case parser.ArgToken:
 		idx, err := strconv.ParseInt(rightS.Lexeme, 10, 64)
 		if err != nil {
