@@ -1177,7 +1177,6 @@ func TestSchema(t *testing.T) {
 }
 
 func TestFloat(t *testing.T) {
-	log.UseTestLogger(t)
 
 	batch := []string{
 		`CREATE TABLE user (name TEXT, surname TEXT, age float(8));`,
@@ -1239,5 +1238,22 @@ func TestFloat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Cannot run UPDATE query with AND: %s\n", err)
 	}
+}
 
+func TestDrop(t *testing.T) {
+	db, err := sql.Open("ramsql", "TestDrop")
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE account (id INT, email TEXT)")
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+
+	_, err = db.Exec("DROP TABLE account")
+	if err != nil {
+		t.Fatalf("cannot drop table: %s", err)
+	}
 }

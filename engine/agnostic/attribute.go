@@ -73,6 +73,10 @@ func (a Attribute) WithUnique() Attribute {
 	return a
 }
 
+func (a Attribute) Name() string {
+	return a.name
+}
+
 func typeInstanceFromName(name string) reflect.Type {
 	switch strings.ToLower(name) {
 	case "serial", "bigserial", "int", "bigint":

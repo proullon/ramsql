@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/proullon/ramsql/engine/agnostic"
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 )
 
@@ -37,29 +39,88 @@ func (e *Engine) Begin() (*Tx, error) {
 func (e *Engine) Stop() {
 }
 
-func createExecutor(t *Tx, decl *parser.Decl) (int64, int64, chan *agnostic.Tuple, error) {
+func createExecutor(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
 
 	if len(decl.Decl) == 0 {
-		return 0, 0, nil, ParsingError
+		return 0, 0, nil, nil, ParsingError
 	}
 
 	if t.opsExecutors[decl.Decl[0].Token] != nil {
-		return t.opsExecutors[decl.Decl[0].Token](t, decl.Decl[0])
+		return t.opsExecutors[decl.Decl[0].Token](t, decl.Decl[0], args)
 	}
 
-	return 0, 0, nil, NotImplemented
+	return 0, 0, nil, nil, NotImplemented
 }
 
-func grantExecutor(t *Tx, decl *parser.Decl) (int64, int64, chan *agnostic.Tuple, error) {
-	return 0, 1, nil, nil
+func dropExecutor(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+
+	if len(decl.Decl) == 0 {
+		return 0, 0, nil, nil, ParsingError
+	}
+
+	if _, ok := decl.Has(parser.TableToken); ok {
+		return dropTable(t, decl.Decl[0], args)
+	}
+	if _, ok := decl.Has(parser.SchemaToken); ok {
+		return dropSchema(t, decl.Decl[0], args)
+	}
+
+	return 0, 0, nil, nil, NotImplemented
 }
 
-func createTableExecutor(t *Tx, tableDecl *parser.Decl) (int64, int64, chan *agnostic.Tuple, error) {
+func dropTable(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+	if len(decl.Decl) == 0 {
+		return 0, 1, nil, nil, ParsingError
+	}
+
+	// Check if 'IF EXISTS' is present
+	ifExists := hasIfExists(decl)
+
+	rDecl := decl.Decl[0]
+	if ifExists {
+		rDecl = decl.Decl[1]
+	}
+
+	schema := agnostic.DefaultSchema
+	if d, ok := rDecl.Has(parser.SchemaToken); ok {
+		schema = d.Lexeme
+	}
+	relation := rDecl.Lexeme
+
+	exists := t.tx.CheckRelation(schema, relation)
+	if !exists && ifExists {
+		return 0, 0, nil, nil, nil
+	}
+	if !exists {
+		return 0, 0, nil, nil, fmt.Errorf("relation %s.%s does not exist", schema, relation)
+	}
+
+	err := t.tx.DropRelation(schema, relation)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	return 0, 1, nil, nil, nil
+}
+
+func dropSchema(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+	if len(decl.Decl) == 0 {
+		return 0, 1, nil, nil, ParsingError
+	}
+
+	return 0, 1, nil, nil, nil
+}
+
+func grantExecutor(*Tx, *parser.Decl, []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+	return 0, 1, nil, nil, nil
+}
+
+func createTableExecutor(t *Tx, tableDecl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
 	var i int
 	var schemaName string
 
 	if len(tableDecl.Decl) == 0 {
-		return 0, 0, nil, ParsingError
+		return 0, 0, nil, nil, ParsingError
 	}
 
 	// Check for specific attribute
@@ -73,9 +134,9 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl) (int64, int64, chan *agn
 			break
 		}
 
-		_, _, _, err := t.opsExecutors[tableDecl.Decl[i].Token](t, tableDecl.Decl[i])
+		_, _, _, _, err := t.opsExecutors[tableDecl.Decl[i].Token](t, tableDecl.Decl[i], args)
 		if err != nil {
-			return 0, 0, nil, err
+			return 0, 0, nil, nil, err
 		}
 		i++
 	}
@@ -91,10 +152,10 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl) (int64, int64, chan *agn
 
 	exists := t.tx.CheckRelation(schemaName, relationName)
 	if exists && ifNotExists {
-		return 0, 0, nil, nil
+		return 0, 0, nil, nil, nil
 	}
 	if exists {
-		return 0, 0, nil, errors.New("relation already exists")
+		return 0, 0, nil, nil, errors.New("relation already exists")
 	}
 
 	var pk []string
@@ -103,9 +164,12 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl) (int64, int64, chan *agn
 	// Fetch attributes
 	i++
 	for i < len(tableDecl.Decl) {
-		attr, err := parseAttribute(tableDecl.Decl[i])
+		attr, isPk, err := parseAttribute(tableDecl.Decl[i])
 		if err != nil {
-			return 0, 0, nil, err
+			return 0, 0, nil, nil, err
+		}
+		if isPk {
+			pk = append(pk, attr.Name())
 		}
 		attributes = append(attributes, attr)
 		i++
@@ -113,9 +177,9 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl) (int64, int64, chan *agn
 
 	err := t.tx.CreateRelation(schemaName, relationName, attributes, pk)
 	if err != nil {
-		return 0, 0, nil, err
+		return 0, 0, nil, nil, err
 	}
-	return 0, 1, nil, nil
+	return 0, 1, nil, nil, nil
 }
 
 /*
@@ -134,7 +198,7 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl) (int64, int64, chan *agn
 	|-> RETURNING
 	        |-> email
 */
-func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl) (int64, int64, chan *agnostic.Tuple, error) {
+func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
 
 	var lastInsertedID int64
 	var schemaName string
@@ -161,11 +225,11 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl) (int64, int64, chan
 	for _, valueListDecl := range valuesDecl.Decl {
 		values, err := getValues(specifiedAttrs, valueListDecl)
 		if err != nil {
-			return 0, 0, nil, err
+			return 0, 0, nil, nil, err
 		}
 		tuple, err := t.tx.Insert(schemaName, relationName, values)
 		if err != nil {
-			return 0, 0, nil, err
+			return 0, 0, nil, nil, err
 		}
 		tuples = append(tuples, tuple)
 
@@ -178,30 +242,10 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl) (int64, int64, chan
 	}
 
 	if len(returningAttrs) == 0 {
-		return lastInsertedID, int64(len(tuples)), nil, nil
+		return lastInsertedID, int64(len(tuples)), nil, nil, nil
 	}
 
-	ch := make(chan *agnostic.Tuple, len(tuples)+2)
-	collumns := &agnostic.Tuple{}
-	for _, rattr := range returningAttrs {
-		collumns.Append(rattr)
-	}
-	ch <- collumns
-
-	for _, tuple := range tuples {
-		returningTuple := &agnostic.Tuple{}
-		for _, rattr := range returningAttrs {
-			index, _, err := t.tx.RelationAttribute(schemaName, relationName, rattr)
-			if err != nil {
-				return 0, 0, nil, err
-			}
-			returningTuple.Append(tuple.Values()[index])
-		}
-
-		ch <- returningTuple
-	}
-
-	return lastInsertedID, int64(len(tuples)), ch, nil
+	return lastInsertedID, int64(len(tuples)), returningAttrs, tuples, nil
 }
 
 func getValues(specifiedAttrs []string, valuesDecl *parser.Decl) (map[string]any, error) {
@@ -249,6 +293,18 @@ func hasIfNotExists(tableDecl *parser.Decl) bool {
 	return false
 }
 
+func hasIfExists(tableDecl *parser.Decl) bool {
+	for _, d := range tableDecl.Decl {
+		if d.Token == parser.IfToken {
+			if len(d.Decl) > 0 && d.Decl[0].Token == parser.ExistsToken {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 /*
 |-> SELECT
 
@@ -260,19 +316,47 @@ func hasIfNotExists(tableDecl *parser.Decl) bool {
 			|-> =
 			|-> foo@bar.com
 */
-func selectExecutor(t *Tx, selectDecl *parser.Decl) (int64, int64, chan *agnostic.Tuple, error) {
-	ch := make(chan *agnostic.Tuple)
+func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
 
-	return 0, 0, ch, nil
+	var schema string
+	var selectors []agnostic.Selector
+	var predicate agnostic.Predicate
+	var joiners []agnostic.Joiner
+	var tables []string
+	var err error
+
+	for i := range selectDecl.Decl {
+		switch selectDecl.Decl[i].Token {
+		case parser.FromToken:
+			schema, tables = getSelectedTables(selectDecl.Decl[i])
+		case parser.WhereToken:
+			predicate, err = t.getPredicates(selectDecl.Decl[i].Decl, schema, tables[0], args)
+			if err != nil {
+				return 0, 0, nil, nil, err
+			}
+		case parser.JoinToken:
+			j, err := t.getJoin(selectDecl.Decl[i], tables[0])
+			if err != nil {
+				return 0, 0, nil, nil, err
+			}
+			joiners = append(joiners, j)
+		}
+	}
+
+	for i := range selectDecl.Decl {
+		if selectDecl.Decl[i].Token != parser.StringToken &&
+			selectDecl.Decl[i].Token != parser.StarToken &&
+			selectDecl.Decl[i].Token != parser.CountToken {
+			continue
+		}
+		// get attribute to select
+		selector, err := t.getSelector(selectDecl.Decl[i], schema, tables)
+		if err != nil {
+			return 0, 0, nil, nil, err
+		}
+		selectors = append(selectors, selector)
+	}
 	/*
-		var attributes []Attribute
-		var tables []*Table
-		var predicates []PredicateLinker
-		var functors []selectFunctor
-		var joiners []joiner
-		var schema string
-		var err error
-
 		for i := range selectDecl.Decl {
 			switch selectDecl.Decl[i].Token {
 			case parser.FromToken:
@@ -340,12 +424,13 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl) (int64, int64, chan *agnosti
 				return err
 			}
 		}
-
-		err = generateVirtualRows(e, attributes, conn, schema, tables[0].name, joiners, predicates, functors)
-		if err != nil {
-			return err
-		}
-
-		return nil
 	*/
+
+	log.Debug("executing '%s' with %s and %s", selectors, predicate, joiners)
+	cols, res, err := t.tx.Query(schema, selectors, predicate, joiners)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	return 0, 0, cols, res, nil
 }
