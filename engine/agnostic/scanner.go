@@ -51,6 +51,7 @@ func (s *RelationScanner) Exec() ([]string, []*Tuple, error) {
 			}
 		}
 		if canAppend {
+			log.Debug("RelationScanner.Exec: appending %v", t.values)
 			res = append(res, t)
 		}
 	}

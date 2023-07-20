@@ -80,12 +80,12 @@ func TestJoin(t *testing.T) {
 	}
 
 	// Check if insert is ok
-	if foo.ID == 0 {
-		t.Fatalf("Foo should have an ID: got 0")
+	if foo.ID != 1 {
+		t.Fatalf("Foo should have an ID 1: got %d", foo.ID)
 	}
 
-	if bar.ID == 0 {
-		t.Fatalf("Bar should have an ID: got 0")
+	if bar.ID != 2 {
+		t.Fatalf("Bar should have an ID 2: got %d", bar.ID)
 	}
 
 	// Add foo to project test

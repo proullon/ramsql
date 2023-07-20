@@ -77,6 +77,18 @@ func (a Attribute) Name() string {
 	return a.name
 }
 
+func (a Attribute) String() string {
+	s := a.name + " ( " + a.typeName + " "
+	if a.autoIncrement {
+		s = s + "AutoInc "
+	}
+	if a.unique {
+		s = s + "unique "
+	}
+	s = s + ")"
+	return s
+}
+
 func typeInstanceFromName(name string) reflect.Type {
 	switch strings.ToLower(name) {
 	case "serial", "bigserial", "int", "bigint":
