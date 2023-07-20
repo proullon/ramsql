@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"hash/maphash"
 	"unsafe"
+
+	"github.com/proullon/ramsql/engine/log"
 )
 
 type Index interface {
@@ -47,22 +49,26 @@ func (h *HashIndex) Name() string {
 }
 
 func (h *HashIndex) Add(t *Tuple) {
-	for i, _ := range h.attrs {
-		h.Write([]byte(fmt.Sprintf("%v", t.values[i])))
+	for _, idx := range h.attrs {
+		log.Debug("HashIndex.Add(%s): appending %s", h, fmt.Sprintf("%v", t.values[idx]))
+		h.Write([]byte(fmt.Sprintf("%v", t.values[idx])))
 	}
 	sum := h.Sum64()
+	log.Debug("HashIndex.Add(%s): %d  for %v int %v", h, sum, h.attrs, t.values)
 	h.Reset()
 	h.m[sum] = uintptr(unsafe.Pointer(t))
 }
 
 func (h *HashIndex) Get(values []any) (*Tuple, error) {
 	for _, v := range values {
+		log.Debug("HashIndex.Get(%s): appending %s", h, fmt.Sprintf("%v", v))
 		h.Write([]byte(fmt.Sprintf("%v", v)))
 	}
 	sum := h.Sum64()
 	h.Reset()
 
 	var t *Tuple
+	log.Debug("Do we have %v (-> %d) in %s ?", values, sum, h)
 	ptr, ok := h.m[sum]
 	if !ok {
 		return nil, nil
