@@ -209,6 +209,25 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 				return nil, t.abort(fmt.Errorf("cannot assign '%v' (type %s) to %s.%s (type %s)", val, tof, relation, attr.name, attr.typeInstance))
 			}
 			if attr.unique {
+				f := NewAttributeValueFunctor(r.name, attr.name)
+				p := NewEqPredicate(f, f)
+				for _, index := range r.indexes {
+					if ok, _ := index.CanSourceWith(p); !ok {
+						continue
+					}
+					log.Error("CHECKING UNICITY OF %s with %s", attr, index)
+					idx, ok := index.(*HashIndex)
+					if !ok {
+						return nil, t.abort(fmt.Errorf("cannot check unicity of %s", attr))
+					}
+					tuple, err := idx.Get([]any{val})
+					if err != nil {
+						return nil, t.abort(fmt.Errorf("cannot check unicity of %s", attr))
+					}
+					if tuple != nil {
+						return nil, t.abort(fmt.Errorf("constraint violation: %s unicity", attr))
+					}
+				}
 				// TODO: predictate: equal value
 				//				t.Select()
 			}
@@ -370,7 +389,6 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 		for _, v := range scanners {
 			headJoin = v
 		}
-		//		headJoin = p
 	} else {
 		return nil, nil, t.abort(fmt.Errorf("no join, but got %d scan", len(scanners)))
 	}

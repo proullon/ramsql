@@ -364,19 +364,19 @@ func TestIndexCreation(t *testing.T) {
 	}
 
 	values := make(map[string]any)
-	values["foo"] = `{}`
+	values["foo"] = `{"foo":"a"}`
 	_, err = tx.Insert(schema, relation, values)
 	if err != nil {
 		t.Fatalf("cannot insert values: %s", err)
 	}
 
-	values["foo"] = `{}`
+	values["foo"] = `{"foo":"b"}`
 	_, err = tx.Insert(schema, relation, values)
 	if err != nil {
 		t.Fatalf("cannot insert values: %s", err)
 	}
 
-	values["foo"] = `{}`
+	values["foo"] = `{"foo":"c"}`
 	_, err = tx.Insert(schema, relation, values)
 	if err != nil {
 		t.Fatalf("cannot insert values: %s", err)
@@ -398,6 +398,17 @@ func TestIndexCreation(t *testing.T) {
 	l = len(e.schemas[schema].relations[relation].indexes)
 	if l != 2 {
 		t.Fatalf("expected 2 indexes for relation, got %d", l)
+	}
+
+	tx, err = e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Insert(schema, relation, values)
+	if err == nil {
+		t.Fatalf("expected UNIQUE violation on json")
 	}
 }
 
