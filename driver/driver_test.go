@@ -1061,7 +1061,7 @@ func TestInsertByteArray(t *testing.T) {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
 
-	_, err = db.Exec(`CREATE TABLE test (sequence_number BIGSERIAL PRIMARY KEY, json JSON, created_at TIMESTAMP)`)
+	_, err = db.Exec(`CREATE TABLE test (sequence_number BIGSERIAL PRIMARY KEY, json JSON, created_at TIMESTAMP DEFAULT NOW())`)
 	if err != nil {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
@@ -1073,7 +1073,7 @@ func TestInsertByteArray(t *testing.T) {
 	}
 
 	var s string
-	err = db.QueryRow("SELECT json FROM test limit 1").Scan(&s)
+	err = db.QueryRow("SELECT json FROM test WHERE 1 = 1 limit 1").Scan(&s)
 	if err != nil {
 		t.Fatalf("sql.Select: Error: %s\n", err)
 	}
