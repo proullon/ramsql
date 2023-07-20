@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/proullon/ramsql/engine/agnostic"
 	"github.com/proullon/ramsql/engine/log"
@@ -145,10 +146,10 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl, args []NamedValue) (int6
 		schemaName = d.Lexeme
 	}
 
-	relationName := tableDecl.Decl[i].Lexeme
-
 	// Check if 'IF NOT EXISTS' is present
 	ifNotExists := hasIfNotExists(tableDecl)
+
+	relationName := tableDecl.Decl[i].Lexeme
 
 	exists := t.tx.CheckRelation(schemaName, relationName)
 	if exists && ifNotExists {
@@ -203,6 +204,7 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl, args []NamedValue) 
 	var lastInsertedID int64
 	var schemaName string
 	var returningAttrs []string
+	var returningIdx []int
 	relationName := insertDecl.Decl[0].Decl[0].Lexeme
 
 	// Check for RETURNING clause
@@ -211,6 +213,11 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl, args []NamedValue) 
 			if insertDecl.Decl[i].Token == parser.ReturningToken {
 				returningDecl := insertDecl.Decl[i]
 				returningAttrs = append(returningAttrs, returningDecl.Decl[0].Lexeme)
+				idx, _, err := t.tx.RelationAttribute(schemaName, relationName, returningDecl.Decl[0].Lexeme)
+				if err != nil {
+					return 0, 0, nil, nil, fmt.Errorf("cannot return %s, doesn't exist in relation %s", returningDecl.Decl[0].Lexeme, relationName)
+				}
+				returningIdx = append(returningIdx, idx)
 			}
 		}
 	}
@@ -223,7 +230,7 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl, args []NamedValue) 
 	var tuples []*agnostic.Tuple
 	valuesDecl := insertDecl.Decl[1]
 	for _, valueListDecl := range valuesDecl.Decl {
-		values, err := getValues(specifiedAttrs, valueListDecl)
+		values, err := getValues(specifiedAttrs, valueListDecl, args)
 		if err != nil {
 			return 0, 0, nil, nil, err
 		}
@@ -231,7 +238,11 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl, args []NamedValue) 
 		if err != nil {
 			return 0, 0, nil, nil, err
 		}
-		tuples = append(tuples, tuple)
+		returningTuple := agnostic.NewTuple()
+		for _, idx := range returningIdx {
+			returningTuple.Append(tuple.Values()[idx])
+		}
+		tuples = append(tuples, returningTuple)
 
 		// guess lastInsertedID
 		if v := tuple.Values(); len(v) > 0 {
@@ -248,11 +259,16 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl, args []NamedValue) 
 	return lastInsertedID, int64(len(tuples)), returningAttrs, tuples, nil
 }
 
-func getValues(specifiedAttrs []string, valuesDecl *parser.Decl) (map[string]any, error) {
+func getValues(specifiedAttrs []string, valuesDecl *parser.Decl, args []NamedValue) (map[string]any, error) {
 	var typeName string
+	var err error
 	values := make(map[string]any)
 
 	for i, d := range valuesDecl.Decl {
+		if d.Lexeme == "default" || d.Lexeme == "DEFAULT" {
+			continue
+		}
+
 		switch d.Token {
 		case parser.IntToken, parser.NumberToken:
 			typeName = "bigint"
@@ -267,11 +283,24 @@ func getValues(specifiedAttrs []string, valuesDecl *parser.Decl) (map[string]any
 			}
 		}
 
-		v, err := agnostic.ToInstance(d.Lexeme, typeName)
-		if err != nil {
-			return nil, err
-		}
+		var v any
 
+		switch d.Token {
+		case parser.ArgToken:
+			idx, err := strconv.ParseInt(d.Lexeme, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			if len(args) <= int(idx)-1 {
+				return nil, fmt.Errorf("reference to $%s, but only %d argument provided", d.Lexeme, len(args))
+			}
+			v = args[idx-1].Value
+		default:
+			v, err = agnostic.ToInstance(d.Lexeme, typeName)
+			if err != nil {
+				return nil, err
+			}
+		}
 		values[specifiedAttrs[i]] = v
 	}
 

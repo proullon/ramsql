@@ -865,7 +865,6 @@ func (p *parser) isNext(tokenTypes ...int) (t Token, err error) {
 		return t, p.syntaxError()
 	}
 
-	log.Debug("parser.isNext %v", tokenTypes)
 	for _, tokenType := range tokenTypes {
 		if p.tokens[p.index+1].Token == tokenType {
 			return p.tokens[p.index+1], nil
@@ -888,7 +887,6 @@ func (p *parser) mustHaveNext(tokenTypes ...int) (t Token, err error) {
 		return t, err
 	}
 
-	log.Debug("parser.mustHaveNext %v", tokenTypes)
 	for _, tokenType := range tokenTypes {
 		if p.is(tokenType) {
 			return p.tokens[p.index], nil

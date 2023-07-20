@@ -133,6 +133,7 @@ func (t *Transaction) CreateRelation(schemaName, relName string, attributes []At
 		old:     nil,
 	}
 	t.changes.PushBack(c)
+	log.Debug("CreateRelation(%s,%s,%s,%s)", schemaName, relName, attributes, pk)
 
 	t.lock(r)
 	return nil
@@ -186,6 +187,8 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 
 	t.lock(r)
 
+	log.Debug("Insert into %s.%s: %v", schema, relation, values)
+
 	tuple := &Tuple{}
 	for i, attr := range r.attributes {
 		val, specified := values[attr.name]
@@ -212,6 +215,7 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 			if attr.fk != nil {
 				// TODO: predicate: equal
 			}
+			log.Debug("Converting %v from %v to %v", val, reflect.TypeOf(val), attr.typeInstance)
 			tuple.Append(reflect.ValueOf(val).Convert(attr.typeInstance).Interface())
 			delete(values, attr.name)
 			continue
@@ -228,6 +232,7 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 	// TODO
 
 	// insert into row list
+	log.Debug("Inserting %v", tuple.values)
 	e := r.rows.PushBack(tuple)
 
 	// update indexes
@@ -287,6 +292,7 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 			return nil, nil, t.abort(err)
 		}
 		t.lock(r)
+		log.Debug("Step1: found rel '%s' in selector %s", rel, sel)
 		relations[rel] = r
 	}
 
@@ -364,6 +370,7 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 		for _, v := range scanners {
 			headJoin = v
 		}
+		//		headJoin = p
 	} else {
 		return nil, nil, t.abort(fmt.Errorf("no join, but got %d scan", len(scanners)))
 	}
@@ -410,6 +417,7 @@ func (t *Transaction) recLock(schema string, relations map[string]*Relation, p P
 		}
 
 		relations[p.Relation()] = r
+		log.Debug("Step1: found rel '%s' reclock %s", rel, p)
 		t.lock(r)
 	}
 

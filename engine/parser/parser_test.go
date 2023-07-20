@@ -2,8 +2,6 @@ package parser
 
 import (
 	"testing"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 func TestParserCreateTableSimple(t *testing.T) {
@@ -344,8 +342,6 @@ func TestSchema(t *testing.T) {
 }
 
 func TestArguments(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
-	defer log.SetLevel(log.InfoLevel)
 
 	queries := []string{
 		`SELECT * FROM foo WHERE bar = $1 and enabled = true`,

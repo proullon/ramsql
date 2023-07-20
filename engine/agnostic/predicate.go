@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/proullon/ramsql/engine/log"
@@ -281,9 +282,33 @@ func (s *StarSelector) Relation() string {
 }
 
 func (s *StarSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err error) {
-	out = in
-	s.cols = cols
+	var colIdx []int
+
+	// if only 1 relation, can return directly
+	for i, c := range cols {
+		if strings.Contains(c, ".") == false {
+			out = in
+			s.cols = cols
+			return
+		}
+		if strings.HasPrefix(c, s.relation) {
+			s.cols = append(s.cols, strings.Split(c, ".")[1])
+			colIdx = append(colIdx, i)
+		}
+	}
+	// need to re-select table
+	for _, intup := range in {
+		outtup := &Tuple{values: make([]any, len(colIdx))}
+		for i, idx := range colIdx {
+			outtup.values[i] = intup.values[idx]
+		}
+		out = append(out, outtup)
+	}
 	return
+}
+
+func (s StarSelector) String() string {
+	return s.relation + ".*"
 }
 
 type AvgSelector struct {
@@ -433,6 +458,9 @@ func (p *AndPredicate) Right() (Predicate, bool) {
 }
 
 func (p *AndPredicate) Relation() string {
+	if p.left != nil && p.right != nil && p.left.Relation() == p.right.Relation() {
+		return p.left.Relation()
+	}
 	return ""
 }
 
@@ -490,6 +518,9 @@ func (p *OrPredicate) Right() (Predicate, bool) {
 }
 
 func (p *OrPredicate) Relation() string {
+	if p.left != nil && p.right != nil && p.left.Relation() == p.right.Relation() {
+		return p.left.Relation()
+	}
 	return ""
 }
 
@@ -729,8 +760,6 @@ func (j *NaturalJoin) Children() []Node {
 
 func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
 
-	log.Debug("NaturalJoin.Exec")
-
 	lcols, lefts, err := j.left.Exec()
 	if err != nil {
 		return nil, nil, err
@@ -746,6 +775,7 @@ func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
 	if lidx == -1 {
 		return nil, nil, fmt.Errorf("%s: columns not found in left node", j)
 	}
+	log.Debug("NaturalJoin.Exec: Found left (%s) %d in %v", j.lefta, lidx, lcols)
 
 	rcols, rights, err := j.right.Exec()
 	if err != nil {
@@ -768,10 +798,12 @@ func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
 	var idx int
 	for _, c := range lcols {
 		cols[idx] = j.leftr + "." + c
+		//cols[idx] = c
 		idx++
 	}
 	for _, c := range rcols {
 		cols[idx] = j.rightr + "." + c
+		//cols[idx] = c
 		idx++
 	}
 
@@ -782,7 +814,6 @@ func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
 	idx = 0
 	for _, left := range lefts {
 		for _, right := range rights {
-			// Need to use Eq here
 			ok, err := equal(left.values[lidx], right.values[ridx])
 			if err != nil {
 				return nil, nil, err
