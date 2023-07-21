@@ -213,6 +213,31 @@ func (t *Transaction) DropSchema(schemaName string) error {
 	return nil
 }
 
+func (t *Transaction) CreateIndex(schema, relation, index string, it IndexType, attrs []string) error {
+	if err := t.aborted(); err != nil {
+		return err
+	}
+
+	s, err := t.e.schema(schema)
+	if err != nil {
+		return err
+	}
+
+	r, err := s.Relation(relation)
+	if err != nil {
+		return err
+	}
+
+	t.lock(r)
+
+	err = r.createIndex(index, it, attrs)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Build tuple for given relation
 // for each column:
 // - if not specified, use default value if set

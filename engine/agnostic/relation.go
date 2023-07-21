@@ -3,6 +3,7 @@ package agnostic
 import (
 	"container/list"
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -63,8 +64,27 @@ func (r *Relation) Attribute(name string) (int, Attribute, error) {
 	return index, r.attributes[index], nil
 }
 
-func (r *Relation) CreateIndex() error {
-	return nil
+func (r *Relation) createIndex(name string, t IndexType, attrs []string) error {
+
+	switch t {
+	case HashIndexType:
+		var attrsIdx []int
+		for _, a := range attrs {
+			for i, rela := range r.attributes {
+				if a == rela.name {
+					attrsIdx = append(attrsIdx, i)
+					break
+				}
+			}
+		}
+		i := NewHashIndex(name, r.name, r.attributes, attrs, attrsIdx)
+		r.indexes = append(r.indexes, i)
+		return nil
+	case BTreeIndexType:
+		return fmt.Errorf("BTree index are not implemented")
+	}
+
+	return fmt.Errorf("unknown index type: %d", t)
 }
 
 func (r *Relation) Truncate() {

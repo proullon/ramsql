@@ -913,3 +913,35 @@ func TestIn(t *testing.T) {
 		t.Fatalf("expected 1 row, got %d", l)
 	}
 }
+
+func TestIndex(t *testing.T) {
+	e := NewEngine()
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	schema := DefaultSchema
+	relation := "user"
+	attrs := []Attribute{
+		NewAttribute("name", "TEXT"),
+		NewAttribute("surname", "TEXT"),
+		NewAttribute("age", "INT").WithDefault(func() any { return nil }),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"name", "surname"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	err = tx.CreateIndex(schema, relation, "test_index", HashIndexType, []string{"age"})
+	if err != nil {
+		t.Fatalf("cannot create index: %s", err)
+	}
+	l := len(e.schemas[DefaultSchema].relations[relation].indexes)
+	if l != 2 {
+		t.Fatalf("expected 2 indexes in relation, got %d", l)
+	}
+
+}

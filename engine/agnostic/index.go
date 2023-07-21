@@ -8,6 +8,13 @@ import (
 	"github.com/proullon/ramsql/engine/log"
 )
 
+type IndexType int
+
+const (
+	HashIndexType IndexType = iota
+	BTreeIndexType
+)
+
 type Index interface {
 	Truncate()
 	Add(*Tuple)
