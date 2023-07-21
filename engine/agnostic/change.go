@@ -16,6 +16,12 @@ type RelationChange struct {
 	old     *Relation
 }
 
+type SchemaChange struct {
+	current *Schema
+	old     *Schema
+	e       *Engine
+}
+
 func (t *Transaction) rollbackValueChange(c ValueChange) {
 
 	// revert insert
@@ -54,5 +60,17 @@ func (t *Transaction) rollbackRelationChange(c RelationChange) {
 	if c.current != nil && c.old != nil {
 		c.schema.Remove(c.current.name)
 		c.schema.Add(c.old.name, c.old)
+	}
+}
+
+func (t *Transaction) rollbackSchemaChange(c SchemaChange) {
+	// revert schema creation
+	if c.current != nil && c.old == nil {
+		delete(c.e.schemas, c.current.name)
+	}
+
+	// revert schema drop
+	if c.current == nil && c.old != nil {
+		c.e.schemas[c.old.name] = c.old
 	}
 }

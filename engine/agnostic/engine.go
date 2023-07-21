@@ -74,3 +74,24 @@ func (e *Engine) schema(name string) (*Schema, error) {
 
 	return s, nil
 }
+
+func (e *Engine) createSchema(name string) (*Schema, error) {
+	s, ok := e.schemas[name]
+	if ok {
+		return nil, fmt.Errorf("schema '%s' already exist", name)
+	}
+
+	s = NewSchema(name)
+	e.schemas[name] = s
+	return s, nil
+}
+
+func (e *Engine) dropSchema(name string) (*Schema, error) {
+	s, ok := e.schemas[name]
+	if !ok {
+		return nil, fmt.Errorf("schema '%s' does not exist", name)
+	}
+
+	delete(e.schemas, name)
+	return s, nil
+}

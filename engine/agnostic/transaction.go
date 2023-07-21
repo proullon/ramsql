@@ -159,6 +159,60 @@ func (t *Transaction) DropRelation(schemaName, relName string) error {
 	return nil
 }
 
+func (t *Transaction) CheckSchema(schemaName string) bool {
+	if err := t.aborted(); err != nil {
+		return false
+	}
+
+	_, err := t.e.schema(schemaName)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+func (t *Transaction) CreateSchema(schemaName string) error {
+	if err := t.aborted(); err != nil {
+		return err
+	}
+
+	s, err := t.e.createSchema(schemaName)
+	if err != nil {
+		return t.abort(err)
+	}
+
+	c := SchemaChange{
+		current: s,
+		old:     nil,
+		e:       t.e,
+	}
+	t.changes.PushBack(c)
+	log.Debug("CreateSchema(%s)", schemaName)
+
+	return nil
+}
+
+func (t *Transaction) DropSchema(schemaName string) error {
+	if err := t.aborted(); err != nil {
+		return err
+	}
+
+	s, err := t.e.dropSchema(schemaName)
+	if err != nil {
+		return t.abort(err)
+	}
+
+	c := SchemaChange{
+		current: nil,
+		old:     s,
+		e:       t.e,
+	}
+	t.changes.PushBack(c)
+
+	return nil
+}
+
 // Build tuple for given relation
 // for each column:
 // - if not specified, use default value if set

@@ -46,7 +46,7 @@ func NewTx(ctx context.Context, e *Engine, opts sql.TxOptions) (*Tx, error) {
 	t.opsExecutors = map[int]executorFunc{
 		parser.CreateToken: createExecutor,
 		parser.TableToken:  createTableExecutor,
-		//		parser.SchemaToken:   createSchemaExecutor,
+		parser.SchemaToken: createSchemaExecutor,
 		//		parser.IndexToken:    createIndexExecutor,
 		parser.SelectToken: selectExecutor,
 		parser.InsertToken: insertIntoTableExecutor,

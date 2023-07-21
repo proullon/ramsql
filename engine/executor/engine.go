@@ -108,12 +108,52 @@ func dropSchema(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, []st
 	if len(decl.Decl) == 0 {
 		return 0, 1, nil, nil, ParsingError
 	}
+	// Check if 'IF EXISTS' is present
+	ifExists := hasIfExists(decl)
+
+	rDecl := decl.Decl[0]
+	if ifExists {
+		rDecl = decl.Decl[1]
+	}
+
+	schema := rDecl.Lexeme
+
+	if ifExists && !t.tx.CheckSchema(schema) {
+		return 0, 0, nil, nil, nil
+	}
+
+	err := t.tx.DropSchema(schema)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
 
 	return 0, 1, nil, nil, nil
 }
 
 func grantExecutor(*Tx, *parser.Decl, []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
 	return 0, 1, nil, nil, nil
+}
+
+func createSchemaExecutor(t *Tx, tableDecl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+	if len(tableDecl.Decl) == 0 {
+		return 0, 0, nil, nil, ParsingError
+	}
+
+	// Check if 'IF NOT EXISTS' is present
+	ifNotExists := hasIfNotExists(tableDecl)
+
+	name := tableDecl.Decl[0].Lexeme
+
+	if ifNotExists && t.tx.CheckSchema(name) {
+		return 0, 0, nil, nil, nil
+	}
+
+	err := t.tx.CreateSchema(name)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	return 0, 0, nil, nil, nil
 }
 
 func createTableExecutor(t *Tx, tableDecl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
@@ -224,6 +264,10 @@ func insertIntoTableExecutor(t *Tx, insertDecl *parser.Decl, args []NamedValue) 
 
 	var specifiedAttrs []string
 	for _, d := range insertDecl.Decl[0].Decl[0].Decl {
+		if d.Token == parser.SchemaToken {
+			schemaName = d.Lexeme
+			continue
+		}
 		specifiedAttrs = append(specifiedAttrs, d.Lexeme)
 	}
 
