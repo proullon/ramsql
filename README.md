@@ -157,11 +157,11 @@ Find bellow all objectives for `v1.0.0`
 | timestamp      | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | now()          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | OFFSET         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| Transactions   | SQL           | :heavy_check_mark:       | partial                  |
+| Transactions   | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | BEGIN          | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
 | COMMIT         | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| Index          | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
-| Hash index     | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
+| Index          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| Hash index     | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | B-Tree index   | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
 | JSON           | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
 | CLI            | Testing       | :heavy_check_mark:       | :heavy_check_mark:       |
@@ -171,7 +171,7 @@ Find bellow all objectives for `v1.0.0`
 | Autogeneration | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
 | TTL            | Caching       | :heavy_multiplication_x: | :heavy_multiplication_x: |
 | LFRU           | Caching       | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| Gorm           | Compatibility | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| Gorm           | Compatibility | :heavy_check_mark:       | :heavy_check_mark:       |
 
 ### Unit testing
 

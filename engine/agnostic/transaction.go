@@ -340,26 +340,194 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 		return nil, nil, err
 	}
 
-	s, err := t.e.schema(schema)
+	n, err := t.Plan(schema, selectors, p, joiners, sorters)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	/*
+		s, err := t.e.schema(schema)
+		if err != nil {
+			return nil, nil, t.abort(err)
+		}
+
+		if p == nil {
+			return nil, nil, t.abort(errors.New("query requires 1 predicate"))
+		}
+
+		// (1)
+		relations := make(map[string]*Relation)
+		err = t.recLock(schema, relations, p)
+		if err != nil {
+			return nil, nil, t.abort(err)
+		}
+		for _, sel := range selectors {
+			rel := sel.Relation()
+			r, err := s.Relation(rel)
+			if err != nil {
+				return nil, nil, t.abort(err)
+			}
+			t.lock(r)
+			log.Debug("Step1: found rel '%s' in selector %s", rel, sel)
+			relations[rel] = r
+		}
+
+		// (2)
+		sources := make(map[string]Source)
+		var sourceCost int64
+		for _, r := range relations {
+			log.Debug("this query needs relation '%s'", r.name)
+			for _, index := range r.indexes {
+				cost, ok, p := recCanUseIndex(r.name, index, p)
+				if ok {
+					log.Debug("this query can use index %s for relation %s (cost: %d)", index, r, cost)
+				}
+				if ok && (sourceCost == 0 || cost < sourceCost) {
+					log.Debug("choosing %s as source for relation %s", index, r)
+					newsrc, err := NewHashIndexSource(index, p)
+					if err != nil {
+						log.Debug("cannot create source with index %s for relation %s: %s", index, r, err)
+						continue
+					}
+					sources[r.name] = newsrc
+					sourceCost = cost
+				}
+			}
+			if _, ok := sources[r.name]; !ok {
+				log.Debug("could not find suitable index for relation %s, using seq scan", r)
+				sources[r.name] = NewSeqScan(r)
+			}
+		}
+
+		// (3)
+		// build nodes for each relations
+		scanners := make(map[string]Scanner)
+		for _, r := range relations {
+			sc := NewRelationScanner(sources[r.name], nil)
+			recAppendPredicates(r.name, sc, p)
+			scanners[r.name] = sc
+		}
+		// assign scanner nodes to joiner nodes
+		for _, j := range joiners {
+			sc, ok := scanners[j.Left()]
+			if !ok {
+				return nil, nil, t.abort(fmt.Errorf("cannot join %s, scanner for %s not found", j, j.Left()))
+			}
+			j.SetLeft(sc)
+			sc, ok = scanners[j.Right()]
+			if !ok {
+				return nil, nil, t.abort(fmt.Errorf("cannot join %s, scanner for %s not found", j, j.Right()))
+			}
+			j.SetRight(sc)
+		}
+		// sort joins by estimated cardinal
+		sort.Sort(Joiners(joiners))
+		// now we need to build tree by replacing gradually already joined relation in bigger join
+		seen := make(map[string]Node)
+		for _, n := range joiners {
+			child, ok := seen[n.Left()]
+			if !ok {
+				seen[n.Left()] = n
+			} else {
+				n.SetLeft(child)
+			}
+			child, ok = seen[n.Right()]
+			if !ok {
+				seen[n.Right()] = n
+			} else {
+				n.SetRight(child)
+			}
+		}
+		var headJoin Node
+		if len(joiners) > 0 {
+			headJoin = joiners[len(joiners)-1]
+		} else if len(scanners) == 1 {
+			// should have only on scanner then ?
+			for _, v := range scanners {
+				headJoin = v
+			}
+		} else {
+			return nil, nil, t.abort(fmt.Errorf("no join, but got %d scan", len(scanners)))
+		}
+
+		// append selectors
+		n := NewSelectorNode(selectors, headJoin)
+
+		// append sorters
+		// GroupBy must contains both selector node and last join to compute arithmetic on all groups
+		if sorters != nil && len(sorters) > 0 {
+			sort.Sort(Sorters(sorters))
+			var src Node
+			for i, s := range sorters {
+				if i == 0 {
+					src = headJoin
+				} else {
+					src = sorters[i-1]
+				}
+
+				switch s.(type) {
+				case *GroupBySorter:
+					gb, _ := s.(*GroupBySorter)
+					gb.SetNode(src)
+					gb.SetSelector(n)
+				default:
+					s.SetNode(src)
+				}
+			}
+			n.child = sorters[len(sorters)-1]
+		}
+	*/
+
+	PrintQueryPlan(n, 0, log.Debug)
+
+	// (4), (5), (6)
+	columns, res, err := n.Exec()
 	if err != nil {
 		return nil, nil, t.abort(err)
 	}
 
+	return columns, res, nil
+}
+
+func recAppendPredicates(rname string, sc Scanner, p Predicate) {
+	if p.Relation() == rname {
+		sc.Append(p)
+		return
+	}
+
+	if lp, ok := p.Left(); ok {
+		recAppendPredicates(rname, sc, lp)
+	}
+	if rp, ok := p.Right(); ok {
+		recAppendPredicates(rname, sc, rp)
+	}
+}
+
+func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joiners []Joiner, sorters []Sorter) (Node, error) {
+	if err := t.aborted(); err != nil {
+		return nil, err
+	}
+
+	s, err := t.e.schema(schema)
+	if err != nil {
+		return nil, t.abort(err)
+	}
+
 	if p == nil {
-		return nil, nil, t.abort(errors.New("query requires 1 predicate"))
+		return nil, t.abort(errors.New("query requires 1 predicate"))
 	}
 
 	// (1)
 	relations := make(map[string]*Relation)
 	err = t.recLock(schema, relations, p)
 	if err != nil {
-		return nil, nil, t.abort(err)
+		return nil, t.abort(err)
 	}
 	for _, sel := range selectors {
 		rel := sel.Relation()
 		r, err := s.Relation(rel)
 		if err != nil {
-			return nil, nil, t.abort(err)
+			return nil, t.abort(err)
 		}
 		t.lock(r)
 		log.Debug("Step1: found rel '%s' in selector %s", rel, sel)
@@ -405,12 +573,12 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 	for _, j := range joiners {
 		sc, ok := scanners[j.Left()]
 		if !ok {
-			return nil, nil, t.abort(fmt.Errorf("cannot join %s, scanner for %s not found", j, j.Left()))
+			return nil, t.abort(fmt.Errorf("cannot join %s, scanner for %s not found", j, j.Left()))
 		}
 		j.SetLeft(sc)
 		sc, ok = scanners[j.Right()]
 		if !ok {
-			return nil, nil, t.abort(fmt.Errorf("cannot join %s, scanner for %s not found", j, j.Right()))
+			return nil, t.abort(fmt.Errorf("cannot join %s, scanner for %s not found", j, j.Right()))
 		}
 		j.SetRight(sc)
 	}
@@ -441,7 +609,7 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 			headJoin = v
 		}
 	} else {
-		return nil, nil, t.abort(fmt.Errorf("no join, but got %d scan", len(scanners)))
+		return nil, t.abort(fmt.Errorf("no join, but got %d scan", len(scanners)))
 	}
 
 	// append selectors
@@ -471,29 +639,7 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 		n.child = sorters[len(sorters)-1]
 	}
 
-	PrintQueryPlan(n, 0, nil)
-
-	// (4), (5), (6)
-	columns, res, err := n.Exec()
-	if err != nil {
-		return nil, nil, t.abort(err)
-	}
-
-	return columns, res, nil
-}
-
-func recAppendPredicates(rname string, sc Scanner, p Predicate) {
-	if p.Relation() == rname {
-		sc.Append(p)
-		return
-	}
-
-	if lp, ok := p.Left(); ok {
-		recAppendPredicates(rname, sc, lp)
-	}
-	if rp, ok := p.Right(); ok {
-		recAppendPredicates(rname, sc, rp)
-	}
+	return n, nil
 }
 
 func (t *Transaction) recLock(schema string, relations map[string]*Relation, p Predicate) error {
