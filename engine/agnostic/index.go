@@ -15,9 +15,6 @@ type Index interface {
 	CanSourceWith(p Predicate) (bool, int64)
 }
 
-type BTreeIndex struct {
-}
-
 type HashIndex struct {
 	name      string
 	relName   string
