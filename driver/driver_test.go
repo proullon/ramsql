@@ -1090,7 +1090,7 @@ func TestInsertByteArrayODBC(t *testing.T) {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
 
-	_, err = db.Exec(`CREATE TABLE test_json (sequence_number BIGSERIAL PRIMARY KEY, json JSON, created_at TIMESTAMP)`)
+	_, err = db.Exec(`CREATE TABLE test_json (sequence_number BIGSERIAL PRIMARY KEY, json JSON, created_at TIMESTAMP DEFAULT NOW())`)
 	if err != nil {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
