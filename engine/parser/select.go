@@ -61,8 +61,9 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 			}
 			if distinctOpen {
 				distinctDecl.Add(attrDecl)
+			} else {
+				selectDecl.Add(attrDecl)
 			}
-			selectDecl.Add(attrDecl)
 		}
 
 		switch {

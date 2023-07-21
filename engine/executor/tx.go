@@ -411,3 +411,19 @@ func (t *Tx) getJoin(decl *parser.Decl, leftR string) (agnostic.Joiner, error) {
 
 	return agnostic.NewNaturalJoin(leftR, leftA, rightR, rightA), nil
 }
+
+func (t *Tx) getDistinctSorter(rel string, decl *parser.Decl, nextAttr string) (agnostic.Sorter, error) {
+	var dattrs []string
+
+	// if we have ON specified
+	if len(decl.Decl) > 0 {
+		for _, d := range decl.Decl {
+			dattrs = append(dattrs, d.Lexeme)
+		}
+	} else {
+		// otherwise use all selected attributes
+		dattrs = append(dattrs, nextAttr)
+	}
+
+	return agnostic.NewDistinctSorter(rel, dattrs), nil
+}

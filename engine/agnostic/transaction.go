@@ -316,7 +316,7 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 	sources := make(map[string]Source)
 	var sourceCost int64
 	for _, r := range relations {
-		log.Debug("this query needs relation '%s'\n", r.name)
+		log.Debug("this query needs relation '%s'", r.name)
 		for _, index := range r.indexes {
 			cost, ok, p := recCanUseIndex(r.name, index, p)
 			if ok {
@@ -391,11 +391,9 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 	}
 
 	// append selectors
-	var n Node
-	n = NewSelectorNode(selectors, headJoin)
+	n := NewSelectorNode(selectors, headJoin)
 
 	// append sorters
-	// GroupBy before Having before Order before Distinct before Offset before Limit
 	// GroupBy must contains both selector node and last join to compute arithmetic on all groups
 	if sorters != nil && len(sorters) > 0 {
 		sort.Sort(Sorters(sorters))
@@ -416,7 +414,7 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 				s.SetNode(src)
 			}
 		}
-		n = sorters[len(sorters)-1]
+		n.child = sorters[len(sorters)-1]
 	}
 
 	PrintQueryPlan(n, 0, nil)
