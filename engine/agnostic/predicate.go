@@ -146,8 +146,8 @@ type Scanner interface {
 //   - OrderDescSort
 //   - HavingSort
 //   - DistinctSort
-//   - Limit ?
-//   - Offset ?
+//   - Limit
+//   - Offset
 type Sorter interface {
 	Node
 	Priority() int
@@ -169,6 +169,50 @@ func (js Sorters) Less(i, j int) bool {
 
 func (js Sorters) Swap(i, j int) {
 	js[i], js[j] = js[j], js[i]
+}
+
+type OffsetSorter struct {
+	o   int
+	src Node
+}
+
+func NewOffsetSorter(o int) *OffsetSorter {
+	return &OffsetSorter{o: o}
+}
+
+func (s OffsetSorter) String() string {
+	return fmt.Sprintf("Offset %d on %s", s.o, s.src)
+}
+
+func (s *OffsetSorter) Exec() ([]string, []*Tuple, error) {
+	cols, res, err := s.src.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(res) > s.o {
+		res = res[s.o:]
+	}
+	return cols, res, nil
+}
+
+func (s *OffsetSorter) EstimateCardinal() int64 {
+	if s.src != nil {
+		return int64(s.src.EstimateCardinal()/2) + 1
+	}
+	return 0
+}
+
+func (s *OffsetSorter) Children() []Node {
+	return []Node{s.src}
+}
+
+func (s *OffsetSorter) Priority() int {
+	return 5000
+}
+
+func (s *OffsetSorter) SetNode(n Node) {
+	s.src = n
 }
 
 type GroupBySorter struct {
