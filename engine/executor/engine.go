@@ -351,6 +351,7 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 	var selectors []agnostic.Selector
 	var predicate agnostic.Predicate
 	var joiners []agnostic.Joiner
+	var sorters []agnostic.Sorter
 	var tables []string
 	var err error
 
@@ -369,10 +370,18 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 				return 0, 0, nil, nil, err
 			}
 			joiners = append(joiners, j)
+		case parser.DistinctToken:
+			s, err := t.getDistinctSorter("", selectDecl.Decl[i], selectDecl.Decl[i+1].Lexeme)
+			if err != nil {
+				return 0, 0, nil, nil, err
+			}
+			sorters = append(sorters, s)
 		}
 	}
 
-	for i := range selectDecl.Decl {
+	selectDecl.Stringy(0, log.Debug)
+
+	for i := 0; i < len(selectDecl.Decl); i++ {
 		if selectDecl.Decl[i].Token != parser.StringToken &&
 			selectDecl.Decl[i].Token != parser.StarToken &&
 			selectDecl.Decl[i].Token != parser.CountToken {
@@ -455,8 +464,8 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 		}
 	*/
 
-	log.Debug("executing '%s' with %s and %s", selectors, predicate, joiners)
-	cols, res, err := t.tx.Query(schema, selectors, predicate, joiners)
+	log.Debug("executing '%s' with %s, %s and %s", selectors, predicate, joiners, sorters)
+	cols, res, err := t.tx.Query(schema, selectors, predicate, joiners, sorters)
 	if err != nil {
 		return 0, 0, nil, nil, err
 	}

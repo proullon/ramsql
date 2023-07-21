@@ -732,9 +732,6 @@ func TestDistinct(t *testing.T) {
 		}
 	}
 
-	log.SetLevel(log.DebugLevel)
-	defer log.SetLevel(log.InfoLevel)
-
 	cols, res, err := tx.Query(
 		DefaultSchema,
 		[]Selector{
