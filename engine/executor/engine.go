@@ -370,6 +370,13 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 				return 0, 0, nil, nil, err
 			}
 			joiners = append(joiners, j)
+		case parser.OffsetToken:
+			offset, err := strconv.Atoi(selectDecl.Decl[i].Decl[0].Lexeme)
+			if err != nil {
+				return 0, 0, nil, nil, fmt.Errorf("wrong offset value: %s", err)
+			}
+			s := agnostic.NewOffsetSorter(offset)
+			sorters = append(sorters, s)
 		case parser.DistinctToken:
 			s, err := t.getDistinctSorter("", selectDecl.Decl[i], selectDecl.Decl[i+1].Lexeme)
 			if err != nil {
@@ -377,6 +384,10 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 			}
 			sorters = append(sorters, s)
 		}
+	}
+
+	if predicate == nil {
+		predicate = agnostic.NewTruePredicate()
 	}
 
 	selectDecl.Stringy(0, log.Debug)
