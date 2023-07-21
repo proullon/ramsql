@@ -368,7 +368,6 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 				return nil, nil, t.abort(err)
 			}
 			t.lock(r)
-			log.Debug("Step1: found rel '%s' in selector %s", rel, sel)
 			relations[rel] = r
 		}
 
@@ -376,7 +375,6 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 		sources := make(map[string]Source)
 		var sourceCost int64
 		for _, r := range relations {
-			log.Debug("this query needs relation '%s'", r.name)
 			for _, index := range r.indexes {
 				cost, ok, p := recCanUseIndex(r.name, index, p)
 				if ok {
@@ -530,7 +528,6 @@ func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joi
 			return nil, t.abort(err)
 		}
 		t.lock(r)
-		log.Debug("Step1: found rel '%s' in selector %s", rel, sel)
 		relations[rel] = r
 	}
 
@@ -538,7 +535,6 @@ func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joi
 	sources := make(map[string]Source)
 	var sourceCost int64
 	for _, r := range relations {
-		log.Debug("this query needs relation '%s'", r.name)
 		for _, index := range r.indexes {
 			cost, ok, p := recCanUseIndex(r.name, index, p)
 			if ok {
@@ -655,7 +651,6 @@ func (t *Transaction) recLock(schema string, relations map[string]*Relation, p P
 		}
 
 		relations[p.Relation()] = r
-		log.Debug("Step1: found rel '%s' reclock %s", rel, p)
 		t.lock(r)
 	}
 

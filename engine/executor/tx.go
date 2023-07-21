@@ -237,28 +237,22 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	}
 
 	// Handle IN keyword
-	/*
-		if cond.Decl[0].Token == parser.InToken {
-			err := inExecutor(cond.Decl[0], p)
-			if err != nil {
-				return nil, err
-			}
-			p.LeftValue.table = fromTableName
-			return p, nil
+	if cond.Decl[0].Token == parser.InToken {
+		p, err := inExecutor(fromTableName, pLeftValue, cond.Decl[0])
+		if err != nil {
+			return nil, err
 		}
-	*/
+		return p, nil
+	}
 
 	// Handle NOT IN keywords
-	/*
-		if cond.Decl[0].Token == parser.NotToken && cond.Decl[0].Decl[0].Token == parser.InToken {
-			err := notInExecutor(cond.Decl[0].Decl[0], p)
-			if err != nil {
-				return nil, err
-			}
-			p.LeftValue.table = fromTableName
-			return p, nil
+	if cond.Decl[0].Token == parser.NotToken && cond.Decl[0].Decl[0].Token == parser.InToken {
+		p, err := notInExecutor(fromTableName, pLeftValue, cond.Decl[0])
+		if err != nil {
+			return nil, err
 		}
-	*/
+		return p, nil
+	}
 
 	// Handle IS NULL and IS NOT NULL
 	/*
@@ -426,4 +420,37 @@ func (t *Tx) getDistinctSorter(rel string, decl *parser.Decl, nextAttr string) (
 	}
 
 	return agnostic.NewDistinctSorter(rel, dattrs), nil
+}
+
+func notInExecutor(rname string, aname string, inDecl *parser.Decl) (agnostic.Predicate, error) {
+	in, err := inExecutor(rname, aname, inDecl.Decl[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return agnostic.NewNotPredicate(in), nil
+}
+
+func inExecutor(rname string, aname string, inDecl *parser.Decl) (agnostic.Predicate, error) {
+
+	if len(inDecl.Decl) == 0 {
+		return nil, ParsingError
+	}
+
+	v := agnostic.NewAttributeValueFunctor(rname, aname)
+
+	var n agnostic.Node
+	switch inDecl.Decl[0].Token {
+	case parser.SelectToken:
+		return nil, fmt.Errorf("IN subquery not implemented")
+	default:
+		var values []any
+		for _, d := range inDecl.Decl {
+			values = append(values, d.Lexeme)
+		}
+		n = agnostic.NewListNode(values...)
+	}
+
+	p := agnostic.NewInPredicate(v, n)
+	return p, nil
 }

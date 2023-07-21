@@ -702,7 +702,7 @@ func NewInPredicate(v ValueFunctor, src Node) *InPredicate {
 }
 
 func (p InPredicate) String() string {
-	return fmt.Sprintf("IN %s", p.src)
+	return fmt.Sprintf("%s IN %s", p.v, p.src)
 }
 
 func (p *InPredicate) Type() PredicateType {

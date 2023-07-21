@@ -526,7 +526,7 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 		}
 	*/
 
-	log.Debug("executing '%s' with %s, %s and %s", selectors, predicate, joiners, sorters)
+	log.Debug("executing '%s' with %s, joining with %s and sorting with %s", selectors, predicate, joiners, sorters)
 	cols, res, err := t.tx.Query(schema, selectors, predicate, joiners, sorters)
 	if err != nil {
 		return 0, 0, nil, nil, err
