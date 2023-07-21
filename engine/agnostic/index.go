@@ -54,6 +54,10 @@ func (h *HashIndex) Name() string {
 
 func (h *HashIndex) Add(t *Tuple) {
 	for _, idx := range h.attrs {
+		if t.values[idx] == nil {
+			h.Write([]byte("nil"))
+			continue
+		}
 		log.Debug("HashIndex.Add(%s): appending %s", h, fmt.Sprintf("%v", t.values[idx]))
 		h.Write([]byte(fmt.Sprintf("%v", t.values[idx])))
 	}
@@ -65,6 +69,10 @@ func (h *HashIndex) Add(t *Tuple) {
 
 func (h *HashIndex) Get(values []any) (*Tuple, error) {
 	for _, v := range values {
+		if v == nil {
+			h.Write([]byte("nil"))
+			continue
+		}
 		log.Debug("HashIndex.Get(%s): appending %s", h, fmt.Sprintf("%v", v))
 		h.Write([]byte(fmt.Sprintf("%v", v)))
 	}

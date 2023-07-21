@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/proullon/ramsql/engine/agnostic"
-	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 )
 
@@ -47,7 +46,7 @@ func NewTx(ctx context.Context, e *Engine, opts sql.TxOptions) (*Tx, error) {
 		parser.CreateToken: createExecutor,
 		parser.TableToken:  createTableExecutor,
 		parser.SchemaToken: createSchemaExecutor,
-		//		parser.IndexToken:    createIndexExecutor,
+		parser.IndexToken:  createIndexExecutor,
 		parser.SelectToken: selectExecutor,
 		parser.InsertToken: insertIntoTableExecutor,
 		//		parser.DeleteToken:   deleteExecutor,
@@ -118,13 +117,6 @@ func (t *Tx) ExecContext(ctx context.Context, query string, args []NamedValue) (
 }
 
 func (t *Tx) executeQuery(i parser.Instruction, args []NamedValue) (int64, int64, error) {
-
-	/*
-		i.Decls[0].Stringy(0,
-		func(format string, varargs ...any) {
-			fmt.Printf(format, varargs...)
-		})
-	*/
 
 	if t.opsExecutors[i.Decls[0].Token] == nil {
 		return 0, 0, NotImplemented
@@ -255,22 +247,18 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	}
 
 	// Handle IS NULL and IS NOT NULL
-	/*
-		if cond.Decl[0].Token == parser.IsToken {
-			err := isExecutor(cond.Decl[0], p)
-			if err != nil {
-				return nil, err
-			}
-			p.LeftValue.table = fromTableName
-			return p, nil
+	if cond.Decl[0].Token == parser.IsToken {
+		p, err := isExecutor(fromTableName, pLeftValue, cond.Decl[0])
+		if err != nil {
+			return nil, err
 		}
-	*/
+		return p, nil
+	}
 
 	if len(cond.Decl) < 2 {
 		return nil, fmt.Errorf("Malformed predicate \"%s\"", cond.Lexeme)
 	}
 
-	cond.Stringy(0, log.Debug)
 	leftS := cond
 	op := cond.Decl[0]
 	rightS := cond.Decl[1]
@@ -453,4 +441,19 @@ func inExecutor(rname string, aname string, inDecl *parser.Decl) (agnostic.Predi
 
 	p := agnostic.NewInPredicate(v, n)
 	return p, nil
+}
+
+func isExecutor(rname string, aname string, isDecl *parser.Decl) (agnostic.Predicate, error) {
+
+	if isDecl.Decl[0].Token == parser.NullToken {
+		p := agnostic.NewEqPredicate(agnostic.NewAttributeValueFunctor(rname, aname), agnostic.NewConstValueFunctor(nil))
+		return p, nil
+	}
+
+	if isDecl.Decl[0].Token == parser.NotToken && isDecl.Decl[1].Token == parser.NullToken {
+		p := agnostic.NewEqPredicate(agnostic.NewAttributeValueFunctor(rname, aname), agnostic.NewConstValueFunctor(nil))
+		return agnostic.NewNotPredicate(p), nil
+	}
+
+	return nil, ParsingError
 }

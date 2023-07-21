@@ -283,7 +283,13 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 			}
 		}
 		if specified {
+			if val == nil {
+				tuple.Append(val)
+				delete(values, attr.name)
+				continue
+			}
 			tof := reflect.TypeOf(val)
+			//			log.Error("Can we convert %s to  %s", tof, attr)
 			if !tof.ConvertibleTo(attr.typeInstance) {
 				return nil, t.abort(fmt.Errorf("cannot assign '%v' (type %s) to %s.%s (type %s)", val, tof, relation, attr.name, attr.typeInstance))
 			}
@@ -310,7 +316,6 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 			if attr.fk != nil {
 				// TODO: predicate: equal
 			}
-			log.Debug("Converting %v from %v to %v", val, reflect.TypeOf(val), attr.typeInstance)
 			tuple.Append(reflect.ValueOf(val).Convert(attr.typeInstance).Interface())
 			delete(values, attr.name)
 			continue

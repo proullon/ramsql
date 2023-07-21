@@ -441,8 +441,6 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 		predicate = agnostic.NewTruePredicate()
 	}
 
-	selectDecl.Stringy(0, log.Debug)
-
 	for i := 0; i < len(selectDecl.Decl); i++ {
 		if selectDecl.Decl[i].Token != parser.StringToken &&
 			selectDecl.Decl[i].Token != parser.StarToken &&
@@ -533,4 +531,42 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 	}
 
 	return 0, 0, cols, res, nil
+}
+
+func createIndexExecutor(t *Tx, indexDecl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+	var i int
+	var schema, relation, index string
+
+	if len(indexDecl.Decl) == 0 {
+		return 0, 0, nil, nil, ParsingError
+	}
+
+	// Check if 'IF NOT EXISTS' is present
+	ifNotExists := hasIfNotExists(indexDecl)
+
+	if ifNotExists {
+		i++
+	}
+
+	// Fetch index name
+	index = indexDecl.Decl[i].Lexeme
+	i++
+
+	if d, ok := indexDecl.Has(parser.TableToken); ok {
+		relation = d.Lexeme
+		i++
+	}
+
+	var attrs []string
+	for i < len(indexDecl.Decl) {
+		attrs = append(attrs, indexDecl.Decl[i].Lexeme)
+		i++
+	}
+
+	err := t.tx.CreateIndex(schema, relation, index, agnostic.HashIndexType, attrs)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	return 0, 0, nil, nil, nil
 }
