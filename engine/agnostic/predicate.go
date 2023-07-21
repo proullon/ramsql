@@ -3,7 +3,9 @@ package agnostic
 import (
 	"errors"
 	"fmt"
+	"hash/maphash"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 
@@ -116,11 +118,11 @@ func (js Joiners) Len() int {
 }
 
 func (js Joiners) Less(i, j int) bool {
-	return js[i].EstimateCardinal() < js[i].EstimateCardinal()
+	return js[i].EstimateCardinal() < js[j].EstimateCardinal()
 }
 
 func (js Joiners) Swap(i, j int) {
-	js[i], js[j] = js[j], js[j]
+	js[i], js[j] = js[j], js[i]
 }
 
 // Scanner produce results by scanning the relation.
@@ -135,14 +137,244 @@ type Scanner interface {
 
 // Sorter produce a sorted result from single child node
 //
+// GroupBy (-10000) before Having (-5000) before Order (0) before Distinct (1000) before Offset (5000) before Limit (10000).
+//
+// # GroupBy must contains both selector node and last join to compute arithmetic on all groups
+//
 // Possible implementations:
-// * AscendingSort
-// * DescendingSort
-// * HavingSort
-// * Limit ?
-// * Offset ?
+//   - OrderAscSort
+//   - OrderDescSort
+//   - HavingSort
+//   - DistinctSort
+//   - Limit ?
+//   - Offset ?
 type Sorter interface {
 	Node
+	Priority() int
+	SetNode(Node)
+}
+
+// Sorters sort the sorters \o/
+//
+// Why ? I don't want to put on package caller the responsability to order them correctly. It's up to the query planner.
+type Sorters []Sorter
+
+func (js Sorters) Len() int {
+	return len(js)
+}
+
+func (js Sorters) Less(i, j int) bool {
+	return js[i].Priority() < js[j].Priority()
+}
+
+func (js Sorters) Swap(i, j int) {
+	js[i], js[j] = js[j], js[i]
+}
+
+type GroupBySorter struct {
+	rel      string
+	attrs    []string
+	src      Node
+	selector Node
+}
+
+func NewGroupBySorter(rel string, attrs []string) *GroupBySorter {
+	return &GroupBySorter{rel: rel, attrs: attrs}
+}
+
+func (s GroupBySorter) String() string {
+	return fmt.Sprintf("GroupBy %s.%v", s.rel, s.attrs)
+}
+
+func (s *GroupBySorter) Exec() ([]string, []*Tuple, error) {
+	cols, res, err := s.src.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var idxs []int
+	for _, a := range s.attrs {
+		for i, c := range cols {
+			if c == a || c == s.rel+"."+a {
+				idxs = append(idxs, i)
+			}
+		}
+	}
+
+	return cols, res, nil
+}
+
+func (s *GroupBySorter) EstimateCardinal() int64 {
+	if s.src != nil {
+		return int64(s.src.EstimateCardinal()/2) + 1
+	}
+	return 0
+}
+
+func (s *GroupBySorter) Children() []Node {
+	return []Node{s.src}
+}
+
+func (s *GroupBySorter) Priority() int {
+	return 0
+}
+
+func (s *GroupBySorter) SetNode(n Node) {
+	s.src = n
+}
+
+func (s *GroupBySorter) SetSelector(n Node) {
+	s.selector = n
+}
+
+type OrderByDescSorter struct {
+	rel   string
+	attrs []string
+	src   Node
+}
+
+func NewOrderByDescSorter(rel string, attrs []string) *OrderByDescSorter {
+	return &OrderByDescSorter{rel: rel, attrs: attrs}
+}
+
+func (s OrderByDescSorter) String() string {
+	return fmt.Sprintf("OrderBy %s.%v DESC", s.rel, s.attrs)
+}
+
+func (s *OrderByDescSorter) Exec() ([]string, []*Tuple, error) {
+	cols, res, err := s.src.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var idxs []int
+	for _, a := range s.attrs {
+		for i, c := range cols {
+			if c == a || c == s.rel+"."+a {
+				idxs = append(idxs, i)
+			}
+		}
+	}
+
+	closure := func(t1idx, t2idx int) bool {
+		t1 := res[t1idx]
+		t2 := res[t2idx]
+
+		for _, idx := range idxs {
+			eq, err := equal(t1.values[idx], t2.values[idx])
+			if err != nil {
+				log.Warn("%s: %s", s, err)
+				return false
+			}
+			if eq {
+				continue
+			}
+			gr, err := greater(t1.values[idx], t2.values[idx])
+			if err != nil {
+				log.Warn("%s: %s", s, err)
+				return false
+			}
+			return gr
+		}
+		return true
+	}
+
+	sort.Slice(res, closure)
+	return cols, res, nil
+}
+
+func (s *OrderByDescSorter) EstimateCardinal() int64 {
+	if s.src != nil {
+		return int64(s.src.EstimateCardinal()/2) + 1
+	}
+	return 0
+}
+
+func (s *OrderByDescSorter) Children() []Node {
+	return []Node{s.src}
+}
+
+func (s *OrderByDescSorter) Priority() int {
+	return 0
+}
+
+func (s *OrderByDescSorter) SetNode(n Node) {
+	s.src = n
+}
+
+type DistinctSorter struct {
+	rel   string
+	attrs []string
+	src   Node
+}
+
+func NewDistinctSorter(rel string, attrs []string) *DistinctSorter {
+	return &DistinctSorter{rel: rel, attrs: attrs}
+}
+
+func (s DistinctSorter) String() string {
+	return fmt.Sprintf("Distinct on %s.%v", s.rel, s.attrs)
+}
+
+func (d *DistinctSorter) Exec() ([]string, []*Tuple, error) {
+	m := make(map[uint64]*Tuple)
+	var h maphash.Hash
+	var ok bool
+
+	h.SetSeed(maphash.MakeSeed())
+
+	cols, in, err := d.src.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var idxs []int
+	for _, a := range d.attrs {
+		for i, c := range cols {
+			if c == a || c == d.rel+"."+a {
+				idxs = append(idxs, i)
+			}
+		}
+	}
+
+	for _, t := range in {
+		for _, idx := range idxs {
+			h.Write([]byte(fmt.Sprintf("%v", t.values[idx])))
+		}
+		sum := h.Sum64()
+		h.Reset()
+		_, ok = m[sum]
+		if !ok {
+			m[sum] = t
+		}
+	}
+
+	res := make([]*Tuple, len(m))
+	var i int
+	for _, t := range m {
+		res[i] = t
+		i++
+	}
+	return cols, res, nil
+}
+
+func (d *DistinctSorter) EstimateCardinal() int64 {
+	if d.src != nil {
+		return int64(d.src.EstimateCardinal()/2) + 1
+	}
+	return 0
+}
+
+func (d *DistinctSorter) Children() []Node {
+	return []Node{d.src}
+}
+
+func (d *DistinctSorter) Priority() int {
+	return 1000
+}
+
+func (d *DistinctSorter) SetNode(n Node) {
+	d.src = n
 }
 
 type AttributeSelector struct {
@@ -193,7 +425,6 @@ func (s *AttributeSelector) Select(cols []string, in []*Tuple) (out []*Tuple, er
 
 	colsLen := len(cols)
 	for _, srct := range in {
-		log.Debug("Select: %v", srct.values)
 		if srct == nil {
 			return nil, fmt.Errorf("provided tuple is nil")
 		}
@@ -1198,10 +1429,14 @@ func (p GePredicate) String() string {
 
 func (p *GePredicate) Eval(cols []string, t *Tuple) (bool, error) {
 	vl := p.left.Value(cols, t)
-	l := reflect.ValueOf(vl)
+	//	l := reflect.ValueOf(vl)
 	vr := p.right.Value(cols, t)
-	r := reflect.ValueOf(vr)
+	//	r := reflect.ValueOf(vr)
 
+	return greater(vl, vr)
+}
+
+/*
 	switch l.Kind() {
 	default:
 		return false, fmt.Errorf("%s not comparable", p)
@@ -1236,6 +1471,7 @@ func (p *GePredicate) Eval(cols []string, t *Tuple) (bool, error) {
 		}
 	}
 }
+*/
 
 func (p *GePredicate) Left() (Predicate, bool) {
 	return nil, false
@@ -1396,6 +1632,39 @@ func equal(vl, vr any) (bool, error) {
 			rtime, ok := vr.(time.Time)
 			if ok {
 				return ltime.Unix() == rtime.Unix(), nil
+			}
+		}
+	}
+
+	return false, fmt.Errorf("%v (%v) and %v (%v) not comparable", vl, reflect.TypeOf(vl), vr, reflect.TypeOf(vr))
+}
+
+func greater(vl, vr any) (bool, error) {
+	l := reflect.ValueOf(vl)
+	r := reflect.ValueOf(vr)
+
+	switch l.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if r.CanInt() {
+			return l.Int() > r.Int(), nil
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if r.CanUint() {
+			return l.Uint() > r.Uint(), nil
+		}
+	case reflect.Float32, reflect.Float64:
+		if !r.CanFloat() {
+			return l.Float() > r.Float(), nil
+		}
+	case reflect.String:
+		return l.String() > r.String(), nil
+	case reflect.Struct: // time.Time ?
+		switch vl.(type) {
+		case time.Time:
+			ltime := vl.(time.Time)
+			rtime, ok := vr.(time.Time)
+			if ok {
+				return ltime.After(rtime), nil
 			}
 		}
 	}

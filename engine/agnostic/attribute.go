@@ -68,6 +68,13 @@ func (a Attribute) WithDefault(defaultValue Defaulter) Attribute {
 	return a
 }
 
+func (a Attribute) WithDefaultNow() Attribute {
+	a.defaultValue = func() any {
+		return time.Now()
+	}
+	return a
+}
+
 func (a Attribute) WithUnique() Attribute {
 	a.unique = true
 	return a
@@ -78,12 +85,12 @@ func (a Attribute) Name() string {
 }
 
 func (a Attribute) String() string {
-	s := a.name + " ( " + a.typeName + " "
+	s := a.name + " (" + a.typeName
 	if a.autoIncrement {
-		s = s + "AutoInc "
+		s = s + " AutoInc"
 	}
 	if a.unique {
-		s = s + "unique "
+		s = s + " unique"
 	}
 	s = s + ")"
 	return s

@@ -3,6 +3,7 @@ package agnostic
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/proullon/ramsql/engine/log"
 )
@@ -494,7 +495,7 @@ func TestQuery(t *testing.T) {
 	}
 
 	relation = "myrel"
-	columns, tuples, err := tx.Query(DefaultSchema, []Selector{&StarSelector{relation: relation}}, NewTruePredicate(), nil)
+	columns, tuples, err := tx.Query(DefaultSchema, []Selector{&StarSelector{relation: relation}}, NewTruePredicate(), nil, nil)
 	if err != nil {
 		t.Fatalf("unexpected error on Query: %s", err)
 	}
@@ -522,6 +523,7 @@ func TestQuery(t *testing.T) {
 		[]Joiner{
 			NewNaturalJoin("task", "id", "task_link", "parent_id"),
 		},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error on Query: %s", err)
@@ -570,6 +572,7 @@ func TestQuery(t *testing.T) {
 		[]Joiner{
 			NewNaturalJoin("task", "id", "task_link", "parent_id"),
 		},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error on Query: %s", err)
@@ -629,6 +632,7 @@ func TestCount(t *testing.T) {
 		},
 		NewTruePredicate(),
 		nil,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error on Query: %s", err)
@@ -661,6 +665,7 @@ func TestCount(t *testing.T) {
 			NewConstValueFunctor(23),
 		),
 		nil,
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error on Query: %s", err)
@@ -681,5 +686,83 @@ func TestCount(t *testing.T) {
 	count = tuples[0].values[0].(int64)
 	if count != 1 {
 		t.Fatalf("expected count to be 1, got %d", count)
+	}
+}
+
+// From Postgres documentation
+//
+// SELECT DISTINCT ON (location) location, time, report
+//
+//	FROM weather_reports
+//	ORDER BY location, time DESC;
+func TestDistinct(t *testing.T) {
+	e := NewEngine()
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	schema := DefaultSchema
+	relation := "weather_reports"
+	attrs := []Attribute{
+		NewAttribute("location", "TEXT"),
+		NewAttribute("time", "TIMESTAMP").WithDefaultNow(),
+		NewAttribute("report", "TEXT").WithDefault(NewRandString(200)),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"location", "time"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	sometime := time.Date(2023, 07, 21, 0, 0, 0, 0, time.FixedZone("UTC-8", 0))
+	somewhere := []string{"Toronto", "Quebec", "Atlanta", "Montreal", "Vancouver"}
+	values := make(map[string]any)
+	for _, loc := range somewhere {
+		thatTimeOfYear := sometime
+		for i := 0; i < 10; i++ {
+			values["location"] = loc
+			values["time"] = thatTimeOfYear
+			_, err = tx.Insert(schema, relation, values)
+			if err != nil {
+				t.Fatalf("cannot insert values: %s", err)
+			}
+			thatTimeOfYear = thatTimeOfYear.Add(24 * time.Hour * 7)
+		}
+	}
+
+	log.SetLevel(log.DebugLevel)
+	defer log.SetLevel(log.InfoLevel)
+
+	cols, res, err := tx.Query(
+		DefaultSchema,
+		[]Selector{
+			NewAttributeSelector(relation, []string{"location", "time", "report"}),
+		},
+		NewTruePredicate(),
+		nil,
+		[]Sorter{
+			NewDistinctSorter(relation, []string{"location"}),
+			NewOrderByDescSorter(relation, []string{"location", "time"}),
+		},
+	)
+	if err != nil {
+		t.Fatalf("cannot execure query: %s", err)
+	}
+	l := len(cols)
+	if l != 3 {
+		t.Fatalf("expected 3 columns, got %d", l)
+	}
+	l = len(res)
+	if l != 5 {
+		t.Fatalf("expected 5 rows, got %d", l)
+	}
+	sometime = sometime.Add(9 * 24 * time.Hour * 7)
+	for _, tuple := range res {
+		date := tuple.values[1].(time.Time)
+		if date.Unix() != sometime.Unix() {
+			t.Fatalf("expected order by time DESC, got %s instead of %s", date, sometime)
+		}
 	}
 }

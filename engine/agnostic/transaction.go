@@ -215,7 +215,6 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 					if ok, _ := index.CanSourceWith(p); !ok {
 						continue
 					}
-					log.Error("CHECKING UNICITY OF %s with %s", attr, index)
 					idx, ok := index.(*HashIndex)
 					if !ok {
 						return nil, t.abort(fmt.Errorf("cannot check unicity of %s", attr))
@@ -228,8 +227,6 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 						return nil, t.abort(fmt.Errorf("constraint violation: %s unicity", attr))
 					}
 				}
-				// TODO: predictate: equal value
-				//				t.Select()
 			}
 			if attr.fk != nil {
 				// TODO: predicate: equal
@@ -284,7 +281,7 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 // * (6) Return result      : return result to user with selectors
 //
 // TODO: foreign keys should have hashmap index
-func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, joiners []Joiner) ([]string, []*Tuple, error) {
+func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, joiners []Joiner, sorters []Sorter) ([]string, []*Tuple, error) {
 	if err := t.aborted(); err != nil {
 		return nil, nil, err
 	}
@@ -394,8 +391,33 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 	}
 
 	// append selectors
-	n := NewSelectorNode(selectors, headJoin)
+	var n Node
+	n = NewSelectorNode(selectors, headJoin)
+
 	// append sorters
+	// GroupBy before Having before Order before Distinct before Offset before Limit
+	// GroupBy must contains both selector node and last join to compute arithmetic on all groups
+	if sorters != nil && len(sorters) > 0 {
+		sort.Sort(Sorters(sorters))
+		var src Node
+		for i, s := range sorters {
+			if i == 0 {
+				src = headJoin
+			} else {
+				src = sorters[i-1]
+			}
+
+			switch s.(type) {
+			case *GroupBySorter:
+				gb, _ := s.(*GroupBySorter)
+				gb.SetNode(src)
+				gb.SetSelector(n)
+			default:
+				s.SetNode(src)
+			}
+		}
+		n = sorters[len(sorters)-1]
+	}
 
 	PrintQueryPlan(n, 0, nil)
 
