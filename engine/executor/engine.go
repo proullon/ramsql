@@ -307,6 +307,7 @@ func getValues(specifiedAttrs []string, valuesDecl *parser.Decl, args []NamedVal
 	var typeName string
 	var err error
 	values := make(map[string]any)
+	var odbcIdx int64 = 1
 
 	for i, d := range valuesDecl.Decl {
 		if d.Lexeme == "default" || d.Lexeme == "DEFAULT" {
@@ -331,9 +332,15 @@ func getValues(specifiedAttrs []string, valuesDecl *parser.Decl, args []NamedVal
 
 		switch d.Token {
 		case parser.ArgToken:
-			idx, err := strconv.ParseInt(d.Lexeme, 10, 64)
-			if err != nil {
-				return nil, err
+			var idx int64
+			if d.Lexeme == "?" {
+				idx = odbcIdx
+				odbcIdx++
+			} else {
+				idx, err = strconv.ParseInt(d.Lexeme, 10, 64)
+				if err != nil {
+					return nil, err
+				}
 			}
 			if len(args) <= int(idx)-1 {
 				return nil, fmt.Errorf("reference to $%s, but only %d argument provided", d.Lexeme, len(args))
