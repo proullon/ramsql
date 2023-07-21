@@ -763,3 +763,153 @@ func TestDistinct(t *testing.T) {
 		}
 	}
 }
+
+func TestIn(t *testing.T) {
+	e := NewEngine()
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	schema := DefaultSchema
+	relation := "user"
+	attrs := []Attribute{
+		NewAttribute("name", "TEXT"),
+		NewAttribute("surname", "TEXT"),
+		NewAttribute("age", "INT").WithDefault(func() any { return nil }),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"name", "surname"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	names := []string{"dupont", "doe", "dog", "dupond", "shi"}
+	values := make(map[string]any)
+	for _, n := range names {
+		values["name"] = "Ted"
+		values["surname"] = n
+		values["age"] = 10
+
+		_, err = tx.Insert(schema, "user", values)
+		if err != nil {
+			t.Fatalf("cannot insert values: %s", err)
+		}
+	}
+
+	relation = "animal"
+	attrs = []Attribute{
+		NewAttribute("name", "TEXT"),
+		NewAttribute("region", "INT").WithDefault(func() any { return nil }),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"name"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	names = []string{"cat", "dog", "dolphin", "mouse"}
+	for _, n := range names {
+		values["name"] = n
+		values["region"] = 13434
+
+		_, err = tx.Insert(schema, "animal", values)
+		if err != nil {
+			t.Fatalf("cannot insert values: %s", err)
+		}
+	}
+
+	cols, res, err := tx.Query(
+		DefaultSchema,
+		[]Selector{
+			NewStarSelector("user"),
+		},
+		NewInPredicate(
+			NewAttributeValueFunctor("user", "surname"),
+			NewListNode(
+				"dupont",
+				"dupond",
+			),
+		),
+		nil,
+		[]Sorter{},
+	)
+	if err != nil {
+		t.Fatalf("cannot execure query: %s", err)
+	}
+	l := len(cols)
+	if l != 3 {
+		t.Fatalf("expected 3 columns, got %d", l)
+	}
+	l = len(res)
+	if l != 2 {
+		t.Fatalf("expected 2 rows, got %d", l)
+	}
+
+	cols, res, err = tx.Query(
+		DefaultSchema,
+		[]Selector{
+			NewStarSelector("user"),
+		},
+		NewNotPredicate(
+			NewInPredicate(
+				NewAttributeValueFunctor("user", "surname"),
+				NewListNode(
+					"dupont",
+					"dupond",
+				),
+			),
+		),
+		nil,
+		[]Sorter{},
+	)
+	if err != nil {
+		t.Fatalf("cannot execure query: %s", err)
+	}
+	l = len(cols)
+	if l != 3 {
+		t.Fatalf("expected 3 columns, got %d", l)
+	}
+	l = len(res)
+	if l != 3 {
+		t.Fatalf("expected 3 rows, got %d", l)
+	}
+
+	subquery, err := tx.Plan(
+		DefaultSchema,
+		[]Selector{
+			NewAttributeSelector("animal", []string{"name"}),
+		},
+		NewTruePredicate(),
+		nil,
+		[]Sorter{},
+	)
+	if err != nil {
+		t.Fatalf("cannot prepare subquery: %s", err)
+	}
+	subquery = NewSubqueryNode(subquery)
+
+	cols, res, err = tx.Query(
+		DefaultSchema,
+		[]Selector{
+			NewStarSelector("user"),
+		},
+		NewInPredicate(
+			NewAttributeValueFunctor("user", "surname"),
+			subquery,
+		),
+		nil,
+		[]Sorter{},
+	)
+	if err != nil {
+		t.Fatalf("cannot execure query: %s", err)
+	}
+	l = len(cols)
+	if l != 3 {
+		t.Fatalf("expected 3 columns, got %d", l)
+	}
+	l = len(res)
+	if l != 1 {
+		t.Fatalf("expected 1 row, got %d", l)
+	}
+}

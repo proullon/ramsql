@@ -1,6 +1,7 @@
 package agnostic
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"hash/maphash"
@@ -25,6 +26,7 @@ const (
 	Neq
 	Like
 	In
+	Not
 	True
 	False
 )
@@ -92,6 +94,38 @@ type Node interface {
 	Exec() ([]string, []*Tuple, error)
 	EstimateCardinal() int64
 	Children() []Node
+}
+
+type SubqueryNode struct {
+	src Node
+}
+
+func NewSubqueryNode(src Node) *SubqueryNode {
+	sn := &SubqueryNode{
+		src: src,
+	}
+	return sn
+}
+
+func (sn SubqueryNode) String() string {
+	buf := new(bytes.Buffer)
+
+	PrintQueryPlan(sn.src, 1, func(format string, varargs ...any) {
+		fmt.Fprintf(buf, format, varargs...)
+	})
+
+	return buf.String()
+}
+
+func (sn *SubqueryNode) Exec() ([]string, []*Tuple, error) {
+	return sn.src.Exec()
+}
+
+func (sn *SubqueryNode) EstimateCardinal() int64 {
+	return sn.src.EstimateCardinal()
+}
+func (sn *SubqueryNode) Children() []Node {
+	return sn.src.Children()
 }
 
 // Joiner joins two relation together.
@@ -613,6 +647,110 @@ func NewComparisonPredicate(left ValueFunctor, t PredicateType, right ValueFunct
 
 }
 
+type NotPredicate struct {
+	src Predicate
+}
+
+func NewNotPredicate(src Predicate) *NotPredicate {
+	return &NotPredicate{src: src}
+}
+
+func (p NotPredicate) String() string {
+	return fmt.Sprintf("NOT %s", p.src)
+}
+
+func (p *NotPredicate) Type() PredicateType {
+	return Not
+}
+
+func (p *NotPredicate) Eval(cols []string, t *Tuple) (bool, error) {
+
+	e, err := p.src.Eval(cols, t)
+	if err != nil {
+		return false, err
+	}
+
+	return !e, nil
+}
+
+func (p *NotPredicate) Left() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *NotPredicate) Right() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *NotPredicate) Relation() string {
+	return p.src.Relation()
+}
+
+func (p *NotPredicate) Attribute() []string {
+	return p.src.Attribute()
+}
+
+type InPredicate struct {
+	v    ValueFunctor
+	src  Node
+	cols []string
+	res  []*Tuple
+}
+
+func NewInPredicate(v ValueFunctor, src Node) *InPredicate {
+	p := &InPredicate{v: v, src: src}
+	return p
+}
+
+func (p InPredicate) String() string {
+	return fmt.Sprintf("IN %s", p.src)
+}
+
+func (p *InPredicate) Type() PredicateType {
+	return In
+}
+
+func (p *InPredicate) Eval(inCols []string, in *Tuple) (bool, error) {
+	var err error
+
+	if p.res == nil {
+		p.cols, p.res, err = p.src.Exec()
+		if err != nil {
+			return false, err
+		}
+	}
+
+	lv := p.v.Value(inCols, in)
+
+	for _, t := range p.res {
+		rv := t.values[0]
+		eq, err := equal(lv, rv)
+		if eq {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return false, nil
+}
+
+func (p *InPredicate) Left() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *InPredicate) Right() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *InPredicate) Relation() string {
+	return p.v.Relation()
+}
+
+func (p *InPredicate) Attribute() []string {
+	return p.v.Attribute()
+}
+
 type TruePredicate struct {
 }
 
@@ -907,6 +1045,39 @@ func (p *EqPredicate) Relation() string {
 
 func (p *EqPredicate) Attribute() []string {
 	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+type ListNode struct {
+	//Exec() ([]string, []*Tuple, error)
+	//EstimateCardinal() int64
+	//	Children() []Node
+	res []*Tuple
+}
+
+func NewListNode(values ...any) *ListNode {
+	n := &ListNode{}
+
+	for _, v := range values {
+		n.res = append(n.res, NewTuple(v))
+	}
+
+	return n
+}
+
+func (ln ListNode) String() string {
+	return fmt.Sprintf("CONST_LIST (%d)", len(ln.res))
+}
+
+func (ln *ListNode) Exec() ([]string, []*Tuple, error) {
+	return []string{""}, ln.res, nil
+}
+
+func (ln *ListNode) EstimateCardinal() int64 {
+	return int64(len(ln.res))
+}
+
+func (ln *ListNode) Children() []Node {
+	return nil
 }
 
 type SelectorNode struct {
