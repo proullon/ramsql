@@ -2,6 +2,7 @@ package agnostic
 
 import (
 	"bytes"
+	"container/list"
 	"errors"
 	"fmt"
 	"hash/maphash"
@@ -1826,4 +1827,107 @@ func greater(vl, vr any) (bool, error) {
 	}
 
 	return false, fmt.Errorf("%v (%v) and %v (%v) not comparable", vl, reflect.TypeOf(vl), vr, reflect.TypeOf(vr))
+}
+
+type Updater struct {
+	rel        string
+	rows       *list.List
+	changes    *list.List
+	values     map[string]any
+	attrs      []string
+	child      Node
+	attributes []Attribute
+}
+
+func NewUpdaterNode(relation *Relation, changes *list.List, values map[string]any) *Updater {
+	u := &Updater{
+		rel:        relation.name,
+		rows:       relation.rows,
+		changes:    changes,
+		values:     values,
+		attributes: relation.attributes,
+	}
+
+	for k, _ := range values {
+		u.attrs = append(u.attrs, k)
+	}
+	return u
+}
+
+func (u Updater) String() string {
+	return fmt.Sprintf("UPDATE on %s values %s with %s", u.rel, u.values, u.child)
+}
+
+func (u *Updater) Children() []Node {
+	return []Node{u.child}
+}
+
+func (u *Updater) EstimateCardinal() int64 {
+	return u.child.EstimateCardinal()
+}
+
+func (u *Updater) Exec() (cols []string, out []*Tuple, err error) {
+	var in []*Tuple
+
+	cols, in, err = u.child.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, t := range in {
+
+		oldt := NewTuple(t.values...)
+		newt := &Tuple{
+			values: make([]any, len(oldt.values)),
+		}
+
+		for i, v := range t.values {
+			nv := v
+			attr := u.attributes[i]
+			if val, ok := u.values[cols[i]]; ok {
+				if val == nil {
+					newt.values[i] = nv
+					delete(u.values, cols[i])
+					continue
+				}
+				tof := reflect.TypeOf(val)
+				if !tof.ConvertibleTo(attr.typeInstance) {
+					return nil, nil, fmt.Errorf("cannot assign '%v' (type %s) to %s.%s (type %s)", val, tof, u.rel, attr.name, attr.typeInstance)
+				}
+				nv = reflect.ValueOf(val).Convert(attr.typeInstance).Interface()
+				log.Debug("Updating %s to %s", attr.name, nv)
+			}
+
+			newt.values[i] = nv
+			t.values[i] = nv
+			delete(u.values, cols[i])
+		}
+
+		out = append(out, newt)
+
+		// TODO
+		// Fuck, we don't have access to *list.Element here,
+		// we need to go through the entire list to find our element ???
+		/*
+			c := &ValueChange{
+				current: newt,
+				old:     oldt,
+				l:       u.rows,
+			}
+			u.changes.PushBack(c)
+		*/
+	}
+
+	if len(u.values) > 0 {
+		return nil, nil, fmt.Errorf("attribute %s not existing in relation %s", u.values, u.rel)
+	}
+	return cols, out, nil
+}
+
+func (u *Updater) Relation() string {
+	return u.rel
+}
+
+func (u *Updater) Attribute() []string {
+	return u.attrs
 }

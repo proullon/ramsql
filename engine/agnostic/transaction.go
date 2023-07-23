@@ -234,8 +234,54 @@ func (t *Transaction) CreateIndex(schema, relation, index string, it IndexType, 
 	if err != nil {
 		return err
 	}
+	log.Debug("CreateIndex(%s, %s, %s, %s)", schema, relation, index, attrs)
 
 	return nil
+}
+
+// Update relation with given values.
+//
+// Update node needs to be inserted right as child of selector node.
+// func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, joiners []Joiner, sorters []Sorter) ([]string, []*Tuple, error) {
+func (t *Transaction) Update(schema, relation string, values map[string]any, selectors []Selector, p Predicate) ([]string, []*Tuple, error) {
+	if err := t.aborted(); err != nil {
+		return nil, nil, err
+	}
+
+	s, err := t.e.schema(schema)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r, err := s.Relation(relation)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	n, err := t.Plan(schema, selectors, p, nil, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	snode, ok := n.(*SelectorNode)
+	if !ok {
+		return nil, nil, fmt.Errorf("could not find selector node")
+	}
+
+	un := NewUpdaterNode(r, t.changes, values)
+
+	snode.child, un.child = un, snode.child
+
+	log.Debug("Update(%s, %s, %s, %s, %s)", schema, relation, values, selectors, p)
+	PrintQueryPlan(n, 0, log.Debug)
+
+	// (4), (5), (6)
+	cols, res, err := n.Exec()
+	if err != nil {
+		return nil, nil, t.abort(err)
+	}
+
+	return cols, res, nil
 }
 
 // Build tuple for given relation
