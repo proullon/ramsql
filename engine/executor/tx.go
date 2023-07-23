@@ -50,7 +50,7 @@ func NewTx(ctx context.Context, e *Engine, opts sql.TxOptions) (*Tx, error) {
 		parser.SelectToken: selectExecutor,
 		parser.InsertToken: insertIntoTableExecutor,
 		//		parser.DeleteToken:   deleteExecutor,
-		//		parser.UpdateToken:   updateExecutor,
+		parser.UpdateToken: updateExecutor,
 		//		parser.TruncateToken: truncateExecutor,
 		parser.DropToken:  dropExecutor,
 		parser.GrantToken: grantExecutor,

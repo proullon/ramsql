@@ -787,7 +787,7 @@ func TestDefaultTimestamp(t *testing.T) {
 		t.Fatalf("expected localtimestamp, got 0")
 	}
 	if seen2 == seen {
-		t.Fatalf("expected different value after update")
+		t.Fatalf("expected different value after update (new %s vs old %s)", seen2, seen)
 	}
 
 	// Check with NOW()

@@ -358,6 +358,57 @@ func getValues(specifiedAttrs []string, valuesDecl *parser.Decl, args []NamedVal
 	return values, nil
 }
 
+func getSet(specifiedAttrs []string, values map[string]any, valuesDecl *parser.Decl, args []NamedValue) (map[string]any, error) {
+	var typeName string
+	var err error
+	var odbcIdx int64 = 1
+
+	nameDecl := valuesDecl
+	valueDecl := nameDecl.Decl[1]
+
+	switch valueDecl.Token {
+	case parser.IntToken, parser.NumberToken:
+		typeName = "bigint"
+	case parser.DateToken:
+		typeName = "timestamp"
+	case parser.TextToken:
+		typeName = "text"
+	default:
+		typeName = "text"
+		if _, err := agnostic.ToInstance(valueDecl.Lexeme, "timestamp"); err == nil {
+			typeName = "timestamp"
+		}
+	}
+
+	var v any
+
+	switch valueDecl.Token {
+	case parser.ArgToken:
+		var idx int64
+		if valueDecl.Lexeme == "?" {
+			idx = odbcIdx
+			odbcIdx++
+		} else {
+			idx, err = strconv.ParseInt(valueDecl.Lexeme, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if len(args) <= int(idx)-1 {
+			return nil, fmt.Errorf("reference to $%s, but only %d argument provided", valueDecl.Lexeme, len(args))
+		}
+		v = args[idx-1].Value
+	default:
+		v, err = agnostic.ToInstance(valueDecl.Lexeme, typeName)
+		if err != nil {
+			return nil, err
+		}
+	}
+	values[nameDecl.Lexeme] = v
+
+	return values, nil
+}
+
 func hasIfNotExists(tableDecl *parser.Decl) bool {
 	for _, d := range tableDecl.Decl {
 		if d.Token == parser.IfToken {
@@ -569,4 +620,82 @@ func createIndexExecutor(t *Tx, indexDecl *parser.Decl, args []NamedValue) (int6
 	}
 
 	return 0, 0, nil, nil, nil
+}
+
+func updateExecutor(t *Tx, updateDecl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+
+	var schema string
+	var selectors []agnostic.Selector
+	var predicate agnostic.Predicate
+	var returningAttrs []string
+	var returningIdx []int
+	var err error
+
+	if len(updateDecl.Decl) < 3 {
+		return 0, 0, nil, nil, ParsingError
+	}
+
+	relationDecl := updateDecl.Decl[0]
+	setDecl := updateDecl.Decl[1]
+	whereDecl := updateDecl.Decl[2]
+	relation := relationDecl.Lexeme
+
+	if d, ok := relationDecl.Has(parser.SchemaToken); ok {
+		schema = d.Lexeme
+	}
+
+	// Check for RETURNING clause
+	if len(updateDecl.Decl) > 3 {
+		for i := range updateDecl.Decl {
+			if updateDecl.Decl[i].Token == parser.ReturningToken {
+				returningDecl := updateDecl.Decl[i]
+				returningAttrs = append(returningAttrs, returningDecl.Decl[0].Lexeme)
+				idx, _, err := t.tx.RelationAttribute(schema, relation, returningDecl.Decl[0].Lexeme)
+				if err != nil {
+					return 0, 0, nil, nil, fmt.Errorf("cannot return %s, doesn't exist in relation %s", returningDecl.Decl[0].Lexeme, relation)
+				}
+				returningIdx = append(returningIdx, idx)
+			}
+		}
+	}
+
+	var specifiedAttrs []string
+	for _, d := range setDecl.Decl {
+		specifiedAttrs = append(specifiedAttrs, d.Lexeme)
+	}
+
+	predicate, err = t.getPredicates(whereDecl.Decl, schema, relation, args)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	if predicate == nil {
+		predicate = agnostic.NewTruePredicate()
+	}
+
+	var tuples []*agnostic.Tuple
+	values := make(map[string]any)
+	for _, s := range setDecl.Decl {
+		_, err = getSet(specifiedAttrs, values, s, args)
+		if err != nil {
+			return 0, 0, nil, nil, err
+		}
+	}
+
+	cols, tuples, err := t.tx.Update(schema, relation, values, selectors, predicate)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	if len(returningAttrs) == 0 {
+		return 0, int64(len(tuples)), nil, nil, nil
+	}
+
+	log.Debug("executing '%s' with values %v and predicate %s", selectors, values, predicate)
+	cols, res, err := t.tx.Update(schema, relation, values, selectors, predicate)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	return 0, 0, cols, res, nil
 }

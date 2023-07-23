@@ -114,6 +114,10 @@ func typeInstanceFromName(name string) reflect.Type {
 }
 
 func ToInstance(value, typeName string) (any, error) {
+	if value == "now()" || value == "current_timestamp" {
+		return time.Now(), nil
+	}
+
 	switch strings.ToLower(typeName) {
 	case "serial", "bigserial":
 		var v uint64

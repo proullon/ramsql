@@ -945,3 +945,87 @@ func TestIndex(t *testing.T) {
 	}
 
 }
+
+func TestUpdate(t *testing.T) {
+	e := NewEngine()
+	log.SetLevel(log.InfoLevel)
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	schema := DefaultSchema
+	relation := "task"
+	attrs := []Attribute{
+		NewAttribute("id", "BIGINT").WithAutoIncrement(),
+		NewAttribute("val", "INT").WithDefaultConst(42),
+		NewAttribute("name", "TEXT").WithUnique().WithDefault(NewRandString(20)),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"id"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	values := make(map[string]any)
+	for i := 0; i < 100; i++ {
+		values["val"] = i
+		_, err = tx.Insert(schema, "task", values)
+		if err != nil {
+			t.Fatalf("cannot insert values: %s", err)
+		}
+	}
+
+	values = make(map[string]any)
+	values["name"] = "updated name"
+	cols, res, err := tx.Update(
+		schema,
+		relation,
+		values,
+		[]Selector{
+			NewAttributeSelector(relation, []string{"id"}),
+		},
+		NewEqPredicate(
+			NewAttributeValueFunctor("task", "val"),
+			NewConstValueFunctor(23),
+		),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error on update: %s", err)
+	}
+	l := len(cols)
+	if l != 1 {
+		t.Fatalf("expected 1 columns out of update, got %d", l)
+	}
+
+	rowsUpdated := len(res)
+	if rowsUpdated != 1 {
+		t.Fatalf("expected 1 row update, got %d", rowsUpdated)
+	}
+
+	cols, res, err = tx.Query(
+		schema,
+		[]Selector{
+			NewAttributeSelector(relation, []string{"id", "name"}),
+		},
+		NewEqPredicate(
+			NewAttributeValueFunctor("task", "val"),
+			NewConstValueFunctor(23),
+		),
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error on select: %s", err)
+	}
+	l = len(cols)
+	if l != 2 {
+		t.Fatalf("expected 2 columns on select, got %d", l)
+	}
+	l = len(res)
+	if l != 1 {
+		t.Fatalf("expected 1 row on select, got %d", l)
+	}
+
+}

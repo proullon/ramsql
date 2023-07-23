@@ -18,6 +18,7 @@ type Product struct {
 // From https://gorm.io/docs/connecting_to_the_database.html
 // and  https://gorm.io/docs/
 func TestGormQuickStart(t *testing.T) {
+
 	ramdb, err := sql.Open("ramsql", "TestGormQuickStart")
 	if err != nil {
 		t.Fatalf("cannot open db: %s", err)
