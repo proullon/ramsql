@@ -6,7 +6,7 @@ import (
 )
 
 func TestLexerSimple(t *testing.T) {
-	query := `CREATE TABLE `+"`"+`account`+"`"+``
+	query := `CREATE TABLE ` + "`" + `account` + "`" + ``
 
 	lexer := lexer{}
 	decls, err := lexer.lex([]byte(query))
@@ -54,5 +54,59 @@ func TestLexerWithNEOperator(t *testing.T) {
 
 	if len(decls) != 21 {
 		t.Fatalf("Lexing failed, expected 21 tokens, got %d", len(decls))
+	}
+}
+
+func TestLexerWithInsertScientificNotation(t *testing.T) {
+	query := `INSERT INTO foo (substance, mass) values ('MnO2', 8694e-2)`
+
+	lexer := lexer{}
+	decls, err := lexer.lex([]byte(query))
+	if err != nil {
+		t.Fatalf("Cannot lex <%s> string", query)
+	}
+
+	if len(decls) != 23 {
+		t.Fatalf("Lexing failed, expected 21 tokens, got %d", len(decls))
+	}
+}
+
+func Test_lexer_MatchNumberToken(t *testing.T) {
+	tests := []struct {
+		name string
+		l    *lexer
+		want bool
+	}{
+		{
+			name: "should pass; thirty thousand",
+			l: &lexer{
+				instruction:    []byte("300000"),
+				instructionLen: len("300000"),
+			},
+			want: true,
+		},
+		{
+			name: "should pass; floating point",
+			l: &lexer{
+				instruction:    []byte("3.000000"),
+				instructionLen: len("3.000000"),
+			},
+			want: true,
+		},
+		{
+			name: "should pass; scientific notation",
+			l: &lexer{
+				instruction:    []byte("3e+6"),
+				instructionLen: len("3e+6"),
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.l.MatchNumberToken(); got != tt.want {
+				t.Errorf("lexer.MatchNumberToken() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

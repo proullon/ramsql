@@ -1199,3 +1199,65 @@ func TestSchema(t *testing.T) {
 		t.Fatalf("unexpected error dropping existing schema: %s", err)
 	}
 }
+
+func TestFloat(t *testing.T) {
+	log.UseTestLogger(t)
+
+	batch := []string{
+		`CREATE TABLE user (name TEXT, surname TEXT, age float(8));`,
+		`INSERT INTO user (name, surname, age) VALUES (Foo, Bar, 20.0);`,
+		`INSERT INTO user (name, surname, age) VALUES (John, Doe, 32.0);`,
+		`INSERT INTO user (name, surname, age) VALUES (Jane, Doe, 33.0939959238);`,
+		`INSERT INTO user (name, surname, age) VALUES (Joe, Doe, 1e-10);`,
+		`INSERT INTO user (name, surname, age) VALUES (Homer, Simpson, 40);`,
+		`INSERT INTO user (name, surname, age) VALUES (Marge, Simpson, 40);`,
+		`INSERT INTO user (name, surname, age) VALUES (Bruce, Wayne, 3333);`,
+	}
+
+	db, err := sql.Open("ramsql", "TestFloat")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	for _, b := range batch {
+		_, err = db.Exec(b)
+		if err != nil {
+			t.Fatalf("sql.Exec: Error: %s\n", err)
+		}
+	}
+
+	query := `SELECT * FROM user
+			WHERE user.surname = Doe
+			AND user.name = Joe`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		t.Fatalf("sql.Query: %s", err)
+	}
+
+	var nb int
+	for rows.Next() {
+		var name, surname string
+		var age float64
+		if err := rows.Scan(&name, &surname, &age); err != nil {
+			t.Fatalf("Cannot scan row: %s", err)
+		}
+		if surname != "Doe" && name != "Jane" {
+			t.Fatalf("Unwanted row: %s %s %f", name, surname, age)
+		}
+
+		nb++
+	}
+
+	if nb != 1 {
+		t.Fatalf("Expected 1 rows, got %d", nb)
+	}
+
+	query = `UPDATE user SET age = 31 WHERE name = $1 AND surname = $2`
+	_, err = db.Exec(query, "Bruce", "Wayne")
+	if err != nil {
+		t.Fatalf("Cannot run UPDATE query with AND: %s\n", err)
+	}
+
+}
