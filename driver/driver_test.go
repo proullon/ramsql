@@ -1254,8 +1254,12 @@ func TestFloat(t *testing.T) {
 		t.Fatalf("Expected 1 rows, got %d", nb)
 	}
 
-	query = `UPDATE user SET age = 31 WHERE name = $1 AND surname = $2`
-	_, err = db.Exec(query, "Bruce", "Wayne")
+	query = `UPDATE user SET age = $3 WHERE name = $1 AND surname = $2`
+	var age float64 = 3450000000000
+
+	t.Logf("age in scientfic notation is 3.45e+12: %v", age)
+
+	_, err = db.Exec(query, "Bruce", "Wayne", age)
 	if err != nil {
 		t.Fatalf("Cannot run UPDATE query with AND: %s\n", err)
 	}
