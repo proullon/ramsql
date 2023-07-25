@@ -94,6 +94,7 @@ const (
 	PrimaryToken
 	KeyToken
 	StringToken
+	DecimalToken
 	NumberToken
 	DateToken
 
@@ -198,6 +199,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("collate", CollateToken))
 	matchers = append(matchers, l.genericStringMatcher("nocase", NocaseToken))
 	// Type Matcher
+	matchers = append(matchers, l.genericStringMatcher("decimal", DecimalToken))
 	matchers = append(matchers, l.genericStringMatcher("primary", PrimaryToken))
 	matchers = append(matchers, l.genericStringMatcher("key", KeyToken))
 	matchers = append(matchers, l.MatchEscapedStringToken)

@@ -66,6 +66,10 @@ func (s *RelationScanner) Exec() ([]string, []*list.Element, error) {
 // max: len(src)
 // avg: len(src)/2
 func (s *RelationScanner) EstimateCardinal() int64 {
+	if len(s.predicates) == 0 {
+		return s.src.EstimateCardinal()
+	}
+
 	return int64(s.src.EstimateCardinal()/2) + 1
 }
 

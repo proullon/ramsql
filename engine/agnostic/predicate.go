@@ -306,6 +306,84 @@ func (s *GroupBySorter) SetSelector(n Node) {
 	s.selector = n
 }
 
+type OrderByAscSorter struct {
+	rel   string
+	attrs []string
+	src   Node
+}
+
+func NewOrderByAscSorter(rel string, attrs []string) *OrderByAscSorter {
+	return &OrderByAscSorter{rel: rel, attrs: attrs}
+}
+
+func (s OrderByAscSorter) String() string {
+	return fmt.Sprintf("OrderBy %s.%v ASC", s.rel, s.attrs)
+}
+
+func (s *OrderByAscSorter) Exec() ([]string, []*list.Element, error) {
+	cols, res, err := s.src.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var idxs []int
+	for _, a := range s.attrs {
+		for i, c := range cols {
+			if c == a || c == s.rel+"."+a {
+				idxs = append(idxs, i)
+			}
+		}
+	}
+
+	closure := func(t1idx, t2idx int) bool {
+		t1 := res[t1idx]
+		t2 := res[t2idx]
+
+		for _, idx := range idxs {
+			v1 := t1.Value.(*Tuple).values[idx]
+			v2 := t2.Value.(*Tuple).values[idx]
+
+			eq, err := equal(v1, v2)
+			if err != nil {
+				log.Warn("%s: %s", s, err)
+				return false
+			}
+			if eq {
+				continue
+			}
+			gr, err := greater(v2, v1)
+			if err != nil {
+				log.Warn("%s: %s", s, err)
+				return false
+			}
+			return gr
+		}
+		return true
+	}
+
+	sort.Slice(res, closure)
+	return cols, res, nil
+}
+
+func (s *OrderByAscSorter) EstimateCardinal() int64 {
+	if s.src != nil {
+		return s.src.EstimateCardinal()
+	}
+	return 0
+}
+
+func (s *OrderByAscSorter) Children() []Node {
+	return []Node{s.src}
+}
+
+func (s *OrderByAscSorter) Priority() int {
+	return 0
+}
+
+func (s *OrderByAscSorter) SetNode(n Node) {
+	s.src = n
+}
+
 type OrderByDescSorter struct {
 	rel   string
 	attrs []string
@@ -367,7 +445,7 @@ func (s *OrderByDescSorter) Exec() ([]string, []*list.Element, error) {
 
 func (s *OrderByDescSorter) EstimateCardinal() int64 {
 	if s.src != nil {
-		return int64(s.src.EstimateCardinal()/2) + 1
+		return s.src.EstimateCardinal()
 	}
 	return 0
 }
@@ -382,6 +460,46 @@ func (s *OrderByDescSorter) Priority() int {
 
 func (s *OrderByDescSorter) SetNode(n Node) {
 	s.src = n
+}
+
+type LimitSorter struct {
+	limit int64
+	src   Node
+}
+
+func NewLimitSorter(limit int64) *LimitSorter {
+	return &LimitSorter{limit: limit}
+}
+
+func (s LimitSorter) String() string {
+	return fmt.Sprintf("Limit %d", s.limit)
+}
+
+func (d *LimitSorter) Exec() ([]string, []*list.Element, error) {
+
+	cols, res, err := d.src.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+	res = res[:d.limit]
+
+	return cols, res, nil
+}
+
+func (d *LimitSorter) EstimateCardinal() int64 {
+	return d.limit
+}
+
+func (d *LimitSorter) Children() []Node {
+	return []Node{d.src}
+}
+
+func (d *LimitSorter) Priority() int {
+	return 10000
+}
+
+func (d *LimitSorter) SetNode(n Node) {
+	d.src = n
 }
 
 type DistinctSorter struct {
@@ -1216,13 +1334,19 @@ func (j *NaturalJoin) Exec() ([]string, []*list.Element, error) {
 	cols := make([]string, len(lcols)+len(rcols))
 	var idx int
 	for _, c := range lcols {
-		cols[idx] = j.leftr + "." + c
-		//cols[idx] = c
+		if strings.Contains(c, ".") {
+			cols[idx] = c
+		} else {
+			cols[idx] = j.leftr + "." + c
+		}
 		idx++
 	}
 	for _, c := range rcols {
-		cols[idx] = j.rightr + "." + c
-		//cols[idx] = c
+		if strings.Contains(c, ".") {
+			cols[idx] = c
+		} else {
+			cols[idx] = j.rightr + "." + c
+		}
 		idx++
 	}
 
@@ -1375,6 +1499,13 @@ func (p *GeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 	vr := p.right.Value(cols, t)
 	r := reflect.ValueOf(vr)
 
+	if vl == nil && vr == nil {
+		return true, nil
+	}
+	if vl == nil || vr == nil {
+		return false, nil
+	}
+
 	switch l.Kind() {
 	default:
 		return false, fmt.Errorf("%s not comparable", l)
@@ -1458,6 +1589,13 @@ func (p *LeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 	vr := p.right.Value(cols, t)
 	r := reflect.ValueOf(vr)
 
+	if vl == nil && vr == nil {
+		return true, nil
+	}
+	if vl == nil || vr == nil {
+		return false, nil
+	}
+
 	switch l.Kind() {
 	default:
 		return false, fmt.Errorf("%s not comparable", l)
@@ -1540,6 +1678,13 @@ func (p *LePredicate) Eval(cols []string, t *Tuple) (bool, error) {
 	l := reflect.ValueOf(vl)
 	vr := p.right.Value(cols, t)
 	r := reflect.ValueOf(vr)
+
+	if vl == nil && vr == nil {
+		return false, nil
+	}
+	if vl == nil || vr == nil {
+		return false, nil
+	}
 
 	switch l.Kind() {
 	default:
@@ -1712,6 +1857,13 @@ func (p *NeqPredicate) Eval(cols []string, t *Tuple) (bool, error) {
 	vr := p.right.Value(cols, t)
 	r := reflect.ValueOf(vr)
 
+	if vl == nil && vr == nil {
+		return false, nil
+	}
+	if vl == nil || vr == nil {
+		return true, nil
+	}
+
 	if l.Kind() == r.Kind() {
 		return !l.Equal(r), nil
 	}
@@ -1787,6 +1939,13 @@ func equal(vl, vr any) (bool, error) {
 	l := reflect.ValueOf(vl)
 	r := reflect.ValueOf(vr)
 
+	if vl == nil && vr == nil {
+		return true, nil
+	}
+	if vl == nil || vr == nil {
+		return false, nil
+	}
+
 	if l.Kind() == r.Kind() {
 		return l.Equal(r), nil
 	}
@@ -1833,6 +1992,16 @@ func equal(vl, vr any) (bool, error) {
 func greater(vl, vr any) (bool, error) {
 	l := reflect.ValueOf(vl)
 	r := reflect.ValueOf(vr)
+
+	if vl == nil && vr == nil {
+		return false, nil
+	}
+	if vl == nil {
+		return false, nil
+	}
+	if vr == nil {
+		return true, nil
+	}
 
 	switch l.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

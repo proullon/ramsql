@@ -400,10 +400,22 @@ func (t *Tx) getJoin(decl *parser.Decl, leftR string) (agnostic.Joiner, error) {
 
 	if on.Decl[0].Decl[0].Lexeme == leftR {
 		leftA = on.Decl[0].Lexeme
+		if len(on.Decl[0].Decl) > 0 {
+			leftR = on.Decl[0].Decl[0].Lexeme
+		}
 		rightA = on.Decl[2].Lexeme
+		if len(on.Decl[2].Decl) > 0 {
+			rightR = on.Decl[2].Decl[0].Lexeme
+		}
 	} else {
 		leftA = on.Decl[2].Lexeme
+		if len(on.Decl[2].Decl) > 0 {
+			leftR = on.Decl[2].Decl[0].Lexeme
+		}
 		rightA = on.Decl[0].Lexeme
+		if len(on.Decl[0].Decl) > 0 {
+			rightR = on.Decl[0].Decl[0].Lexeme
+		}
 	}
 
 	return agnostic.NewNaturalJoin(leftR, leftA, rightR, rightA), nil
