@@ -260,6 +260,12 @@ func TestUnique(t *testing.T) {
 	}
 }
 
+func TestDecimal(t *testing.T) {
+	query := `CREATE TABLE IF NOT EXISTS "pokemon" (id BIGSERIAL PRIMARY KEY, fewefwefwe DECIMAL DEFAULT 34.234)`
+
+	parse(query, 1, t)
+}
+
 func TestNow(t *testing.T) {
 	query := `CREATE TABLE IF NOT EXISTS "pokemon" (id BIGSERIAL PRIMARY KEY, test TIMESTAMPZ DEFAULT NOW())`
 

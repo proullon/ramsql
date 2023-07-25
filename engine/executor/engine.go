@@ -321,6 +321,8 @@ func getValues(specifiedAttrs []string, valuesDecl *parser.Decl, args []NamedVal
 			typeName = "timestamp"
 		case parser.TextToken:
 			typeName = "text"
+		case parser.DecimalToken:
+			typeName = "float"
 		default:
 			typeName = "text"
 			if _, err := agnostic.ToInstance(d.Lexeme, "timestamp"); err == nil {
@@ -369,6 +371,8 @@ func getSet(specifiedAttrs []string, values map[string]any, valuesDecl *parser.D
 	switch valueDecl.Token {
 	case parser.IntToken, parser.NumberToken:
 		typeName = "bigint"
+	case parser.DecimalToken:
+		typeName = "float"
 	case parser.DateToken:
 		typeName = "timestamp"
 	case parser.TextToken:
@@ -484,6 +488,19 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 			if err != nil {
 				return 0, 0, nil, nil, err
 			}
+			sorters = append(sorters, s)
+		case parser.OrderToken:
+			s, err := orderbyExecutor(selectDecl.Decl[i], tables)
+			if err != nil {
+				return 0, 0, nil, nil, err
+			}
+			sorters = append(sorters, s...)
+		case parser.LimitToken:
+			limit, err := strconv.ParseInt(selectDecl.Decl[i].Decl[0].Lexeme, 10, 64)
+			if err != nil {
+				return 0, 0, nil, nil, fmt.Errorf("wrong limit value: %s", err)
+			}
+			s := agnostic.NewLimitSorter(limit)
 			sorters = append(sorters, s)
 		}
 	}
@@ -772,4 +789,49 @@ func truncateExecutor(t *Tx, trDecl *parser.Decl, args []NamedValue) (int64, int
 	}
 
 	return 0, c, nil, nil, nil
+}
+
+func orderbyExecutor(decl *parser.Decl, tables []string) ([]agnostic.Sorter, error) {
+	var sorters []agnostic.Sorter
+	var orderingTk int
+
+	decl.Stringy(0, log.Debug)
+
+	valDecl := decl.Decl[0]
+	relation := tables[0]
+
+	for i := 0; i < len(valDecl.Decl); i++ {
+		attr := valDecl.Decl[i].Lexeme
+		attrDecl := valDecl.Decl[i]
+		if len(attrDecl.Decl) == 2 {
+			relationDecl := attrDecl.Decl[0]
+			orderingDecl := attrDecl.Decl[1]
+			relation = relationDecl.Lexeme
+			orderingTk = orderingDecl.Token
+		} else if len(attrDecl.Decl) == 1 {
+			switch attrDecl.Decl[0].Token {
+			case parser.StringToken:
+				orderingTk = parser.AscToken
+				relation = attrDecl.Decl[0].Lexeme
+			case parser.AscToken, parser.DescToken:
+				orderingTk = attrDecl.Decl[0].Token
+				relation = tables[0]
+			}
+		} else {
+			orderingTk = parser.AscToken
+		}
+
+		switch orderingTk {
+		case parser.AscToken:
+			sorters = append(sorters, agnostic.NewOrderByAscSorter(relation, []string{attr}))
+		case parser.DescToken:
+			sorters = append(sorters, agnostic.NewOrderByDescSorter(relation, []string{attr}))
+		default:
+			sorters = append(sorters, agnostic.NewOrderByAscSorter(relation, []string{attr}))
+		}
+
+	}
+
+	log.Debug("SORTERS: %s", sorters)
+	return sorters, nil
 }

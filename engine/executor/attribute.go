@@ -23,10 +23,18 @@ func parseAttribute(decl *parser.Decl) (attr agnostic.Attribute, isPk bool, err 
 	if len(decl.Decl) < 1 {
 		return attr, false, fmt.Errorf("Attribute %s has no type", decl.Lexeme)
 	}
-	if decl.Decl[0].Token != parser.StringToken {
+	switch decl.Decl[0].Token {
+	case parser.DecimalToken:
+		typeName = "float"
+	case parser.NumberToken:
+		typeName = "int"
+	case parser.DateToken:
+		typeName = "date"
+	case parser.StringToken:
+		typeName = decl.Decl[0].Lexeme
+	default:
 		return agnostic.Attribute{}, false, fmt.Errorf("engine: expected attribute type, got %v:%v", decl.Decl[0].Token, decl.Decl[0].Lexeme)
 	}
-	typeName = decl.Decl[0].Lexeme
 
 	attr = agnostic.NewAttribute(name, typeName)
 

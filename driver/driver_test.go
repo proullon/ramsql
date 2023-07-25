@@ -1730,10 +1730,19 @@ func TestMultipleJoin(t *testing.T) {
 		`INSERT INTO user (name) VALUES ($$riri$$)`,
 		`INSERT INTO user (name) VALUES ($$fifi$$)`,
 		`INSERT INTO user (name) VALUES ($$loulou$$)`,
+		`INSERT INTO user (name) VALUES ("foo")`,
+		`INSERT INTO user (name) VALUES ("bar")`,
+		`INSERT INTO user (name) VALUES ("baz")`,
 		`INSERT INTO address (user_id, value) VALUES (1, 'rue du puit')`,
 		`INSERT INTO address (user_id, value) VALUES (1, 'rue du désert')`,
 		`INSERT INTO address (user_id, value) VALUES (3, 'rue du chemin')`,
 		`INSERT INTO address (user_id, value) VALUES (2, 'boulevard du con')`,
+		`INSERT INTO address (user_id, value) VALUES (2, 'boulevard du fion')`,
+		`INSERT INTO address (user_id, value) VALUES (2, 'boulevard du rond')`,
+		`INSERT INTO address (user_id, value) VALUES (3, 'boulevard du don')`,
+		`INSERT INTO address (user_id, value) VALUES (4, 'boulevard du son')`,
+		`INSERT INTO address (user_id, value) VALUES (5, 'boulevard du mont')`,
+		`INSERT INTO address (user_id, value) VALUES (6, 'boulevard du non')`,
 		`INSERT INTO user_group (user_id, name) VALUES (1, 'toto')`,
 		`INSERT INTO user_group (user_id, name) VALUES (2, 'toto')`,
 		`INSERT INTO user_group (user_id, name) VALUES (3, 'lonely')`,
@@ -1762,8 +1771,8 @@ func TestMultipleJoin(t *testing.T) {
 	for rows.Next() {
 		n++
 	}
-	if n != 3 {
-		t.Fatalf("Expected 3 rows, got %d", n)
+	if n != 5 {
+		t.Fatalf("Expected 5 rows, got %d", n)
 	}
 
 }
@@ -1943,16 +1952,16 @@ func TestOrderByString(t *testing.T) {
 		t.Fatalf("Expected 3 rows, not %d", len(names))
 	}
 
-	if names[0] != "Jane" {
-		t.Fatalf("Wanted Jane, got %s", names[0])
+	if names[0] != "Joe" {
+		t.Fatalf("Wanted Joe, got %s", names[0])
 	}
 
-	if names[1] != "Joe" {
-		t.Fatalf("Wanted Joe, got %s", names[1])
+	if names[1] != "John" {
+		t.Fatalf("Wanted John, got %s", names[1])
 	}
 
-	if names[2] != "John" {
-		t.Fatalf("Wanted John, got %s", names[2])
+	if names[2] != "Jane" {
+		t.Fatalf("Wanted Jane, got %s", names[2])
 	}
 
 }
@@ -2302,7 +2311,7 @@ func TestUpdateIsNull(t *testing.T) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("CREATE TABLE account (id INT AUTOINCREMENT, email TEXT, creation_date TIMESTAMP WITH TIME ZONE)")
+	_, err = db.Exec("CREATE TABLE account (id INT AUTOINCREMENT, email TEXT, creation_date TIMESTAMP WITH TIME ZONE DEFAULT NULL)")
 	if err != nil {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
@@ -2376,7 +2385,7 @@ func TestUpdateNotNull(t *testing.T) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("CREATE TABLE account (id INT AUTOINCREMENT, email TEXT, creation_date TIMESTAMP WITH TIME ZONE)")
+	_, err = db.Exec("CREATE TABLE account (id INT AUTOINCREMENT, email TEXT, creation_date TIMESTAMP WITH TIME ZONE DEFAULT NOW())")
 	if err != nil {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
@@ -2406,7 +2415,7 @@ func TestUpdateToNull(t *testing.T) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("CREATE TABLE account (id INT AUTOINCREMENT, email TEXT, creation_date TIMESTAMP WITH TIME ZONE)")
+	_, err = db.Exec("CREATE TABLE account (id INT AUTOINCREMENT, email TEXT, creation_date TIMESTAMP WITH TIME ZONE DEFAULT NOW())")
 	if err != nil {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}

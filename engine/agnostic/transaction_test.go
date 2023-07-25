@@ -1126,4 +1126,29 @@ func TestDelete(t *testing.T) {
 		t.Fatalf("cannot delete: %s", err)
 	}
 
+	cols, res, err = tx.Query(
+		schema,
+		[]Selector{
+			NewCountSelector("foo", "*"),
+		},
+		NewTruePredicate(),
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("cannot query: %s", err)
+	}
+	l = len(cols)
+	if l != 1 {
+		t.Fatalf("expected 1 columns, got %d", l)
+	}
+	l = len(res)
+	if l != 1 {
+		t.Fatalf("expected 1 rows, got %d", l)
+	}
+	l = int(res[0].values[0].(int64))
+	if l != 3 {
+		t.Fatalf("expected count to be 3, got %d", l)
+	}
+
 }

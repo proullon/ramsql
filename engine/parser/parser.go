@@ -348,7 +348,7 @@ func (p *parser) parseInsert() (*Instruction, error) {
 }
 
 func (p *parser) parseType() (*Decl, error) {
-	typeDecl, err := p.consumeToken(StringToken)
+	typeDecl, err := p.consumeToken(DateToken, DecimalToken, NumberToken, StringToken)
 	if err != nil {
 		return nil, err
 	}
