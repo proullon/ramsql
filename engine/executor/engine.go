@@ -321,7 +321,7 @@ func getValues(specifiedAttrs []string, valuesDecl *parser.Decl, args []NamedVal
 			typeName = "timestamp"
 		case parser.TextToken:
 			typeName = "text"
-		case parser.DecimalToken:
+		case parser.FloatToken:
 			typeName = "float"
 		default:
 			typeName = "text"
@@ -690,7 +690,7 @@ func updateExecutor(t *Tx, updateDecl *parser.Decl, args []NamedValue) (int64, i
 		predicate = agnostic.NewTruePredicate()
 	}
 
-	var tuples []*agnostic.Tuple
+	//	var tuples []*agnostic.Tuple
 	values := make(map[string]any)
 	for _, s := range setDecl.Decl {
 		_, err = getSet(specifiedAttrs, values, s, args)
@@ -699,22 +699,25 @@ func updateExecutor(t *Tx, updateDecl *parser.Decl, args []NamedValue) (int64, i
 		}
 	}
 
-	cols, tuples, err := t.tx.Update(schema, relation, values, selectors, predicate)
-	if err != nil {
-		return 0, 0, nil, nil, err
-	}
+	/*
+		cols, tuples, err := t.tx.Update(schema, relation, values, selectors, predicate)
+		if err != nil {
+			return 0, 0, nil, nil, err
+		}
 
-	if len(returningAttrs) == 0 {
-		return 0, int64(len(tuples)), nil, nil, nil
-	}
+		if len(returningAttrs) == 0 {
+			return 0, int64(len(tuples)), nil, nil, nil
+		}
+	*/
 
-	log.Debug("executing '%s' with values %v and predicate %s", selectors, values, predicate)
+	log.Debug("executing update '%s' with values %v and predicate %s", selectors, values, predicate)
 	cols, res, err := t.tx.Update(schema, relation, values, selectors, predicate)
 	if err != nil {
 		return 0, 0, nil, nil, err
 	}
+	log.Debug("Got %d rows with cols %s", len(res), cols)
 
-	return 0, 0, cols, res, nil
+	return 0, int64(len(res)), cols, res, nil
 }
 
 func deleteExecutor(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
@@ -794,10 +797,17 @@ func truncateExecutor(t *Tx, trDecl *parser.Decl, args []NamedValue) (int64, int
 func orderbyExecutor(decl *parser.Decl, tables []string) ([]agnostic.Sorter, error) {
 	var sorters []agnostic.Sorter
 	var orderingTk int
+	var valDecl *parser.Decl
 
 	decl.Stringy(0, log.Debug)
 
-	valDecl := decl.Decl[0]
+	valDecl = decl
+	/*
+	   if len(decl.Decl) > 1 {
+	   		valDecl = decl.Decl[0]
+	   	}
+	*/
+
 	relation := tables[0]
 
 	for i := 0; i < len(valDecl.Decl); i++ {

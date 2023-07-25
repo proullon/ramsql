@@ -153,6 +153,7 @@ func (js Joiners) Len() int {
 }
 
 func (js Joiners) Less(i, j int) bool {
+	log.Debug("%d less %d ?", js[i].EstimateCardinal(), js[j].EstimateCardinal())
 	return js[i].EstimateCardinal() < js[j].EstimateCardinal()
 }
 
@@ -310,6 +311,7 @@ type OrderByAscSorter struct {
 	rel   string
 	attrs []string
 	src   Node
+	p     int
 }
 
 func NewOrderByAscSorter(rel string, attrs []string) *OrderByAscSorter {
@@ -377,7 +379,7 @@ func (s *OrderByAscSorter) Children() []Node {
 }
 
 func (s *OrderByAscSorter) Priority() int {
-	return 0
+	return s.p
 }
 
 func (s *OrderByAscSorter) SetNode(n Node) {
@@ -388,6 +390,7 @@ type OrderByDescSorter struct {
 	rel   string
 	attrs []string
 	src   Node
+	p     int
 }
 
 func NewOrderByDescSorter(rel string, attrs []string) *OrderByDescSorter {
@@ -455,7 +458,7 @@ func (s *OrderByDescSorter) Children() []Node {
 }
 
 func (s *OrderByDescSorter) Priority() int {
-	return 0
+	return s.p
 }
 
 func (s *OrderByDescSorter) SetNode(n Node) {
@@ -1188,6 +1191,9 @@ func (sn *SelectorNode) Exec() ([]string, []*list.Element, error) {
 	cols, srcs, err := sn.child.Exec()
 	if err != nil {
 		return nil, nil, err
+	}
+	if len(sn.selectors) == 0 {
+		return cols, srcs, nil
 	}
 
 	outs := make([][]*Tuple, len(sn.selectors))
@@ -2013,7 +2019,7 @@ func greater(vl, vr any) (bool, error) {
 			return l.Uint() > r.Uint(), nil
 		}
 	case reflect.Float32, reflect.Float64:
-		if !r.CanFloat() {
+		if r.CanFloat() {
 			return l.Float() > r.Float(), nil
 		}
 	case reflect.String:
@@ -2040,6 +2046,7 @@ type Updater struct {
 	attrs      []string
 	child      Node
 	attributes []Attribute
+	indexes    []Index
 }
 
 func NewUpdaterNode(relation *Relation, changes *list.List, values map[string]any) *Updater {
@@ -2049,10 +2056,11 @@ func NewUpdaterNode(relation *Relation, changes *list.List, values map[string]an
 		changes:    changes,
 		values:     values,
 		attributes: relation.attributes,
+		indexes:    relation.indexes,
 	}
 
 	for k, _ := range values {
-		u.attrs = append(u.attrs, k)
+		u.attrs = append(u.attrs, strings.ToLower(k))
 	}
 	return u
 }
@@ -2098,7 +2106,7 @@ func (u *Updater) Exec() (cols []string, out []*list.Element, err error) {
 					return nil, nil, fmt.Errorf("cannot assign '%v' (type %s) to %s.%s (type %s)", val, tof, u.rel, attr.name, attr.typeInstance)
 				}
 				nv = reflect.ValueOf(val).Convert(attr.typeInstance).Interface()
-				log.Debug("Updating %s to %s", attr.name, nv)
+				log.Debug("Updating %s to %v", attr.name, nv)
 			}
 
 			newt.values[i] = nv
@@ -2107,7 +2115,17 @@ func (u *Updater) Exec() (cols []string, out []*list.Element, err error) {
 		}
 
 		newe := u.rows.InsertAfter(newt, e)
+		if newe == nil {
+			return nil, nil, fmt.Errorf("cannot update rows %v with %v, element not in rows", e, newe)
+		}
 		u.rows.Remove(e)
+		for _, i := range u.indexes {
+			i.Remove(e)
+		}
+		for _, i := range u.indexes {
+			i.Add(newe)
+		}
+		log.Debug("Appending %v with value %v", newe, newt)
 		out = append(out, newe)
 
 		c := &ValueChange{
@@ -2119,7 +2137,7 @@ func (u *Updater) Exec() (cols []string, out []*list.Element, err error) {
 	}
 
 	if len(u.values) > 0 {
-		return nil, nil, fmt.Errorf("attribute %s not existing in relation %s", u.values, u.rel)
+		return nil, nil, fmt.Errorf("attribute %s not existing in relation %s, %s", u.values, u.rel, u.attributes)
 	}
 	return cols, out, nil
 }
@@ -2138,6 +2156,7 @@ type Deleter struct {
 	changes    *list.List
 	child      Node
 	attributes []Attribute
+	indexes    []Index
 }
 
 func NewDeleterNode(relation *Relation, changes *list.List) *Deleter {
@@ -2146,6 +2165,7 @@ func NewDeleterNode(relation *Relation, changes *list.List) *Deleter {
 		rows:       relation.rows,
 		changes:    changes,
 		attributes: relation.attributes,
+		indexes:    relation.indexes,
 	}
 
 	return u
@@ -2174,6 +2194,9 @@ func (u *Deleter) Exec() (cols []string, out []*list.Element, err error) {
 	for _, t := range in {
 
 		u.rows.Remove(t)
+		for _, i := range u.indexes {
+			i.Remove(t)
+		}
 
 		out = append(out, t)
 

@@ -76,11 +76,11 @@ func TestGormQuickStart(t *testing.T) {
 	// Update - update multiple fields
 	err = db.Model(&product).Updates(Product{Price: 200, Code: "F42"}).Error // non-zero fields
 	if err != nil {
-		t.Fatalf("cannot update multiple fields: %s", err)
+		t.Fatalf("cannot update multiple fields 1: %s", err)
 	}
 	err = db.Model(&product).Updates(map[string]interface{}{"Price": 200, "Code": "F42"}).Error
 	if err != nil {
-		t.Fatalf("cannot update multiple fields: %s", err)
+		t.Fatalf("cannot update multiple fields 2: %s", err)
 	}
 
 	// Delete - delete product

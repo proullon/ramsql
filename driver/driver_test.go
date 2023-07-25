@@ -1952,16 +1952,16 @@ func TestOrderByString(t *testing.T) {
 		t.Fatalf("Expected 3 rows, not %d", len(names))
 	}
 
-	if names[0] != "Joe" {
-		t.Fatalf("Wanted Joe, got %s", names[0])
+	if names[0] != "Jane" {
+		t.Fatalf("Wanted Jane, got %s", names[0])
 	}
 
-	if names[1] != "John" {
-		t.Fatalf("Wanted John, got %s", names[1])
+	if names[1] != "Joe" {
+		t.Fatalf("Wanted Joe, got %s", names[1])
 	}
 
-	if names[2] != "Jane" {
-		t.Fatalf("Wanted Jane, got %s", names[2])
+	if names[2] != "John" {
+		t.Fatalf("Wanted John, got %s", names[2])
 	}
 
 }
@@ -1992,8 +1992,6 @@ func TestOrderByLimit(t *testing.T) {
 		}
 	}
 
-	log.SetLevel(log.DebugLevel)
-	defer log.SetLevel(log.InfoLevel)
 	query := `SELECT age FROM user WHERE 1=1 ORDER BY age DESC LIMIT 2`
 	rows, err := db.Query(query)
 	if err != nil {
@@ -2062,7 +2060,7 @@ func TestOrderByMultipleStrings(t *testing.T) {
 	}()
 
 	batch := []string{
-		`CREATE TABLE user (name TEXT, surname TEXT, age INT64, savings DECIMAL);`,
+		`CREATE TABLE user (name TEXT, surname TEXT, age BIGINT, savings DECIMAL);`,
 		`INSERT INTO user (name, surname, age, savings) VALUES (Joe, Angel, 11, 125.215);`,
 		`INSERT INTO user (name, surname, age, savings) VALUES (Joe, Angel, 11, 1.1);`,
 		`INSERT INTO user (name, surname, age, savings) VALUES (Joe, Zebra, 32, 0.921);`,

@@ -19,6 +19,7 @@ const (
 type Index interface {
 	Truncate()
 	Add(*list.Element)
+	Remove(*list.Element)
 	Name() string
 	CanSourceWith(p Predicate) (bool, int64)
 }
@@ -67,6 +68,22 @@ func (h *HashIndex) Add(e *list.Element) {
 	log.Debug("HashIndex.Add(%s): %d  for %v int %v", h, sum, h.attrs, t.values)
 	h.Reset()
 	h.m[sum] = uintptr(unsafe.Pointer(e))
+}
+
+func (h *HashIndex) Remove(e *list.Element) {
+	t := e.Value.(*Tuple)
+	for _, idx := range h.attrs {
+		if t.values[idx] == nil {
+			h.Write([]byte("nil"))
+			continue
+		}
+		log.Debug("HashIndex.Remove(%s): appending %s", h, fmt.Sprintf("%v", t.values[idx]))
+		h.Write([]byte(fmt.Sprintf("%v", t.values[idx])))
+	}
+	sum := h.Sum64()
+	log.Debug("HashIndex.Remove(%s): %d  for %v int %v", h, sum, h.attrs, t.values)
+	h.Reset()
+	delete(h.m, sum)
 }
 
 func (h *HashIndex) Get(values []any) (*list.Element, error) {

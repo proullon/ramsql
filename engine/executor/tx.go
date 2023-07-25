@@ -384,6 +384,8 @@ func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName str
 func (t *Tx) getJoin(decl *parser.Decl, leftR string) (agnostic.Joiner, error) {
 	var leftA, rightA, rightR string
 
+	decl.Stringy(0, log.Debug)
+
 	if decl.Decl[0].Token != parser.StringToken {
 		return nil, fmt.Errorf("expected joined relation name, got %v", decl.Decl[0])
 	}
