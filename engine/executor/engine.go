@@ -701,13 +701,57 @@ func updateExecutor(t *Tx, updateDecl *parser.Decl, args []NamedValue) (int64, i
 }
 
 func deleteExecutor(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+	var schema string
+	var selectors []agnostic.Selector
+	var predicate agnostic.Predicate
+	var returningAttrs []string
+	var returningIdx []int
+	var err error
 
-	decl.Stringy(0, log.Error)
+	decl.Stringy(0, log.Debug)
 	if len(decl.Decl) < 2 {
 		return truncateExecutor(t, decl, args)
 	}
 
-	return 0, 0, nil, nil, nil
+	fromDecl := decl.Decl[0]
+	relationDecl := fromDecl.Decl[0]
+	whereDecl := decl.Decl[1]
+	relation := relationDecl.Lexeme
+
+	if d, ok := relationDecl.Has(parser.SchemaToken); ok {
+		schema = d.Lexeme
+	}
+
+	// Check for RETURNING clause
+	if len(decl.Decl) > 3 {
+		for i := range decl.Decl {
+			if decl.Decl[i].Token == parser.ReturningToken {
+				returningDecl := decl.Decl[i]
+				returningAttrs = append(returningAttrs, returningDecl.Decl[0].Lexeme)
+				idx, _, err := t.tx.RelationAttribute(schema, relation, returningDecl.Decl[0].Lexeme)
+				if err != nil {
+					return 0, 0, nil, nil, fmt.Errorf("cannot return %s, doesn't exist in relation %s", returningDecl.Decl[0].Lexeme, relation)
+				}
+				returningIdx = append(returningIdx, idx)
+			}
+		}
+	}
+
+	predicate, err = t.getPredicates(whereDecl.Decl, schema, relation, args)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	if predicate == nil {
+		predicate = agnostic.NewTruePredicate()
+	}
+
+	_, res, err := t.tx.Delete(schema, relation, selectors, predicate)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	return 0, int64(len(res)), nil, nil, nil
 }
 
 func truncateExecutor(t *Tx, trDecl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {

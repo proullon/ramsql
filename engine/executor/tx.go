@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/proullon/ramsql/engine/agnostic"
+	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 )
 
@@ -210,6 +211,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 
 	// 1 PREDICATE
 	if cond.Lexeme == "1" {
+		log.Debug("Cond is %+v, returning TruePredicate", cond)
 		return agnostic.NewTruePredicate(), nil
 	}
 
