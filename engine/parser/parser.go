@@ -348,7 +348,7 @@ func (p *parser) parseInsert() (*Instruction, error) {
 }
 
 func (p *parser) parseType() (*Decl, error) {
-	typeDecl, err := p.consumeToken(DateToken, DecimalToken, NumberToken, StringToken)
+	typeDecl, err := p.consumeToken(FloatToken, DateToken, DecimalToken, NumberToken, StringToken)
 	if err != nil {
 		return nil, err
 	}
@@ -714,7 +714,7 @@ func (p *parser) parseValue() (*Decl, error) {
 		}
 	}
 
-	valueDecl, err := p.consumeToken(StringToken, NumberToken, DateToken, NowToken, CurrentSchemaToken, ArgToken)
+	valueDecl, err := p.consumeToken(FloatToken, StringToken, NumberToken, DateToken, NowToken, CurrentSchemaToken, ArgToken)
 	if err != nil {
 		return nil, err
 	}
@@ -814,7 +814,7 @@ func (p *parser) parseListElement() (*Decl, error) {
 	}
 
 	var valueDecl *Decl
-	valueDecl, err := p.consumeToken(StringToken, NumberToken, NullToken, DateToken, NowToken, ArgToken)
+	valueDecl, err := p.consumeToken(FloatToken, StringToken, NumberToken, NullToken, DateToken, NowToken, ArgToken)
 	if err != nil {
 		return nil, err
 	}

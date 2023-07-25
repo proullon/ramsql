@@ -97,6 +97,7 @@ const (
 	DecimalToken
 	NumberToken
 	DateToken
+	FloatToken
 
 	ArgToken
 )
@@ -127,6 +128,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	var matchers []Matcher
 	matchers = append(matchers, l.MatchArgTokenODBC)
 	matchers = append(matchers, l.MatchArgToken)
+	matchers = append(matchers, l.MatchFloatToken)
 	// Punctuation Matcher
 	matchers = append(matchers, l.MatchSpaceToken)
 	matchers = append(matchers, l.genericByteMatcher(';', SemicolonToken))
@@ -335,19 +337,57 @@ func (l *lexer) MatchStringToken() bool {
 	return false
 }
 
+func (l *lexer) MatchFloatToken() bool {
+
+	i := l.pos
+	for i < l.instructionLen && (unicode.IsDigit(rune(l.instruction[i]))) {
+		i++
+	}
+	if i == l.pos || i >= l.instructionLen {
+		return false
+	}
+
+	if l.instruction[i] != '.' && l.instruction[i] != 'e' {
+		return false
+	}
+
+	if l.instruction[i] == '.' {
+		i++
+	}
+
+	if l.instruction[i] == 'e' {
+		i++
+		if i >= l.instructionLen {
+			return false
+		}
+		if l.instruction[i] != '+' && l.instruction[i] != '-' {
+			return false
+		}
+		i++
+	}
+
+	for i < l.instructionLen && (unicode.IsDigit(rune(l.instruction[i]))) {
+		i++
+	}
+
+	if i != l.pos {
+		t := Token{
+			Token:  FloatToken,
+			Lexeme: string(l.instruction[l.pos:i]),
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos = i
+		return true
+	}
+
+	return false
+}
+
 func (l *lexer) MatchNumberToken() bool {
 
 	i := l.pos
-	for i < l.instructionLen && (unicode.IsDigit(rune(l.instruction[i])) || l.instruction[i] == '.') {
+	for i < l.instructionLen && unicode.IsDigit(rune(l.instruction[i])) {
 		i++
-		// Checking for exponent/scientific notation; i.e. 32e-15, 55e15, 77e+100
-		if i < l.instructionLen && l.instruction[i] == 'e' {
-			i++
-			if i < l.instructionLen && (l.instruction[i] == '+' || l.instruction[i] == '-') {
-				i++
-			}
-		}
-
 	}
 
 	if i != l.pos {
@@ -576,6 +616,8 @@ func TypeNameFromToken(tk int) string {
 		return "date"
 	case TextToken, StringToken:
 		return "text"
+	case FloatToken:
+		return "float"
 	default:
 		return "unknown"
 	}

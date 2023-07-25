@@ -58,6 +58,9 @@ func (a Attribute) HasAutoIncrement() bool {
 
 func (a Attribute) WithDefaultConst(defaultValue any) Attribute {
 	a.defaultValue = func() any {
+		if defaultValue == nil {
+			return nil
+		}
 		return reflect.ValueOf(defaultValue).Convert(a.typeInstance).Interface()
 	}
 	return a
@@ -104,6 +107,9 @@ func typeInstanceFromName(name string) reflect.Type {
 	case "bool", "boolean":
 		var v bool
 		return reflect.TypeOf(v)
+	case "decimal", "float":
+		var v float64
+		return reflect.TypeOf(v)
 	case "timestamp", "timestamptz", "date":
 		var v time.Time
 		return reflect.TypeOf(v)
@@ -117,11 +123,20 @@ func ToInstance(value, typeName string) (any, error) {
 	if value == "now()" || value == "current_timestamp" {
 		return time.Now(), nil
 	}
+	if value == "null" {
+		return nil, nil
+	}
 
 	switch strings.ToLower(typeName) {
 	case "serial", "bigserial":
 		var v uint64
 		v, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	case "decimal", "float":
+		v, err := strconv.ParseFloat(value, 64)
 		if err != nil {
 			return nil, err
 		}
