@@ -43,17 +43,17 @@ func NewTx(ctx context.Context, e *Engine, opts sql.TxOptions) (*Tx, error) {
 	}
 
 	t.opsExecutors = map[int]executorFunc{
-		parser.CreateToken: createExecutor,
-		parser.TableToken:  createTableExecutor,
-		parser.SchemaToken: createSchemaExecutor,
-		parser.IndexToken:  createIndexExecutor,
-		parser.SelectToken: selectExecutor,
-		parser.InsertToken: insertIntoTableExecutor,
-		//		parser.DeleteToken:   deleteExecutor,
-		parser.UpdateToken: updateExecutor,
-		//		parser.TruncateToken: truncateExecutor,
-		parser.DropToken:  dropExecutor,
-		parser.GrantToken: grantExecutor,
+		parser.CreateToken:   createExecutor,
+		parser.TableToken:    createTableExecutor,
+		parser.SchemaToken:   createSchemaExecutor,
+		parser.IndexToken:    createIndexExecutor,
+		parser.SelectToken:   selectExecutor,
+		parser.InsertToken:   insertIntoTableExecutor,
+		parser.DeleteToken:   deleteExecutor,
+		parser.UpdateToken:   updateExecutor,
+		parser.TruncateToken: truncateExecutor,
+		parser.DropToken:     dropExecutor,
+		parser.GrantToken:    grantExecutor,
 	}
 	return t, nil
 }
@@ -183,6 +183,7 @@ func getSelectedTables(fromDecl *parser.Decl) (string, []string) {
 }
 
 func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, args []NamedValue) (agnostic.Predicate, error) {
+	var odbcIdx int64 = 1
 
 	for i, cond := range decl {
 
@@ -269,9 +270,15 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	case parser.CurrentSchemaToken:
 		left = agnostic.NewConstValueFunctor(schema)
 	case parser.ArgToken:
-		idx, err := strconv.ParseInt(leftS.Lexeme, 10, 64)
-		if err != nil {
-			return nil, err
+		var idx int64
+		if rightS.Lexeme == "?" {
+			idx = odbcIdx
+			odbcIdx++
+		} else {
+			idx, err = strconv.ParseInt(rightS.Lexeme, 10, 64)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if len(args) <= int(idx)-1 {
 			return nil, fmt.Errorf("reference to $%s, but only %d argument provided", leftS.Lexeme, len(args))
@@ -285,9 +292,15 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	case parser.CurrentSchemaToken:
 		left = agnostic.NewConstValueFunctor(schema)
 	case parser.ArgToken:
-		idx, err := strconv.ParseInt(rightS.Lexeme, 10, 64)
-		if err != nil {
-			return nil, err
+		var idx int64
+		if rightS.Lexeme == "?" {
+			idx = odbcIdx
+			odbcIdx++
+		} else {
+			idx, err = strconv.ParseInt(rightS.Lexeme, 10, 64)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if len(args) <= int(idx)-1 {
 			return nil, fmt.Errorf("reference to $%s, but only %d argument provided", rightS.Lexeme, len(args))

@@ -87,21 +87,19 @@ func (r *Relation) createIndex(name string, t IndexType, attrs []string) error {
 	return fmt.Errorf("unknown index type: %d", t)
 }
 
-func (r *Relation) Truncate() {
+func (r *Relation) Truncate() int64 {
 	r.Lock()
 	defer r.Unlock()
+
+	l := r.rows.Len()
 
 	for _, i := range r.indexes {
 		i.Truncate()
 	}
 
-	for {
-		b := r.rows.Back()
-		if b == nil {
-			break
-		}
-		r.rows.Remove(b)
-	}
+	r.rows = list.New()
+
+	return int64(l)
 }
 
 func (r Relation) String() string {

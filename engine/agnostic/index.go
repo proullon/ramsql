@@ -1,6 +1,7 @@
 package agnostic
 
 import (
+	"container/list"
 	"fmt"
 	"hash/maphash"
 	"unsafe"
@@ -17,7 +18,7 @@ const (
 
 type Index interface {
 	Truncate()
-	Add(*Tuple)
+	Add(*list.Element)
 	Name() string
 	CanSourceWith(p Predicate) (bool, int64)
 }
@@ -52,7 +53,8 @@ func (h *HashIndex) Name() string {
 	return h.name
 }
 
-func (h *HashIndex) Add(t *Tuple) {
+func (h *HashIndex) Add(e *list.Element) {
+	t := e.Value.(*Tuple)
 	for _, idx := range h.attrs {
 		if t.values[idx] == nil {
 			h.Write([]byte("nil"))
@@ -64,10 +66,10 @@ func (h *HashIndex) Add(t *Tuple) {
 	sum := h.Sum64()
 	log.Debug("HashIndex.Add(%s): %d  for %v int %v", h, sum, h.attrs, t.values)
 	h.Reset()
-	h.m[sum] = uintptr(unsafe.Pointer(t))
+	h.m[sum] = uintptr(unsafe.Pointer(e))
 }
 
-func (h *HashIndex) Get(values []any) (*Tuple, error) {
+func (h *HashIndex) Get(values []any) (*list.Element, error) {
 	for _, v := range values {
 		if v == nil {
 			h.Write([]byte("nil"))
@@ -79,7 +81,7 @@ func (h *HashIndex) Get(values []any) (*Tuple, error) {
 	sum := h.Sum64()
 	h.Reset()
 
-	var t *Tuple
+	var t *list.Element
 	log.Debug("Do we have %v (-> %d) in %s ?", values, sum, h)
 	ptr, ok := h.m[sum]
 	if !ok {
@@ -87,7 +89,7 @@ func (h *HashIndex) Get(values []any) (*Tuple, error) {
 		//		return nil, fmt.Errorf("could not find sum '%d' (%v) in index %s", sum, values, h)
 	}
 
-	t = (*Tuple)(unsafe.Pointer(ptr))
+	t = (*list.Element)(unsafe.Pointer(ptr))
 	return t, nil
 }
 

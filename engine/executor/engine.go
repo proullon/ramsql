@@ -699,3 +699,33 @@ func updateExecutor(t *Tx, updateDecl *parser.Decl, args []NamedValue) (int64, i
 
 	return 0, 0, cols, res, nil
 }
+
+func deleteExecutor(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+
+	decl.Stringy(0, log.Error)
+	if len(decl.Decl) < 2 {
+		return truncateExecutor(t, decl, args)
+	}
+
+	return 0, 0, nil, nil, nil
+}
+
+func truncateExecutor(t *Tx, trDecl *parser.Decl, args []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error) {
+	var schema string
+
+	if len(trDecl.Decl) < 1 {
+		return 0, 0, nil, nil, ParsingError
+	}
+
+	if d, ok := trDecl.Decl[0].Has(parser.SchemaToken); ok {
+		schema = d.Lexeme
+	}
+	relation := trDecl.Decl[0].Decl[0].Lexeme
+
+	c, err := t.tx.Truncate(schema, relation)
+	if err != nil {
+		return 0, 0, nil, nil, err
+	}
+
+	return 0, c, nil, nil, nil
+}

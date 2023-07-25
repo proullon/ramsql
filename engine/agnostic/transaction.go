@@ -81,6 +81,26 @@ func (t Transaction) Error() error {
 	return t.err
 }
 
+func (t *Transaction) Truncate(schema, relation string) (int64, error) {
+	if err := t.aborted(); err != nil {
+		return 0, err
+	}
+
+	s, err := t.e.schema(schema)
+	if err != nil {
+		return 0, err
+	}
+
+	r, err := s.Relation(relation)
+	if err != nil {
+		return 0, err
+	}
+
+	c := r.Truncate()
+
+	return c, nil
+}
+
 func (t *Transaction) RelationAttribute(schName, relName, attrName string) (int, Attribute, error) {
 	if err := t.aborted(); err != nil {
 		return 0, Attribute{}, err
@@ -239,10 +259,58 @@ func (t *Transaction) CreateIndex(schema, relation, index string, it IndexType, 
 	return nil
 }
 
+// Delete rows from relation.
+//
+// Delete node needs to be inserted right as child of selector node.
+func (t *Transaction) Delete(schema, relation string, values map[string]any, selectors []Selector, p Predicate) ([]string, []*Tuple, error) {
+	if err := t.aborted(); err != nil {
+		return nil, nil, err
+	}
+
+	s, err := t.e.schema(schema)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	r, err := s.Relation(relation)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	n, err := t.Plan(schema, selectors, p, nil, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	snode, ok := n.(*SelectorNode)
+	if !ok {
+		return nil, nil, fmt.Errorf("could not find selector node")
+	}
+
+	un := NewDeleterNode(r, t.changes, values)
+
+	snode.child, un.child = un, snode.child
+
+	log.Debug("DELETE(%s, %s, %s, %s, %s)", schema, relation, values, selectors, p)
+	PrintQueryPlan(n, 0, log.Debug)
+
+	// (4), (5), (6)
+	cols, eres, err := n.Exec()
+	if err != nil {
+		return nil, nil, t.abort(err)
+	}
+
+	res := make([]*Tuple, len(eres))
+	for i, e := range eres {
+		res[i] = e.Value.(*Tuple)
+	}
+
+	return cols, res, nil
+}
+
 // Update relation with given values.
 //
 // Update node needs to be inserted right as child of selector node.
-// func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, joiners []Joiner, sorters []Sorter) ([]string, []*Tuple, error) {
 func (t *Transaction) Update(schema, relation string, values map[string]any, selectors []Selector, p Predicate) ([]string, []*Tuple, error) {
 	if err := t.aborted(); err != nil {
 		return nil, nil, err
@@ -276,9 +344,14 @@ func (t *Transaction) Update(schema, relation string, values map[string]any, sel
 	PrintQueryPlan(n, 0, log.Debug)
 
 	// (4), (5), (6)
-	cols, res, err := n.Exec()
+	cols, eres, err := n.Exec()
 	if err != nil {
 		return nil, nil, t.abort(err)
+	}
+
+	res := make([]*Tuple, len(eres))
+	for i, e := range eres {
+		res[i] = e.Value.(*Tuple)
 	}
 
 	return cols, res, nil
@@ -383,7 +456,7 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 
 	// update indexes
 	for _, index := range r.indexes {
-		index.Add(tuple)
+		index.Add(e)
 	}
 
 	// add change
@@ -555,9 +628,14 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 	PrintQueryPlan(n, 0, log.Debug)
 
 	// (4), (5), (6)
-	columns, res, err := n.Exec()
+	columns, eres, err := n.Exec()
 	if err != nil {
 		return nil, nil, t.abort(err)
+	}
+
+	res := make([]*Tuple, len(eres))
+	for i, e := range eres {
+		res[i] = e.Value.(*Tuple)
 	}
 
 	return columns, res, nil

@@ -69,7 +69,7 @@ type ValueFunctor interface {
 //   - ...
 type Selector interface {
 	Picker
-	Select([]string, []*Tuple) ([]*Tuple, error)
+	Select([]string, []*list.Element) ([]*Tuple, error)
 }
 
 // Predicate defines filter to be applied on spcified relation row
@@ -83,7 +83,7 @@ type Predicate interface {
 
 type Source interface {
 	HasNext() bool
-	Next() *Tuple
+	Next() *list.Element
 	EstimateCardinal() int64
 	Columns() []string
 }
@@ -92,7 +92,7 @@ type Source interface {
 //
 // Joiner, Sorter and Scanner implement Node.
 type Node interface {
-	Exec() ([]string, []*Tuple, error)
+	Exec() ([]string, []*list.Element, error)
 	EstimateCardinal() int64
 	Children() []Node
 }
@@ -118,7 +118,7 @@ func (sn SubqueryNode) String() string {
 	return buf.String()
 }
 
-func (sn *SubqueryNode) Exec() ([]string, []*Tuple, error) {
+func (sn *SubqueryNode) Exec() ([]string, []*list.Element, error) {
 	return sn.src.Exec()
 }
 
@@ -219,7 +219,7 @@ func (s OffsetSorter) String() string {
 	return fmt.Sprintf("Offset %d on %s", s.o, s.src)
 }
 
-func (s *OffsetSorter) Exec() ([]string, []*Tuple, error) {
+func (s *OffsetSorter) Exec() ([]string, []*list.Element, error) {
 	cols, res, err := s.src.Exec()
 	if err != nil {
 		return nil, nil, err
@@ -265,7 +265,7 @@ func (s GroupBySorter) String() string {
 	return fmt.Sprintf("GroupBy %s.%v", s.rel, s.attrs)
 }
 
-func (s *GroupBySorter) Exec() ([]string, []*Tuple, error) {
+func (s *GroupBySorter) Exec() ([]string, []*list.Element, error) {
 	cols, res, err := s.src.Exec()
 	if err != nil {
 		return nil, nil, err
@@ -320,7 +320,7 @@ func (s OrderByDescSorter) String() string {
 	return fmt.Sprintf("OrderBy %s.%v DESC", s.rel, s.attrs)
 }
 
-func (s *OrderByDescSorter) Exec() ([]string, []*Tuple, error) {
+func (s *OrderByDescSorter) Exec() ([]string, []*list.Element, error) {
 	cols, res, err := s.src.Exec()
 	if err != nil {
 		return nil, nil, err
@@ -340,7 +340,10 @@ func (s *OrderByDescSorter) Exec() ([]string, []*Tuple, error) {
 		t2 := res[t2idx]
 
 		for _, idx := range idxs {
-			eq, err := equal(t1.values[idx], t2.values[idx])
+			v1 := t1.Value.(*Tuple).values[idx]
+			v2 := t2.Value.(*Tuple).values[idx]
+
+			eq, err := equal(v1, v2)
 			if err != nil {
 				log.Warn("%s: %s", s, err)
 				return false
@@ -348,7 +351,7 @@ func (s *OrderByDescSorter) Exec() ([]string, []*Tuple, error) {
 			if eq {
 				continue
 			}
-			gr, err := greater(t1.values[idx], t2.values[idx])
+			gr, err := greater(v1, v2)
 			if err != nil {
 				log.Warn("%s: %s", s, err)
 				return false
@@ -395,8 +398,8 @@ func (s DistinctSorter) String() string {
 	return fmt.Sprintf("Distinct on %s.%v", s.rel, s.attrs)
 }
 
-func (d *DistinctSorter) Exec() ([]string, []*Tuple, error) {
-	m := make(map[uint64]*Tuple)
+func (d *DistinctSorter) Exec() ([]string, []*list.Element, error) {
+	m := make(map[uint64]*list.Element)
 	var h maphash.Hash
 	var ok bool
 
@@ -418,7 +421,7 @@ func (d *DistinctSorter) Exec() ([]string, []*Tuple, error) {
 
 	for _, t := range in {
 		for _, idx := range idxs {
-			h.Write([]byte(fmt.Sprintf("%v", t.values[idx])))
+			h.Write([]byte(fmt.Sprintf("%v", t.Value.(*Tuple).values[idx])))
 		}
 		sum := h.Sum64()
 		h.Reset()
@@ -428,7 +431,7 @@ func (d *DistinctSorter) Exec() ([]string, []*Tuple, error) {
 		}
 	}
 
-	res := make([]*Tuple, len(m))
+	res := make([]*list.Element, len(m))
 	var i int
 	for _, t := range m {
 		res[i] = t
@@ -482,7 +485,7 @@ func (s *AttributeSelector) Relation() string {
 	return s.relation
 }
 
-func (s *AttributeSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err error) {
+func (s *AttributeSelector) Select(cols []string, in []*list.Element) (out []*Tuple, err error) {
 	idx := make([]int, len(s.attributes))
 	for attrIdx, attr := range s.attributes {
 		idx[attrIdx] = -1
@@ -503,7 +506,11 @@ func (s *AttributeSelector) Select(cols []string, in []*Tuple) (out []*Tuple, er
 	log.Debug("Selecting %s FROM %s (%d rows)", s.attributes, cols, len(in))
 
 	colsLen := len(cols)
-	for _, srct := range in {
+	for _, e := range in {
+		if e == nil {
+			return nil, fmt.Errorf("provided tuple is nil")
+		}
+		srct := e.Value.(*Tuple)
 		if srct == nil {
 			return nil, fmt.Errorf("provided tuple is nil")
 		}
@@ -552,7 +559,7 @@ func (s *CountSelector) Relation() string {
 	return s.relation
 }
 
-func (s *CountSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err error) {
+func (s *CountSelector) Select(cols []string, in []*list.Element) (out []*Tuple, err error) {
 	var idx int
 	idx = -1
 	for i, c := range cols {
@@ -591,13 +598,20 @@ func (s *StarSelector) Relation() string {
 	return s.relation
 }
 
-func (s *StarSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err error) {
+func (s *StarSelector) Select(cols []string, in []*list.Element) (out []*Tuple, err error) {
 	var colIdx []int
 
 	// if only 1 relation, can return directly
 	for i, c := range cols {
 		if strings.Contains(c, ".") == false {
-			out = in
+			out = make([]*Tuple, len(in))
+			for i, e := range in {
+				t, ok := e.Value.(*Tuple)
+				if !ok {
+					return nil, fmt.Errorf("provided element list does not contain Tuple")
+				}
+				out[i] = t
+			}
 			s.cols = cols
 			return
 		}
@@ -607,7 +621,8 @@ func (s *StarSelector) Select(cols []string, in []*Tuple) (out []*Tuple, err err
 		}
 	}
 	// need to re-select table
-	for _, intup := range in {
+	for _, e := range in {
+		intup := e.Value.(*Tuple)
 		outtup := &Tuple{values: make([]any, len(colIdx))}
 		for i, idx := range colIdx {
 			outtup.values[i] = intup.values[idx]
@@ -711,12 +726,15 @@ func (p *InPredicate) Type() PredicateType {
 }
 
 func (p *InPredicate) Eval(inCols []string, in *Tuple) (bool, error) {
-	var err error
 
 	if p.res == nil {
-		p.cols, p.res, err = p.src.Exec()
+		cols, res, err := p.src.Exec()
 		if err != nil {
 			return false, err
+		}
+		p.cols = cols
+		for _, e := range res {
+			p.res = append(p.res, e.Value.(*Tuple))
 		}
 	}
 
@@ -993,14 +1011,17 @@ func (p *EqPredicate) Attribute() []string {
 }
 
 type ListNode struct {
-	res []*Tuple
+	res []*list.Element
 }
 
 func NewListNode(values ...any) *ListNode {
 	n := &ListNode{}
 
+	list := list.New()
+
 	for _, v := range values {
-		n.res = append(n.res, NewTuple(v))
+		e := list.PushBack(NewTuple(v))
+		n.res = append(n.res, e)
 	}
 
 	return n
@@ -1010,7 +1031,7 @@ func (ln ListNode) String() string {
 	return fmt.Sprintf("CONST_LIST (%d)", len(ln.res))
 }
 
-func (ln *ListNode) Exec() ([]string, []*Tuple, error) {
+func (ln *ListNode) Exec() ([]string, []*list.Element, error) {
 	return []string{""}, ln.res, nil
 }
 
@@ -1045,13 +1066,11 @@ func (sn SelectorNode) String() string {
 	return fmt.Sprintf("Select %s", sn.columns)
 }
 
-func (sn *SelectorNode) Exec() ([]string, []*Tuple, error) {
+func (sn *SelectorNode) Exec() ([]string, []*list.Element, error) {
 	cols, srcs, err := sn.child.Exec()
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// group by somewhere in here
 
 	outs := make([][]*Tuple, len(sn.selectors))
 	var resc []string
@@ -1070,13 +1089,25 @@ func (sn *SelectorNode) Exec() ([]string, []*Tuple, error) {
 		resc = append(resc, selector.Attribute()...)
 	}
 
-	res := make([]*Tuple, prevLen)
+	// We have prevLen rows with l columns to return
+	res := make([]*list.Element, prevLen)
+	l := len(resc)
+	rl := list.New()
+	// for each new tuple, concatenate values returned by all selectors
 	for i := 0; i < prevLen; i++ {
-		t := NewTuple()
-		for _, out := range outs {
-			t.Append(out[i].values...)
+		t := &Tuple{values: make([]any, l)}
+		var tidx int
+		// for each selector returned Tuple
+		for x, _ := range outs {
+			// concatenate values to unified tuple
+			for y, _ := range outs[x][i].values {
+				t.values[tidx] = outs[x][i].values[y]
+				tidx++
+			}
 		}
-		res[i] = t
+
+		e := rl.PushBack(t)
+		res[i] = e
 	}
 
 	return resc, res, nil
@@ -1146,7 +1177,7 @@ func (j *NaturalJoin) Children() []Node {
 	return []Node{j.left, j.right}
 }
 
-func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
+func (j *NaturalJoin) Exec() ([]string, []*list.Element, error) {
 
 	lcols, lefts, err := j.left.Exec()
 	if err != nil {
@@ -1198,23 +1229,26 @@ func (j *NaturalJoin) Exec() ([]string, []*Tuple, error) {
 	log.Debug("NaturalJoin.Exec: New cols: %v", cols)
 
 	// prepare for worst case cross join
-	res := make([]*Tuple, len(lefts)*len(rights))
-	idx = 0
+	l := list.New()
 	for _, left := range lefts {
 		for _, right := range rights {
-			ok, err := equal(left.values[lidx], right.values[ridx])
+			ok, err := equal(left.Value.(*Tuple).values[lidx], right.Value.(*Tuple).values[ridx])
 			if err != nil {
 				return nil, nil, err
 			}
 			if ok {
-				t := NewTuple(left.values...)
-				t.Append(right.values...)
-				res[idx] = t
-				idx++
+				t := NewTuple(left.Value.(*Tuple).values...)
+				t.Append(right.Value.(*Tuple).values...)
+				l.PushBack(t)
 			}
 		}
 	}
-	res = res[:idx]
+	idx = 0
+	res := make([]*list.Element, l.Len())
+	for e := l.Front(); e != nil; e = e.Next() {
+		res[idx] = e
+		idx++
+	}
 
 	return cols, res, nil
 }
@@ -1866,19 +1900,19 @@ func (u *Updater) EstimateCardinal() int64 {
 	return u.child.EstimateCardinal()
 }
 
-func (u *Updater) Exec() (cols []string, out []*Tuple, err error) {
-	var in []*Tuple
+func (u *Updater) Exec() (cols []string, out []*list.Element, err error) {
+	var in []*list.Element
 
 	cols, in, err = u.child.Exec()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	for _, t := range in {
+	for _, e := range in {
+		t := e.Value.(*Tuple)
 
-		oldt := NewTuple(t.values...)
 		newt := &Tuple{
-			values: make([]any, len(oldt.values)),
+			values: make([]any, len(t.values)),
 		}
 
 		for i, v := range t.values {
@@ -1903,19 +1937,16 @@ func (u *Updater) Exec() (cols []string, out []*Tuple, err error) {
 			delete(u.values, cols[i])
 		}
 
-		out = append(out, newt)
+		newe := u.rows.InsertAfter(newt, e)
+		u.rows.Remove(e)
+		out = append(out, newe)
 
-		// TODO
-		// Fuck, we don't have access to *list.Element here,
-		// we need to go through the entire list to find our element ???
-		/*
-			c := &ValueChange{
-				current: newt,
-				old:     oldt,
-				l:       u.rows,
-			}
-			u.changes.PushBack(c)
-		*/
+		c := &ValueChange{
+			current: newe,
+			old:     e,
+			l:       u.rows,
+		}
+		u.changes.PushBack(c)
 	}
 
 	if len(u.values) > 0 {
@@ -1929,5 +1960,78 @@ func (u *Updater) Relation() string {
 }
 
 func (u *Updater) Attribute() []string {
+	return u.attrs
+}
+
+type Deleter struct {
+	rel        string
+	rows       *list.List
+	changes    *list.List
+	values     map[string]any
+	attrs      []string
+	child      Node
+	attributes []Attribute
+}
+
+func NewDeleterNode(relation *Relation, changes *list.List, values map[string]any) *Deleter {
+	u := &Deleter{
+		rel:        relation.name,
+		rows:       relation.rows,
+		changes:    changes,
+		values:     values,
+		attributes: relation.attributes,
+	}
+
+	for k, _ := range values {
+		u.attrs = append(u.attrs, k)
+	}
+	return u
+}
+
+func (u Deleter) String() string {
+	return fmt.Sprintf("DELETE on %s values %s with %s", u.rel, u.values, u.child)
+}
+
+func (u *Deleter) Children() []Node {
+	return []Node{u.child}
+}
+
+func (u *Deleter) EstimateCardinal() int64 {
+	return u.child.EstimateCardinal()
+}
+
+func (u *Deleter) Exec() (cols []string, out []*list.Element, err error) {
+	var in []*list.Element
+
+	cols, in, err = u.child.Exec()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, t := range in {
+
+		u.rows.Remove(t)
+
+		out = append(out, t)
+
+		c := &ValueChange{
+			current: nil,
+			old:     t,
+			l:       u.rows,
+		}
+		u.changes.PushBack(c)
+	}
+
+	if len(u.values) > 0 {
+		return nil, nil, fmt.Errorf("attribute %s not existing in relation %s", u.values, u.rel)
+	}
+	return cols, out, nil
+}
+
+func (u *Deleter) Relation() string {
+	return u.rel
+}
+
+func (u *Deleter) Attribute() []string {
 	return u.attrs
 }
