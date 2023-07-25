@@ -1,6 +1,7 @@
 package agnostic
 
 import (
+	"container/list"
 	"fmt"
 
 	"github.com/proullon/ramsql/engine/log"
@@ -28,10 +29,10 @@ func (s *RelationScanner) Append(p Predicate) {
 	s.predicates = append(s.predicates, p)
 }
 
-func (s *RelationScanner) Exec() ([]string, []*Tuple, error) {
+func (s *RelationScanner) Exec() ([]string, []*list.Element, error) {
 	var ok bool
 	var err error
-	var res []*Tuple
+	var res []*list.Element
 	var canAppend bool
 
 	log.Debug("starting %s", s.src)
@@ -41,7 +42,7 @@ func (s *RelationScanner) Exec() ([]string, []*Tuple, error) {
 		t := s.src.Next()
 		canAppend = true
 		for _, p := range s.predicates {
-			ok, err = p.Eval(cols, t)
+			ok, err = p.Eval(cols, t.Value.(*Tuple))
 			if err != nil {
 				return nil, nil, fmt.Errorf("RelationScanner.Exec: %s(%v) : %w", p, t, err)
 			}
@@ -51,7 +52,7 @@ func (s *RelationScanner) Exec() ([]string, []*Tuple, error) {
 			}
 		}
 		if canAppend {
-			log.Debug("RelationScanner.Exec: appending %v", t.values)
+			log.Debug("RelationScanner.Exec: appending %v", t.Value.(*Tuple).values)
 			res = append(res, t)
 		}
 	}

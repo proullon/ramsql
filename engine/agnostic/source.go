@@ -6,7 +6,7 @@ import (
 )
 
 type IndexSrc struct {
-	tuple   *Tuple
+	tuple   *list.Element
 	hasNext bool
 	rname   string
 	cols    []string
@@ -47,7 +47,7 @@ func (s *IndexSrc) HasNext() bool {
 	return s.hasNext
 }
 
-func (s *IndexSrc) Next() *Tuple {
+func (s *IndexSrc) Next() *list.Element {
 	if !s.hasNext {
 		return nil
 	}
@@ -97,11 +97,11 @@ func (s *SeqScanSrc) HasNext() bool {
 	return false
 }
 
-func (s *SeqScanSrc) Next() *Tuple {
+func (s *SeqScanSrc) Next() *list.Element {
 	if s.e == nil {
 		return nil
 	}
-	t, _ := (s.e.Value).(*Tuple)
+	t := s.e
 	s.e = s.e.Next()
 	return t
 }
