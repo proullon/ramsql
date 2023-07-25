@@ -563,7 +563,7 @@ func (s *CountSelector) Select(cols []string, in []*list.Element) (out []*Tuple,
 	var idx int
 	idx = -1
 	for i, c := range cols {
-		if c == s.attribute || c == s.relation+"."+s.attribute {
+		if s.attribute == "*" || c == s.attribute || c == s.relation+"."+s.attribute {
 			idx = i
 			break
 		}
@@ -1967,29 +1967,23 @@ type Deleter struct {
 	rel        string
 	rows       *list.List
 	changes    *list.List
-	values     map[string]any
-	attrs      []string
 	child      Node
 	attributes []Attribute
 }
 
-func NewDeleterNode(relation *Relation, changes *list.List, values map[string]any) *Deleter {
+func NewDeleterNode(relation *Relation, changes *list.List) *Deleter {
 	u := &Deleter{
 		rel:        relation.name,
 		rows:       relation.rows,
 		changes:    changes,
-		values:     values,
 		attributes: relation.attributes,
 	}
 
-	for k, _ := range values {
-		u.attrs = append(u.attrs, k)
-	}
 	return u
 }
 
 func (u Deleter) String() string {
-	return fmt.Sprintf("DELETE on %s values %s with %s", u.rel, u.values, u.child)
+	return fmt.Sprintf("DELETE on %s with %s", u.rel, u.child)
 }
 
 func (u *Deleter) Children() []Node {
@@ -2022,9 +2016,6 @@ func (u *Deleter) Exec() (cols []string, out []*list.Element, err error) {
 		u.changes.PushBack(c)
 	}
 
-	if len(u.values) > 0 {
-		return nil, nil, fmt.Errorf("attribute %s not existing in relation %s", u.values, u.rel)
-	}
 	return cols, out, nil
 }
 
@@ -2033,5 +2024,6 @@ func (u *Deleter) Relation() string {
 }
 
 func (u *Deleter) Attribute() []string {
-	return u.attrs
+	// return u.child.Attribute()
+	return []string{}
 }

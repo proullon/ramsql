@@ -262,7 +262,7 @@ func (t *Transaction) CreateIndex(schema, relation, index string, it IndexType, 
 // Delete rows from relation.
 //
 // Delete node needs to be inserted right as child of selector node.
-func (t *Transaction) Delete(schema, relation string, values map[string]any, selectors []Selector, p Predicate) ([]string, []*Tuple, error) {
+func (t *Transaction) Delete(schema, relation string, selectors []Selector, p Predicate) ([]string, []*Tuple, error) {
 	if err := t.aborted(); err != nil {
 		return nil, nil, err
 	}
@@ -287,11 +287,11 @@ func (t *Transaction) Delete(schema, relation string, values map[string]any, sel
 		return nil, nil, fmt.Errorf("could not find selector node")
 	}
 
-	un := NewDeleterNode(r, t.changes, values)
+	un := NewDeleterNode(r, t.changes)
 
 	snode.child, un.child = un, snode.child
 
-	log.Debug("DELETE(%s, %s, %s, %s, %s)", schema, relation, values, selectors, p)
+	log.Debug("DELETE(%s, %s, %s, %s)", schema, relation, selectors, p)
 	PrintQueryPlan(n, 0, log.Debug)
 
 	// (4), (5), (6)

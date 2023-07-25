@@ -1029,3 +1029,101 @@ func TestUpdate(t *testing.T) {
 	}
 
 }
+
+// CREATE TABLE foo (id BIGSERIAL, bar_id INT, toto_id INT)
+// INSERT INTO foo (bar_id, toto_id) VALUES (2, 3)
+// INSERT INTO foo (bar_id, toto_id) VALUES (4, 32)
+// INSERT INTO foo (bar_id, toto_id) VALUES (5, 33)
+// INSERT INTO foo (bar_id, toto_id) VALUES (6, 4)
+// DELETE FROM foo WHERE bar_id = 4 AND toto_id = 32
+// SELECT bar_id FROM foo WHERE 1
+func TestDelete(t *testing.T) {
+	e := NewEngine()
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	schema := DefaultSchema
+	relation := "foo"
+	attrs := []Attribute{
+		NewAttribute("bar_id", "INT"),
+		NewAttribute("toto_id", "INT"),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"bar_id", "toto_id"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	values := make(map[string]any)
+	values["bar_id"] = 2
+	values["toto_id"] = 3
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert: %s", err)
+	}
+	values["bar_id"] = 4
+	values["toto_id"] = 32
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert: %s", err)
+	}
+	values["bar_id"] = 5
+	values["toto_id"] = 33
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert: %s", err)
+	}
+	values["bar_id"] = 6
+	values["toto_id"] = 4
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert: %s", err)
+	}
+
+	cols, res, err := tx.Query(
+		schema,
+		[]Selector{
+			NewCountSelector("foo", "*"),
+		},
+		NewTruePredicate(),
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("cannot query: %s", err)
+	}
+	l := len(cols)
+	if l != 1 {
+		t.Fatalf("expected 1 columns, got %d", l)
+	}
+	l = len(res)
+	if l != 1 {
+		t.Fatalf("expected 1 rows, got %d", l)
+	}
+	l = int(res[0].values[0].(int64))
+	if l != 4 {
+		t.Fatalf("expected count to be 4, got %d", l)
+	}
+
+	cols, res, err = tx.Delete(
+		schema, relation,
+		nil,
+		NewAndPredicate(
+			NewEqPredicate(
+				NewAttributeValueFunctor("foo", "bar_id"),
+				NewConstValueFunctor(4),
+			),
+			NewEqPredicate(
+				NewAttributeValueFunctor("foo", "toto_id"),
+				NewConstValueFunctor(32),
+			),
+		),
+	)
+	if err != nil {
+		t.Fatalf("cannot delete: %s", err)
+	}
+
+}
