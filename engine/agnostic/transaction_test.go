@@ -741,7 +741,10 @@ func TestDistinct(t *testing.T) {
 		nil,
 		[]Sorter{
 			NewDistinctSorter(relation, []string{"location"}),
-			NewOrderByDescSorter(relation, []string{"location", "time"}),
+			NewOrderBySorter(relation, []SortExpression{
+				NewSortExpression("location", DESC),
+				NewSortExpression("time", DESC),
+			}),
 		},
 	)
 	if err != nil {

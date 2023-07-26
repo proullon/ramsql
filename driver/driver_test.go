@@ -2115,6 +2115,8 @@ func TestOrderByMultipleStrings(t *testing.T) {
 }
 
 func TestSelectNoOp(t *testing.T) {
+	log.SetLevel(log.InfoLevel)
+
 	db, err := sql.Open("ramsql", "TestSelectNoOp")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
