@@ -54,6 +54,7 @@ const (
 	IntoToken
 	ValuesToken
 	JoinToken
+	AsToken
 	OnToken
 	IfToken
 	NotToken
@@ -169,6 +170,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("into", IntoToken))
 	matchers = append(matchers, l.genericStringMatcher("values", ValuesToken))
 	matchers = append(matchers, l.genericStringMatcher("join", JoinToken))
+	matchers = append(matchers, l.genericStringMatcher("as", AsToken))
 	matchers = append(matchers, l.genericStringMatcher("on", OnToken))
 	matchers = append(matchers, l.genericStringMatcher("if", IfToken))
 	matchers = append(matchers, l.genericStringMatcher("not", NotToken))
