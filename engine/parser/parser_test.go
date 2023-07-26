@@ -354,6 +354,7 @@ func TestArguments(t *testing.T) {
 		`UPDATE foo SET bar = $1, elabled = $2 WHERE bar = $3`,
 		`SELECT * FROM foo WHERE bar = ? and enabled = true`,
 		`UPDATE foo SET bar = ?, elabled = ? WHERE bar = ?`,
+		`UPDATE foo SET bar = :bar, elabled = :enabled WHERE bar = :bar`,
 		`INSERT INTO test (data) VALUES ($1)`,
 		`INSERT INTO test (data) VALUES (?)`,
 	}
