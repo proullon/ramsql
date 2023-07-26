@@ -2459,3 +2459,28 @@ func TestUpdateToNull(t *testing.T) {
 	}
 
 }
+
+func TestDeadlock(t *testing.T) {
+	db, err := sql.Open("ramsql", "TestDeadlock")
+	if err != nil {
+		t.Fatalf("cannot open db: %s", err)
+	}
+	defer db.Close()
+	if err := db.Ping(); err != nil {
+		t.Fatalf("cannot ping db: %s", err)
+	}
+	if _, err := db.Exec("CREATE TABLE address (id int, street text)"); err != nil {
+		t.Fatalf("cannot create table: %s", err)
+	}
+
+	stmt, err := db.Prepare("insert into address (id,street) values (?,?)")
+	if err != nil {
+		t.Fatalf("cannot prepare statement: %s", err)
+	}
+
+	for i := 0; i < 10; i++ {
+		if _, err := stmt.Exec(i, fmt.Sprintf("%d park ave", 100+i)); err != nil { // ERROR
+			t.Fatalf("cannot exec %dnt statement: %s", i, err)
+		}
+	}
+}
