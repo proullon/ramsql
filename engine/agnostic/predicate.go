@@ -307,22 +307,39 @@ func (s *GroupBySorter) SetSelector(n Node) {
 	s.selector = n
 }
 
-type OrderByAscSorter struct {
+type SortType int
+
+const (
+	ASC SortType = iota
+	DESC
+)
+
+type SortExpression struct {
+	attr      string
+	direction SortType
+}
+
+func NewSortExpression(attr string, direction SortType) SortExpression {
+	return SortExpression{attr: attr, direction: direction}
+}
+
+type OrderBySorter struct {
 	rel   string
-	attrs []string
+	attrs []SortExpression
 	src   Node
-	p     int
 }
 
-func NewOrderByAscSorter(rel string, attrs []string) *OrderByAscSorter {
-	return &OrderByAscSorter{rel: rel, attrs: attrs}
+func NewOrderBySorter(rel string, attrs []SortExpression) *OrderBySorter {
+	s := &OrderBySorter{rel: rel, attrs: attrs}
+
+	return s
 }
 
-func (s OrderByAscSorter) String() string {
-	return fmt.Sprintf("OrderBy %s.%v ASC", s.rel, s.attrs)
+func (s OrderBySorter) String() string {
+	return fmt.Sprintf("OrderBy %s.%v", s.rel, s.attrs)
 }
 
-func (s *OrderByAscSorter) Exec() ([]string, []*list.Element, error) {
+func (s *OrderBySorter) Exec() ([]string, []*list.Element, error) {
 	cols, res, err := s.src.Exec()
 	if err != nil {
 		return nil, nil, err
@@ -331,17 +348,18 @@ func (s *OrderByAscSorter) Exec() ([]string, []*list.Element, error) {
 	var idxs []int
 	for _, a := range s.attrs {
 		for i, c := range cols {
-			if c == a || c == s.rel+"."+a {
+			if c == a.attr || c == s.rel+"."+a.attr {
 				idxs = append(idxs, i)
 			}
 		}
 	}
 
 	closure := func(t1idx, t2idx int) bool {
+		var comp bool
 		t1 := res[t1idx]
 		t2 := res[t2idx]
 
-		for _, idx := range idxs {
+		for i, idx := range idxs {
 			v1 := t1.Value.(*Tuple).values[idx]
 			v2 := t2.Value.(*Tuple).values[idx]
 
@@ -353,12 +371,17 @@ func (s *OrderByAscSorter) Exec() ([]string, []*list.Element, error) {
 			if eq {
 				continue
 			}
-			gr, err := greater(v2, v1)
+
+			if s.attrs[i].direction == ASC {
+				comp, err = greater(v2, v1)
+			} else {
+				comp, err = greater(v1, v2)
+			}
 			if err != nil {
 				log.Warn("%s: %s", s, err)
 				return false
 			}
-			return gr
+			return comp
 		}
 		return true
 	}
@@ -367,101 +390,22 @@ func (s *OrderByAscSorter) Exec() ([]string, []*list.Element, error) {
 	return cols, res, nil
 }
 
-func (s *OrderByAscSorter) EstimateCardinal() int64 {
+func (s *OrderBySorter) EstimateCardinal() int64 {
 	if s.src != nil {
 		return s.src.EstimateCardinal()
 	}
 	return 0
 }
 
-func (s *OrderByAscSorter) Children() []Node {
+func (s *OrderBySorter) Children() []Node {
 	return []Node{s.src}
 }
 
-func (s *OrderByAscSorter) Priority() int {
-	return s.p
-}
-
-func (s *OrderByAscSorter) SetNode(n Node) {
-	s.src = n
-}
-
-type OrderByDescSorter struct {
-	rel   string
-	attrs []string
-	src   Node
-	p     int
-}
-
-func NewOrderByDescSorter(rel string, attrs []string) *OrderByDescSorter {
-	return &OrderByDescSorter{rel: rel, attrs: attrs}
-}
-
-func (s OrderByDescSorter) String() string {
-	return fmt.Sprintf("OrderBy %s.%v DESC", s.rel, s.attrs)
-}
-
-func (s *OrderByDescSorter) Exec() ([]string, []*list.Element, error) {
-	cols, res, err := s.src.Exec()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var idxs []int
-	for _, a := range s.attrs {
-		for i, c := range cols {
-			if c == a || c == s.rel+"."+a {
-				idxs = append(idxs, i)
-			}
-		}
-	}
-
-	closure := func(t1idx, t2idx int) bool {
-		t1 := res[t1idx]
-		t2 := res[t2idx]
-
-		for _, idx := range idxs {
-			v1 := t1.Value.(*Tuple).values[idx]
-			v2 := t2.Value.(*Tuple).values[idx]
-
-			eq, err := equal(v1, v2)
-			if err != nil {
-				log.Warn("%s: %s", s, err)
-				return false
-			}
-			if eq {
-				continue
-			}
-			gr, err := greater(v1, v2)
-			if err != nil {
-				log.Warn("%s: %s", s, err)
-				return false
-			}
-			return gr
-		}
-		return true
-	}
-
-	sort.Slice(res, closure)
-	return cols, res, nil
-}
-
-func (s *OrderByDescSorter) EstimateCardinal() int64 {
-	if s.src != nil {
-		return s.src.EstimateCardinal()
-	}
+func (s *OrderBySorter) Priority() int {
 	return 0
 }
 
-func (s *OrderByDescSorter) Children() []Node {
-	return []Node{s.src}
-}
-
-func (s *OrderByDescSorter) Priority() int {
-	return s.p
-}
-
-func (s *OrderByDescSorter) SetNode(n Node) {
+func (s *OrderBySorter) SetNode(n Node) {
 	s.src = n
 }
 

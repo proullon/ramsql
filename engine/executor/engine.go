@@ -494,7 +494,7 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 			if err != nil {
 				return 0, 0, nil, nil, err
 			}
-			sorters = append(sorters, s...)
+			sorters = append(sorters, s)
 		case parser.LimitToken:
 			limit, err := strconv.ParseInt(selectDecl.Decl[i].Decl[0].Lexeme, 10, 64)
 			if err != nil {
@@ -794,10 +794,10 @@ func truncateExecutor(t *Tx, trDecl *parser.Decl, args []NamedValue) (int64, int
 	return 0, c, nil, nil, nil
 }
 
-func orderbyExecutor(decl *parser.Decl, tables []string) ([]agnostic.Sorter, error) {
-	var sorters []agnostic.Sorter
+func orderbyExecutor(decl *parser.Decl, tables []string) (agnostic.Sorter, error) {
 	var orderingTk int
 	var valDecl *parser.Decl
+	var attrs []agnostic.SortExpression
 
 	decl.Stringy(0, log.Debug)
 
@@ -833,15 +833,16 @@ func orderbyExecutor(decl *parser.Decl, tables []string) ([]agnostic.Sorter, err
 
 		switch orderingTk {
 		case parser.AscToken:
-			sorters = append(sorters, agnostic.NewOrderByAscSorter(relation, []string{attr}))
+			attrs = append(attrs, agnostic.NewSortExpression(attr, agnostic.ASC))
 		case parser.DescToken:
-			sorters = append(sorters, agnostic.NewOrderByDescSorter(relation, []string{attr}))
+			attrs = append(attrs, agnostic.NewSortExpression(attr, agnostic.DESC))
 		default:
-			sorters = append(sorters, agnostic.NewOrderByAscSorter(relation, []string{attr}))
+			attrs = append(attrs, agnostic.NewSortExpression(attr, agnostic.ASC))
 		}
 
 	}
 
-	log.Debug("SORTERS: %s", sorters)
-	return sorters, nil
+	sorter := agnostic.NewOrderBySorter(relation, attrs)
+	log.Debug("SORTERS: %s", sorter)
+	return sorter, nil
 }
