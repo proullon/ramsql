@@ -100,6 +100,7 @@ const (
 	FloatToken
 
 	ArgToken
+	NamedArgToken
 )
 
 // Token struct holds token id and it's lexeme
@@ -127,6 +128,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 
 	var matchers []Matcher
 	matchers = append(matchers, l.MatchArgTokenODBC)
+	matchers = append(matchers, l.MatchNamedArgToken)
 	matchers = append(matchers, l.MatchArgToken)
 	matchers = append(matchers, l.MatchFloatToken)
 	// Punctuation Matcher
@@ -253,6 +255,29 @@ func (l *lexer) MatchArgTokenODBC() bool {
 	l.tokens = append(l.tokens, t)
 	l.pos = i
 	return true
+}
+
+func (l *lexer) MatchNamedArgToken() bool {
+
+	i := l.pos
+	if l.instruction[i] != ':' {
+		return false
+	}
+	i++
+	for i < l.instructionLen && unicode.IsLetter(rune(l.instruction[i])) {
+		i++
+	}
+	if i > l.pos+1 {
+		t := Token{
+			Token:  NamedArgToken,
+			Lexeme: string(l.instruction[l.pos+1 : i]),
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos = i
+		return true
+	}
+
+	return false
 }
 
 func (l *lexer) MatchArgToken() bool {
