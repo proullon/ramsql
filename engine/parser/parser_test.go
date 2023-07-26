@@ -260,6 +260,18 @@ func TestUnique(t *testing.T) {
 	}
 }
 
+func TestAlias(t *testing.T) {
+	queries := []string{
+		`SELECT p.test FROM probably_too_long_name AS p WHERE p.id = $1`,
+		`SELECT p.test FROM machin JOIN probably_too_long_name AS p ON p.id = machin.id`,
+	}
+
+	for _, q := range queries {
+		parse(q, 1, t)
+	}
+
+}
+
 func TestDecimal(t *testing.T) {
 	query := `CREATE TABLE IF NOT EXISTS "pokemon" (id BIGSERIAL PRIMARY KEY, fewefwefwe DECIMAL DEFAULT 34.234)`
 

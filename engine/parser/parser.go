@@ -516,6 +516,20 @@ func (p *parser) parseTableName() (*Decl, error) {
 		return attributeDecl, nil
 	}
 
+	// AS SOMETHING ?
+	if p.is(AsToken) {
+		asDecl, err := p.consumeToken(AsToken)
+		if err != nil {
+			return nil, err
+		}
+		decl.Add(asDecl)
+		aliasDecl, err := p.consumeToken(StringToken)
+		if err != nil {
+			return nil, err
+		}
+		asDecl.Add(aliasDecl)
+	}
+
 	// Then the first string token was the naked attribute name
 	return decl, nil
 }
@@ -763,6 +777,16 @@ func (p *parser) parseJoin() (*Decl, error) {
 		return nil, err
 	}
 	joinDecl.Add(tableDecl)
+
+	// AS SOMETHING ?
+	if p.is(AsToken) {
+		p.consumeToken(AsToken)
+		aliasDecl, err := p.consumeToken(StringToken)
+		if err != nil {
+			return nil, err
+		}
+		tableDecl.Add(aliasDecl)
+	}
 
 	// ON
 	onDecl, err := p.consumeToken(OnToken)

@@ -148,7 +148,7 @@ Find bellow all objectives for `v1.0.0`
 | double quote   | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | COUNT          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | MAX            | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| ORDER BY       | SQL           | :heavy_check_mark:       | single column            |
+| ORDER BY       | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | UPDATE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | DELETE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | DROP           | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
