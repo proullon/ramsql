@@ -1,6 +1,7 @@
 package ramsql
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -2482,5 +2483,34 @@ func TestDeadlock(t *testing.T) {
 		if _, err := stmt.Exec(i, fmt.Sprintf("%d park ave", 100+i)); err != nil { // ERROR
 			t.Fatalf("cannot exec %dnt statement: %s", i, err)
 		}
+	}
+}
+
+func TestNamedArg(t *testing.T) {
+
+	db, err := sql.Open("ramsql", "TestNamedArg")
+	if err != nil {
+		t.Fatalf("cannot open db: %s", err)
+	}
+	defer db.Close()
+
+	var name string
+
+	_, err = db.Exec(`CREATE TABLE user (id BIGSERIAL PRIMARY KEY, name TEXT, surname TEXT, age INT)`)
+	if err != nil {
+		t.Fatalf("cannot create table: %s", err)
+	}
+
+	log.SetLevel(log.DebugLevel)
+	// sql: expected 0 arguments, got 1
+	err = db.QueryRowContext(context.TODO(), "select p.name from people as p where p.id = :id;", sql.Named("id", "1234")).Scan(&name)
+	if err != nil {
+		t.Fatalf("cannot query context: %s", err)
+	}
+
+	// deadlock 🤔
+	_, err = db.ExecContext(context.TODO(), "INSERT INTO people (id,name) VALUES (?,?)", "1234", "Ramone")
+	if err != nil {
+		t.Fatalf("cannot exec context: %s", err)
 	}
 }

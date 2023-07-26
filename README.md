@@ -164,6 +164,7 @@ Find bellow all objectives for `v1.0.0`
 | Hash index     | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | B-Tree index   | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
 | JSON           | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| AS             | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
 | CLI            | Testing       | :heavy_check_mark:       | :heavy_check_mark:       |
 | Breakpoint     | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
 | Query history  | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
