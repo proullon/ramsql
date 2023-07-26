@@ -2447,13 +2447,13 @@ func TestUpdateToNull(t *testing.T) {
 		t.Fatalf("sql.Query failed")
 	}
 
-	var email2 *string
+	var email2 sql.NullString
 	err = row2.Scan(&email2)
 	if err != nil {
 		t.Fatalf("row.Scan: %s", err)
 	}
-	if email2 != nil {
-		t.Fatalf("expected NULL email, but got '%v'", *email2)
+	if email2.Valid == true {
+		t.Fatalf("expected NULL email, but got '%v'", email2.String)
 	}
 
 }
