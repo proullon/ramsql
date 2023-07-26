@@ -2097,7 +2097,7 @@ func (u *Updater) Exec() (cols []string, out []*list.Element, err error) {
 			attr := u.attributes[i]
 			if val, ok := u.values[cols[i]]; ok {
 				if val == nil {
-					newt.values[i] = nv
+					newt.values[i] = nil
 					delete(u.values, cols[i])
 					continue
 				}
@@ -2110,7 +2110,6 @@ func (u *Updater) Exec() (cols []string, out []*list.Element, err error) {
 			}
 
 			newt.values[i] = nv
-			t.values[i] = nv
 			delete(u.values, cols[i])
 		}
 
