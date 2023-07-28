@@ -2,20 +2,20 @@ goos: linux
 goarch: amd64
 pkg: github.com/proullon/ramsql
 cpu: Intel(R) Core(TM) i7-7700K CPU @ 4.20GHz
-                          │  bench.txt   │            newbench.txt            │
-                          │    sec/op    │   sec/op     vs base               │
-RamSQLSelectBTree-8         292.5µ ± 13%   292.5µ ± 5%        ~ (p=0.937 n=6)
-SQLiteSelectBTree-8         12.10µ ±  9%   10.77µ ± 1%  -11.01% (p=0.002 n=6)
-RamSQLSelectBTree10K-8      7.875m ±  4%   7.528m ± 2%   -4.41% (p=0.026 n=6)
-SQLiteSelectBTree10K-8      11.16µ ±  4%   11.13µ ± 3%        ~ (p=0.589 n=6)
-RamSQLSelectHashMap10K-8    5.744m ±  4%   5.756m ± 3%        ~ (p=0.818 n=6)
-SQLiteSelectHashMap10K-8    8.491µ ±  2%   8.396µ ± 3%        ~ (p=0.485 n=6)
-RamSQLSelectBTree100K-8     75.76m ±  1%   75.66m ± 2%        ~ (p=0.818 n=6)
-SQLiteSelectBTree100K-8     11.19µ ±  2%   11.23µ ± 1%        ~ (p=0.485 n=6)
-RamSQLSelectHashMap100K-8   59.30m ± 14%   59.70m ± 4%        ~ (p=0.818 n=6)
-SQLiteSelectHashMap100K-8   8.495µ ±  4%   8.398µ ± 2%        ~ (p=0.167 n=6)
-RamSQLInsert10-8            284.0µ ±  3%   286.7µ ± 5%        ~ (p=0.589 n=6)
-SQLiteInsert10-8            340.4µ ±  2%   329.2µ ± 3%   -3.30% (p=0.015 n=6)
-RamSQLSetup-8               831.0n ±  1%   832.1n ± 3%        ~ (p=0.729 n=6)
-SQLiteSetup-8               829.6n ±  0%   828.9n ± 0%        ~ (p=0.790 n=6)
-geomean                     130.9µ         129.0µ        -1.41%
+                          │    bench.txt    │            newbench.txt             │
+                          │     sec/op      │    sec/op     vs base               │
+RamSQLSelectBTree-8           292.54µ ± 13%   50.05µ ±  5%  -82.89% (p=0.002 n=6)
+SQLiteSelectBTree-8            12.10µ ±  9%   11.00µ ±  2%   -9.13% (p=0.002 n=6)
+RamSQLSelectBTree10K-8        7875.0µ ±  4%   545.9µ ±  3%  -93.07% (p=0.002 n=6)
+SQLiteSelectBTree10K-8         11.16µ ±  4%   11.88µ ±  6%   +6.45% (p=0.009 n=6)
+RamSQLSelectHashMap10K-8     5743.60µ ±  4%   25.72µ ±  5%  -99.55% (p=0.002 n=6)
+SQLiteSelectHashMap10K-8       8.491µ ±  2%   8.896µ ±  5%   +4.77% (p=0.015 n=6)
+RamSQLSelectBTree100K-8        75.76m ±  1%   15.14m ±  8%  -80.02% (p=0.002 n=6)
+SQLiteSelectBTree100K-8        11.19µ ±  2%   11.96µ ± 16%   +6.88% (p=0.002 n=6)
+RamSQLSelectHashMap100K-8   59300.10µ ± 14%   27.29µ ±  4%  -99.95% (p=0.002 n=6)
+SQLiteSelectHashMap100K-8      8.495µ ±  4%   8.791µ ±  3%   +3.48% (p=0.041 n=6)
+RamSQLInsert10-8               284.0µ ±  3%   176.9µ ±  4%  -37.69% (p=0.002 n=6)
+SQLiteInsert10-8               340.4µ ±  2%   339.6µ ±  2%        ~ (p=1.000 n=6)
+RamSQLSetup-8                  831.0n ±  1%   833.2n ±  1%        ~ (p=0.818 n=6)
+SQLiteSetup-8                  829.6n ±  0%   831.9n ±  1%        ~ (p=0.065 n=6)
+geomean                        130.9µ         32.52µ        -75.15%
