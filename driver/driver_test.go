@@ -2488,7 +2488,7 @@ func TestDeadlock(t *testing.T) {
 
 func TestNamedArg(t *testing.T) {
 
-	db, err := sql.Open("ramsql", "TestNamedArg")
+	db, err := sql.Open("ramsql", "TestNamedArg2")
 	if err != nil {
 		t.Fatalf("cannot open db: %s", err)
 	}
@@ -2496,21 +2496,21 @@ func TestNamedArg(t *testing.T) {
 
 	var name string
 
-	_, err = db.Exec(`CREATE TABLE user (id BIGSERIAL PRIMARY KEY, name TEXT, surname TEXT, age INT)`)
+	_, err = db.Exec(`CREATE TABLE people (id BIGSERIAL PRIMARY KEY, name TEXT, surname TEXT, age INT)`)
 	if err != nil {
 		t.Fatalf("cannot create table: %s", err)
 	}
 
 	log.SetLevel(log.DebugLevel)
-	// sql: expected 0 arguments, got 1
-	err = db.QueryRowContext(context.TODO(), "select p.name from people as p where p.id = :id;", sql.Named("id", "1234")).Scan(&name)
+
+	_, err = db.ExecContext(context.TODO(), "INSERT INTO people (id,name,surname,age) VALUES (?,?,?,?)", 1234, "Ramone", "Juz", 12)
+	if err != nil {
+		t.Fatalf("cannot exec context: %s", err)
+	}
+
+	err = db.QueryRowContext(context.TODO(), "select p.name from people as p where p.id = :id;", sql.Named("id", 1234)).Scan(&name)
 	if err != nil {
 		t.Fatalf("cannot query context: %s", err)
 	}
 
-	// deadlock 🤔
-	_, err = db.ExecContext(context.TODO(), "INSERT INTO people (id,name) VALUES (?,?)", "1234", "Ramone")
-	if err != nil {
-		t.Fatalf("cannot exec context: %s", err)
-	}
 }

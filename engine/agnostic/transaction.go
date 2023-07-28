@@ -408,7 +408,6 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 				continue
 			}
 			tof := reflect.TypeOf(val)
-			//			log.Error("Can we convert %s to  %s", tof, attr)
 			if !tof.ConvertibleTo(attr.typeInstance) {
 				return nil, t.abort(fmt.Errorf("cannot assign '%v' (type %s) to %s.%s (type %s)", val, tof, relation, attr.name, attr.typeInstance))
 			}
@@ -537,6 +536,8 @@ func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joi
 		return nil, t.abort(errors.New("query requires 1 predicate"))
 	}
 
+	aliases := make(map[string]string)
+
 	// (1)
 	relations := make(map[string]*Relation)
 	err = t.recLock(schema, relations, p)
@@ -548,6 +549,9 @@ func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joi
 		r, err := s.Relation(rel)
 		if err != nil {
 			return nil, t.abort(err)
+		}
+		if a := sel.Alias(); a != "" {
+			aliases[rel] = a
 		}
 		t.lock(r)
 		relations[rel] = r
@@ -564,7 +568,7 @@ func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joi
 			}
 			if ok && (sourceCost == 0 || cost < sourceCost) {
 				log.Debug("choosing %s as source for relation %s", index, r)
-				newsrc, err := NewHashIndexSource(index, p)
+				newsrc, err := NewHashIndexSource(index, getAlias(r.name, aliases), p)
 				if err != nil {
 					log.Debug("cannot create source with index %s for relation %s: %s", index, r, err)
 					continue
@@ -575,7 +579,7 @@ func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joi
 		}
 		if _, ok := sources[r.name]; !ok {
 			log.Debug("could not find suitable index for relation %s, using seq scan", r)
-			sources[r.name] = NewSeqScan(r)
+			sources[r.name] = NewSeqScan(r, getAlias(r.name, aliases))
 		}
 	}
 
@@ -763,4 +767,12 @@ func PrintQueryPlan(n Node, depth int, printer func(fmt string, varargs ...any))
 	for _, child := range n.Children() {
 		PrintQueryPlan(child, depth+1, printer)
 	}
+}
+
+func getAlias(name string, alias map[string]string) string {
+	a, ok := alias[name]
+	if ok {
+		return a
+	}
+	return ""
 }

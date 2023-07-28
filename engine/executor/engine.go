@@ -348,6 +348,12 @@ func getValues(specifiedAttrs []string, valuesDecl *parser.Decl, args []NamedVal
 				return nil, fmt.Errorf("reference to $%s, but only %d argument provided", d.Lexeme, len(args))
 			}
 			v = args[idx-1].Value
+		case parser.NamedArgToken:
+			for _, arg := range args {
+				if arg.Name == d.Lexeme {
+					v = arg.Value
+				}
+			}
 		default:
 			v, err = agnostic.ToInstance(d.Lexeme, typeName)
 			if err != nil {
@@ -460,13 +466,14 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 	var sorters []agnostic.Sorter
 	var tables []string
 	var err error
+	var aliases map[string]string
 
 	for i := range selectDecl.Decl {
 		switch selectDecl.Decl[i].Token {
 		case parser.FromToken:
-			schema, tables = getSelectedTables(selectDecl.Decl[i])
+			schema, tables, aliases = getSelectedTables(selectDecl.Decl[i])
 		case parser.WhereToken:
-			predicate, err = t.getPredicates(selectDecl.Decl[i].Decl, schema, tables[0], args)
+			predicate, err = t.getPredicates(selectDecl.Decl[i].Decl, schema, tables[0], args, aliases)
 			if err != nil {
 				return 0, 0, nil, nil, err
 			}
@@ -516,7 +523,7 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 			continue
 		}
 		// get attribute to select
-		selector, err := t.getSelector(selectDecl.Decl[i], schema, tables)
+		selector, err := t.getSelector(selectDecl.Decl[i], schema, tables, aliases)
 		if err != nil {
 			return 0, 0, nil, nil, err
 		}
@@ -681,7 +688,7 @@ func updateExecutor(t *Tx, updateDecl *parser.Decl, args []NamedValue) (int64, i
 		specifiedAttrs = append(specifiedAttrs, d.Lexeme)
 	}
 
-	predicate, err = t.getPredicates(whereDecl.Decl, schema, relation, args)
+	predicate, err = t.getPredicates(whereDecl.Decl, schema, relation, args, nil)
 	if err != nil {
 		return 0, 0, nil, nil, err
 	}
@@ -757,7 +764,7 @@ func deleteExecutor(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, 
 		}
 	}
 
-	predicate, err = t.getPredicates(whereDecl.Decl, schema, relation, args)
+	predicate, err = t.getPredicates(whereDecl.Decl, schema, relation, args, nil)
 	if err != nil {
 		return 0, 0, nil, nil, err
 	}

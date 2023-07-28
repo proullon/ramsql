@@ -1155,3 +1155,71 @@ func TestDelete(t *testing.T) {
 	}
 
 }
+
+func TestAlias(t *testing.T) {
+	e := NewEngine()
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	schema := DefaultSchema
+	relation := "foo"
+	attrs := []Attribute{
+		NewAttribute("bar_id", "INT"),
+		NewAttribute("toto_id", "INT"),
+	}
+	err = tx.CreateRelation(schema, relation, attrs, []string{"bar_id", "toto_id"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	values := make(map[string]any)
+	values["bar_id"] = 2
+	values["toto_id"] = 3
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert: %s", err)
+	}
+	values["bar_id"] = 4
+	values["toto_id"] = 32
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert: %s", err)
+	}
+	values["bar_id"] = 5
+	values["toto_id"] = 33
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert: %s", err)
+	}
+	values["bar_id"] = 6
+	values["toto_id"] = 4
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("cannot insert: %s", err)
+	}
+
+	cols, _, err := tx.Query(
+		schema,
+		[]Selector{
+			NewAttributeSelector("foo", []string{"bar_id"}, WithAlias("p")),
+		},
+		NewTruePredicate(),
+		nil,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("cannot query: %s", err)
+	}
+	l := len(cols)
+	if l != 1 {
+		t.Fatalf("expected 1 column, got %d", l)
+	}
+	if n := cols[0]; n != "p.bar_id" {
+		t.Fatalf("expected column name to be p.bar_id, got '%s'", n)
+	}
+
+}
