@@ -154,7 +154,6 @@ func (js Joiners) Len() int {
 }
 
 func (js Joiners) Less(i, j int) bool {
-	log.Debug("%d less %d ?", js[i].EstimateCardinal(), js[j].EstimateCardinal())
 	return js[i].EstimateCardinal() < js[j].EstimateCardinal()
 }
 
@@ -593,7 +592,6 @@ func (s *AttributeSelector) Select(cols []string, in []*list.Element) (out []*Tu
 			return nil, fmt.Errorf("AttributeSelector(%s) not found in %s", attr, cols)
 		}
 	}
-	log.Debug("Selecting %s FROM %s (%d rows)", s.attributes, cols, len(in))
 
 	colsLen := len(cols)
 	for _, e := range in {
@@ -2103,7 +2101,6 @@ func (u *Updater) Exec() (cols []string, out []*list.Element, err error) {
 		for _, i := range u.indexes {
 			i.Add(newe)
 		}
-		log.Debug("Appending %v with value %v", newe, newt)
 		out = append(out, newe)
 
 		c := &ValueChange{

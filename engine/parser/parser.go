@@ -26,14 +26,9 @@ type Decl struct {
 
 // Stringy prints the declaration tree in console
 func (d Decl) Stringy(depth int, printer func(fmt string, varargs ...any)) {
-	/*
-		printer = func(format string, varargs ...any) {
-			fmt.Printf(format, varargs...)
-		}
-	*/
 
 	if printer == nil {
-		return
+		printer = log.Debug
 	}
 
 	indent := ""
@@ -473,7 +468,6 @@ func (p *parser) parseTableName() (*Decl, error) {
 	if quoted {
 		// Check there is a closing quote
 		if _, err := p.mustHaveNext(quoteToken); err != nil {
-			log.Debug("parseAttribute: Missing closing quote")
 			return nil, err
 		}
 	}
@@ -563,7 +557,6 @@ func (p *parser) parseAttribute() (*Decl, error) {
 	if quoted {
 		// Check there is a closing quote
 		if _, err := p.mustHaveNext(quoteToken); err != nil {
-			log.Debug("parseAttribute: Missing closing quote")
 			return nil, err
 		}
 	}
@@ -661,7 +654,6 @@ func (p *parser) parseAttribution() (*Decl, error) {
 
 	// Value
 	if p.cur().Token == NullToken {
-		log.Debug("parseAttribution: NullToken\n")
 		nullDecl, err := p.consumeToken(NullToken)
 		if err != nil {
 			return nil, err
@@ -885,7 +877,6 @@ func (p *parser) isNot(tokenTypes ...int) bool {
 func (p *parser) isNext(tokenTypes ...int) (t Token, err error) {
 
 	if !p.hasNext() {
-		log.Debug("parser.isNext: has no next")
 		return t, p.syntaxError()
 	}
 
@@ -895,19 +886,16 @@ func (p *parser) isNext(tokenTypes ...int) (t Token, err error) {
 		}
 	}
 
-	log.Debug("parser.isNext: Next (%v) is not among %v", p.cur(), tokenTypes)
 	return t, p.syntaxError()
 }
 
 func (p *parser) mustHaveNext(tokenTypes ...int) (t Token, err error) {
 
 	if !p.hasNext() {
-		log.Debug("parser.mustHaveNext: has no next")
 		return t, p.syntaxError()
 	}
 
 	if err = p.next(); err != nil {
-		log.Debug("parser.mustHaveNext: error getting next")
 		return t, err
 	}
 
@@ -917,7 +905,6 @@ func (p *parser) mustHaveNext(tokenTypes ...int) (t Token, err error) {
 		}
 	}
 
-	log.Debug("parser.mustHaveNext: Next (%v) is not among %v", p.cur(), tokenTypes)
 	return t, p.syntaxError()
 }
 

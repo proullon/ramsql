@@ -3,8 +3,6 @@ package agnostic
 import (
 	"container/list"
 	"fmt"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 type RelationScanner struct {
@@ -35,8 +33,6 @@ func (s *RelationScanner) Exec() ([]string, []*list.Element, error) {
 	var res []*list.Element
 	var canAppend bool
 
-	log.Debug("starting %s", s.src)
-
 	cols := s.src.Columns()
 	for s.src.HasNext() {
 		t := s.src.Next()
@@ -52,7 +48,6 @@ func (s *RelationScanner) Exec() ([]string, []*list.Element, error) {
 			}
 		}
 		if canAppend {
-			log.Debug("RelationScanner.Exec: appending %v", t.Value.(*Tuple).values)
 			res = append(res, t)
 		}
 	}

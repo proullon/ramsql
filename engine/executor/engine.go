@@ -529,75 +529,6 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 		}
 		selectors = append(selectors, selector)
 	}
-	/*
-		for i := range selectDecl.Decl {
-			switch selectDecl.Decl[i].Token {
-			case parser.FromToken:
-				// get selected tables
-				tables = fromExecutor(selectDecl.Decl[i])
-				if len(tables) > 0 {
-					schema = tables[0].schema
-				}
-			case parser.WhereToken:
-				// get WHERE declaration
-				pred, err := whereExecutor2(e, selectDecl.Decl[i].Decl, schema, tables[0].name)
-				if err != nil {
-					return err
-				}
-				predicates = []PredicateLinker{pred}
-			case parser.JoinToken:
-				j, err := joinExecutor(selectDecl.Decl[i])
-				if err != nil {
-					return err
-				}
-				joiners = append(joiners, j)
-			case parser.OrderToken:
-				orderFunctor, err := orderbyExecutor(selectDecl.Decl[i], tables)
-				if err != nil {
-					return err
-				}
-				functors = append(functors, orderFunctor)
-			case parser.LimitToken:
-				limit, err := strconv.Atoi(selectDecl.Decl[i].Decl[0].Lexeme)
-				if err != nil {
-					return fmt.Errorf("wrong limit value: %s", err)
-				}
-				conn = limitedConn(conn, limit)
-			case parser.OffsetToken:
-				offset, err := strconv.Atoi(selectDecl.Decl[i].Decl[0].Lexeme)
-				if err != nil {
-					return fmt.Errorf("wrong offset value: %s", err)
-				}
-				conn = offsetedConn(conn, offset)
-			case parser.DistinctToken:
-				conn = distinctedConn(conn, len(selectDecl.Decl[i].Decl))
-			}
-		}
-
-		for i := range selectDecl.Decl {
-			if selectDecl.Decl[i].Token != parser.StringToken &&
-				selectDecl.Decl[i].Token != parser.StarToken &&
-				selectDecl.Decl[i].Token != parser.CountToken {
-				continue
-			}
-
-			// get attribute to selected
-			attr, err := getSelectedAttribute(e, selectDecl.Decl[i], tables)
-			if err != nil {
-				return err
-			}
-			attributes = append(attributes, attr...)
-
-		}
-
-		if len(functors) == 0 {
-			// Instantiate a new select functor
-			functors, err = getSelectFunctors(selectDecl)
-			if err != nil {
-				return err
-			}
-		}
-	*/
 
 	log.Debug("executing '%s' with %s, joining with %s and sorting with %s", selectors, predicate, joiners, sorters)
 	cols, res, err := t.tx.Query(schema, selectors, predicate, joiners, sorters)
@@ -706,23 +637,11 @@ func updateExecutor(t *Tx, updateDecl *parser.Decl, args []NamedValue) (int64, i
 		}
 	}
 
-	/*
-		cols, tuples, err := t.tx.Update(schema, relation, values, selectors, predicate)
-		if err != nil {
-			return 0, 0, nil, nil, err
-		}
-
-		if len(returningAttrs) == 0 {
-			return 0, int64(len(tuples)), nil, nil, nil
-		}
-	*/
-
 	log.Debug("executing update '%s' with values %v and predicate %s", selectors, values, predicate)
 	cols, res, err := t.tx.Update(schema, relation, values, selectors, predicate)
 	if err != nil {
 		return 0, 0, nil, nil, err
 	}
-	log.Debug("Got %d rows with cols %s", len(res), cols)
 
 	return 0, int64(len(res)), cols, res, nil
 }
@@ -735,7 +654,6 @@ func deleteExecutor(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, 
 	var returningIdx []int
 	var err error
 
-	decl.Stringy(0, log.Debug)
 	if len(decl.Decl) < 2 {
 		return truncateExecutor(t, decl, args)
 	}
@@ -806,14 +724,7 @@ func orderbyExecutor(decl *parser.Decl, tables []string) (agnostic.Sorter, error
 	var valDecl *parser.Decl
 	var attrs []agnostic.SortExpression
 
-	decl.Stringy(0, log.Debug)
-
 	valDecl = decl
-	/*
-	   if len(decl.Decl) > 1 {
-	   		valDecl = decl.Decl[0]
-	   	}
-	*/
 
 	relation := tables[0]
 
@@ -850,6 +761,5 @@ func orderbyExecutor(decl *parser.Decl, tables []string) (agnostic.Sorter, error
 	}
 
 	sorter := agnostic.NewOrderBySorter(relation, attrs)
-	log.Debug("SORTERS: %s", sorter)
 	return sorter, nil
 }

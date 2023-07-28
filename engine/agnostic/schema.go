@@ -27,6 +27,7 @@ func (s *Schema) Relation(name string) (*Relation, error) {
 
 	r, ok := s.relations[name]
 	if !ok {
+		//	panic("lol")
 		return nil, fmt.Errorf("relation '%s'.'%s' does not exist", s.name, name)
 	}
 
@@ -46,6 +47,7 @@ func (s *Schema) Remove(name string) (*Relation, error) {
 
 	r, ok := s.relations[name]
 	if !ok {
+		//		panic("remove")
 		return nil, fmt.Errorf("relation '%s'.'%s' does not exist", s.name, name)
 	}
 

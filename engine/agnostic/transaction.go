@@ -292,7 +292,7 @@ func (t *Transaction) Delete(schema, relation string, selectors []Selector, p Pr
 	snode.child, un.child = un, snode.child
 
 	log.Debug("DELETE(%s, %s, %s, %s)", schema, relation, selectors, p)
-	PrintQueryPlan(n, 0, log.Debug)
+	PrintQueryPlan(n, 0, nil)
 
 	// (4), (5), (6)
 	cols, eres, err := n.Exec()
@@ -341,7 +341,7 @@ func (t *Transaction) Update(schema, relation string, values map[string]any, sel
 	snode.child, un.child = un, snode.child
 
 	log.Debug("Update(%s, %s, %s, %s, %s)", schema, relation, values, selectors, p)
-	PrintQueryPlan(n, 0, log.Debug)
+	PrintQueryPlan(n, 0, nil)
 
 	// (4), (5), (6)
 	cols, eres, err := n.Exec()
@@ -492,7 +492,7 @@ func (t *Transaction) Query(schema string, selectors []Selector, p Predicate, jo
 	if err != nil {
 		return nil, nil, err
 	}
-	PrintQueryPlan(n, 0, log.Debug)
+	PrintQueryPlan(n, 0, nil)
 
 	// (4), (5), (6)
 	columns, eres, err := n.Exec()
@@ -563,14 +563,10 @@ func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joi
 	for _, r := range relations {
 		for _, index := range r.indexes {
 			cost, ok, p := recCanUseIndex(r.name, index, p)
-			if ok {
-				log.Debug("this query can use index %s for relation %s (cost: %d)", index, r, cost)
-			}
 			if ok && (sourceCost == 0 || cost < sourceCost) {
 				log.Debug("choosing %s as source for relation %s", index, r)
 				newsrc, err := NewHashIndexSource(index, getAlias(r.name, aliases), p)
 				if err != nil {
-					log.Debug("cannot create source with index %s for relation %s: %s", index, r, err)
 					continue
 				}
 				sources[r.name] = newsrc
