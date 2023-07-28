@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"hash/maphash"
 	"unsafe"
-
-	"github.com/proullon/ramsql/engine/log"
 )
 
 type IndexType int
@@ -61,11 +59,9 @@ func (h *HashIndex) Add(e *list.Element) {
 			h.Write([]byte("nil"))
 			continue
 		}
-		log.Debug("HashIndex.Add(%s): appending %s", h, fmt.Sprintf("%v", t.values[idx]))
 		h.Write([]byte(fmt.Sprintf("%v", t.values[idx])))
 	}
 	sum := h.Sum64()
-	log.Debug("HashIndex.Add(%s): %d  for %v int %v", h, sum, h.attrs, t.values)
 	h.Reset()
 	h.m[sum] = uintptr(unsafe.Pointer(e))
 }
@@ -77,11 +73,9 @@ func (h *HashIndex) Remove(e *list.Element) {
 			h.Write([]byte("nil"))
 			continue
 		}
-		log.Debug("HashIndex.Remove(%s): appending %s", h, fmt.Sprintf("%v", t.values[idx]))
 		h.Write([]byte(fmt.Sprintf("%v", t.values[idx])))
 	}
 	sum := h.Sum64()
-	log.Debug("HashIndex.Remove(%s): %d  for %v int %v", h, sum, h.attrs, t.values)
 	h.Reset()
 	delete(h.m, sum)
 }
@@ -92,14 +86,12 @@ func (h *HashIndex) Get(values []any) (*list.Element, error) {
 			h.Write([]byte("nil"))
 			continue
 		}
-		log.Debug("HashIndex.Get(%s): appending %s", h, fmt.Sprintf("%v", v))
 		h.Write([]byte(fmt.Sprintf("%v", v)))
 	}
 	sum := h.Sum64()
 	h.Reset()
 
 	var t *list.Element
-	log.Debug("Do we have %v (-> %d) in %s ?", values, sum, h)
 	ptr, ok := h.m[sum]
 	if !ok {
 		return nil, nil

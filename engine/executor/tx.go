@@ -180,8 +180,6 @@ func getSelectedTables(fromDecl *parser.Decl) (string, []string, map[string]stri
 
 	aliases := make(map[string]string)
 
-	fromDecl.Stringy(0, log.Debug)
-
 	for _, t := range fromDecl.Decl {
 		schema = ""
 		if d, ok := t.Has(parser.SchemaToken); ok {
@@ -419,8 +417,6 @@ func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName str
 func (t *Tx) getJoin(decl *parser.Decl, leftR string) (agnostic.Joiner, error) {
 	var leftA, rightA, rightR string
 
-	decl.Stringy(0, log.Debug)
-
 	if decl.Decl[0].Token != parser.StringToken {
 		return nil, fmt.Errorf("expected joined relation name, got %v", decl.Decl[0])
 	}
@@ -523,9 +519,7 @@ func isExecutor(rname string, aname string, isDecl *parser.Decl) (agnostic.Predi
 }
 
 func getAlias(t string, aliases map[string]string) string {
-	log.Debug("alias %s", aliases)
 	if a, ok := aliases[t]; ok {
-		log.Debug("found alias '%s' to '%s'", t, a)
 		return a
 	}
 	return t

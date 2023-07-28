@@ -16,6 +16,10 @@ bench:
 	go test -bench=. -count 6 | tee newbench.txt
 	benchstat bench.txt newbench.txt | tee benchstat.txt
 
+report:
+	go test -coverprofile=cover.out ./...
+	go tool cover -html=cover.out
+
 format:
 	mdformat README.md
 

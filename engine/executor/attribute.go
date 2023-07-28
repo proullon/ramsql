@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/proullon/ramsql/engine/agnostic"
-	"github.com/proullon/ramsql/engine/log"
 	"github.com/proullon/ramsql/engine/parser"
 )
 
@@ -41,21 +40,15 @@ func parseAttribute(decl *parser.Decl) (attr agnostic.Attribute, isPk bool, err 
 	// Maybe domain and special thing like primary key
 	typeDecl := decl.Decl[1:]
 	for i := range typeDecl {
-		log.Debug("Got %v for %s %s", typeDecl[i], name, typeName)
 		if typeDecl[i].Token == parser.AutoincrementToken {
 			attr = attr.WithAutoIncrement()
 		}
 
 		if typeDecl[i].Token == parser.DefaultToken {
-			//			log.Debug("we get a default value for %s: %s!\n", name, typeDecl[i].Decl[0].Lexeme)
 			switch typeDecl[i].Decl[0].Token {
 			case parser.LocalTimestampToken, parser.NowToken:
-				log.Debug("Setting default value to NOW() func !\n")
 				attr = attr.WithDefault(func() any { return time.Now() })
-				//				attr.defaultValue = func() interface{} { return time.Now().Format(parser.DateLongFormat) }
 			default:
-				log.Debug("Setting default value to '%v'\n", typeDecl[i].Decl[0].Lexeme)
-				//attr.defaultValue = typeDecl[i].Decl[0].Lexeme
 				v, err := agnostic.ToInstance(typeDecl[i].Decl[0].Lexeme, typeName)
 				if err != nil {
 					return agnostic.Attribute{}, false, err

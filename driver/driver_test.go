@@ -2501,8 +2501,6 @@ func TestNamedArg(t *testing.T) {
 		t.Fatalf("cannot create table: %s", err)
 	}
 
-	log.SetLevel(log.DebugLevel)
-
 	_, err = db.ExecContext(context.TODO(), "INSERT INTO people (id,name,surname,age) VALUES (?,?,?,?)", 1234, "Ramone", "Juz", 12)
 	if err != nil {
 		t.Fatalf("cannot exec context: %s", err)
