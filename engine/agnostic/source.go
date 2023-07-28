@@ -12,7 +12,7 @@ type IndexSrc struct {
 	cols    []string
 }
 
-func NewHashIndexSource(index Index, p Predicate) (*IndexSrc, error) {
+func NewHashIndexSource(index Index, alias string, p Predicate) (*IndexSrc, error) {
 	s := &IndexSrc{}
 
 	i, ok := index.(*HashIndex)
@@ -21,6 +21,10 @@ func NewHashIndexSource(index Index, p Predicate) (*IndexSrc, error) {
 	}
 	s.rname = i.relName
 	s.cols = i.relAttrs
+
+	if alias != "" {
+		s.rname = alias
+	}
 
 	eq, ok := p.(*EqPredicate)
 	if !ok {
@@ -73,11 +77,14 @@ type SeqScanSrc struct {
 	cols  []string
 }
 
-func NewSeqScan(r *Relation) *SeqScanSrc {
+func NewSeqScan(r *Relation, alias string) *SeqScanSrc {
 	s := &SeqScanSrc{
 		e:     r.rows.Front(),
 		card:  int64(r.rows.Len()),
 		rname: r.name,
+	}
+	if alias != "" {
+		s.rname = alias
 	}
 	for _, a := range r.attributes {
 		s.cols = append(s.cols, a.name)

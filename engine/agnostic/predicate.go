@@ -69,6 +69,7 @@ type ValueFunctor interface {
 //   - ...
 type Selector interface {
 	Picker
+	Alias() string
 	Select([]string, []*list.Element) ([]*Tuple, error)
 }
 
@@ -527,15 +528,31 @@ func (d *DistinctSorter) SetNode(n Node) {
 type AttributeSelector struct {
 	relation   string
 	attributes []string
+	alias      string
 }
 
-func NewAttributeSelector(rel string, attrs []string) *AttributeSelector {
+func NewAttributeSelector(rel string, attrs []string, functors ...func(*AttributeSelector)) *AttributeSelector {
 	s := &AttributeSelector{
 		relation:   rel,
 		attributes: attrs,
 	}
 
+	for _, f := range functors {
+		f(s)
+	}
+
 	return s
+}
+
+func WithAlias(alias string) func(*AttributeSelector) {
+	return func(s *AttributeSelector) {
+		s.alias = alias
+		attr := s.attributes
+		s.attributes = nil
+		for _, a := range attr {
+			s.attributes = append(s.attributes, s.alias+"."+a)
+		}
+	}
 }
 
 func (s AttributeSelector) String() string {
@@ -550,16 +567,24 @@ func (s *AttributeSelector) Relation() string {
 	return s.relation
 }
 
+func (s *AttributeSelector) Alias() string {
+	return s.alias
+}
+
 func (s *AttributeSelector) Select(cols []string, in []*list.Element) (out []*Tuple, err error) {
 	idx := make([]int, len(s.attributes))
 	for attrIdx, attr := range s.attributes {
 		idx[attrIdx] = -1
 		for i, c := range cols {
+			if c == attr {
+				idx[attrIdx] = i
+				break
+			}
 			if c == s.relation+"."+attr {
 				idx[attrIdx] = i
 				break
 			}
-			if c == attr {
+			if s.alias+"."+c == attr {
 				idx[attrIdx] = i
 				break
 			}
@@ -597,6 +622,7 @@ func (s *AttributeSelector) Select(cols []string, in []*list.Element) (out []*Tu
 type CountSelector struct {
 	relation  string
 	attribute string
+	alias     string
 	cols      []string
 }
 
@@ -624,6 +650,10 @@ func (s *CountSelector) Relation() string {
 	return s.relation
 }
 
+func (s *CountSelector) Alias() string {
+	return s.alias
+}
+
 func (s *CountSelector) Select(cols []string, in []*list.Element) (out []*Tuple, err error) {
 	var idx int
 	idx = -1
@@ -645,6 +675,7 @@ func (s *CountSelector) Select(cols []string, in []*list.Element) (out []*Tuple,
 
 type StarSelector struct {
 	relation string
+	alias    string
 	cols     []string
 }
 
@@ -661,6 +692,10 @@ func (s *StarSelector) Attribute() []string {
 
 func (s *StarSelector) Relation() string {
 	return s.relation
+}
+
+func (s *StarSelector) Alias() string {
+	return s.alias
 }
 
 func (s *StarSelector) Select(cols []string, in []*list.Element) (out []*Tuple, err error) {

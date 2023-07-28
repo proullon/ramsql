@@ -131,7 +131,7 @@ func (t *Tx) executeQuery(i parser.Instruction, args []NamedValue) (int64, int64
 	return l, r, nil
 }
 
-func (t *Tx) getSelector(attr *parser.Decl, schema string, tables []string) (agnostic.Selector, error) {
+func (t *Tx) getSelector(attr *parser.Decl, schema string, tables []string, aliases map[string]string) (agnostic.Selector, error) {
 	var err error
 
 	switch attr.Token {
@@ -142,7 +142,7 @@ func (t *Tx) getSelector(attr *parser.Decl, schema string, tables []string) (agn
 			if attr.Decl[0].Lexeme == "*" {
 				return agnostic.NewCountSelector(table, "*"), nil
 			}
-			_, _, err = t.tx.RelationAttribute(schema, table, attr.Decl[0].Lexeme)
+			_, _, err = t.tx.RelationAttribute(schema, getAlias(table, aliases), attr.Decl[0].Lexeme)
 			if err == nil {
 				return agnostic.NewCountSelector(table, attr.Decl[0].Lexeme), nil
 			}
@@ -151,14 +151,19 @@ func (t *Tx) getSelector(attr *parser.Decl, schema string, tables []string) (agn
 	case parser.StringToken:
 		attribute := attr.Lexeme
 		if len(attr.Decl) > 0 {
-			_, _, err = t.tx.RelationAttribute(schema, attr.Decl[0].Lexeme, attribute)
+			a := getAlias(attr.Decl[0].Lexeme, aliases)
+			_, _, err = t.tx.RelationAttribute(schema, a, attribute)
 			if err != nil {
 				return nil, err
+			}
+
+			if attr.Decl[0].Lexeme != a {
+				return agnostic.NewAttributeSelector(a, []string{attribute}, agnostic.WithAlias(attr.Decl[0].Lexeme)), nil
 			}
 			return agnostic.NewAttributeSelector(attr.Decl[0].Lexeme, []string{attribute}), nil
 		}
 		for _, table := range tables {
-			_, _, err = t.tx.RelationAttribute(schema, table, attribute)
+			_, _, err = t.tx.RelationAttribute(schema, getAlias(table, aliases), attribute)
 			if err == nil {
 				return agnostic.NewAttributeSelector(table, []string{attribute}), nil
 			}
@@ -169,21 +174,29 @@ func (t *Tx) getSelector(attr *parser.Decl, schema string, tables []string) (agn
 	return nil, fmt.Errorf("cannot handle %s", attr.Lexeme)
 }
 
-func getSelectedTables(fromDecl *parser.Decl) (string, []string) {
+func getSelectedTables(fromDecl *parser.Decl) (string, []string, map[string]string) {
 	var tables []string
 	var schema string
+
+	aliases := make(map[string]string)
+
+	fromDecl.Stringy(0, log.Debug)
+
 	for _, t := range fromDecl.Decl {
 		schema = ""
 		if d, ok := t.Has(parser.SchemaToken); ok {
 			schema = d.Lexeme
 		}
+		if d, ok := t.Has(parser.AsToken); ok {
+			aliases[d.Decl[0].Lexeme] = t.Lexeme
+		}
 		tables = append(tables, t.Lexeme)
 	}
 
-	return schema, tables
+	return schema, tables, aliases
 }
 
-func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, args []NamedValue) (agnostic.Predicate, error) {
+func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, args []NamedValue, aliases map[string]string) (agnostic.Predicate, error) {
 	var odbcIdx int64 = 1
 
 	for i, cond := range decl {
@@ -193,7 +206,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 				return nil, fmt.Errorf("query error: AND not followed by any predicate")
 			}
 
-			p, err := t.and(decl[:i], decl[i+1:], schema, fromTableName, args)
+			p, err := t.and(decl[:i], decl[i+1:], schema, fromTableName, args, aliases)
 			return p, err
 		}
 
@@ -201,7 +214,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 			if i+1 == len(decl) {
 				return nil, fmt.Errorf("query error: OR not followd by any predicate")
 			}
-			p, err := t.or(decl[:i], decl[i+1:], schema, fromTableName, args)
+			p, err := t.or(decl[:i], decl[i+1:], schema, fromTableName, args, aliases)
 			return p, err
 		}
 	}
@@ -225,6 +238,8 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	}
 
 	pLeftValue := strings.ToLower(cond.Lexeme)
+
+	fromTableName = getAlias(fromTableName, aliases)
 
 	_, _, err = t.tx.RelationAttribute(schema, fromTableName, pLeftValue)
 	if err != nil {
@@ -271,6 +286,16 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	switch leftS.Token {
 	case parser.CurrentSchemaToken:
 		left = agnostic.NewConstValueFunctor(schema)
+	case parser.NamedArgToken:
+		for _, arg := range args {
+			if leftS.Lexeme == arg.Name {
+				left = agnostic.NewConstValueFunctor(arg.Value)
+				break
+			}
+		}
+		if left == nil {
+			return nil, fmt.Errorf("no named argument found for '%s'", leftS.Lexeme)
+		}
 	case parser.ArgToken:
 		var idx int64
 		if rightS.Lexeme == "?" {
@@ -293,6 +318,16 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	switch rightS.Token {
 	case parser.CurrentSchemaToken:
 		left = agnostic.NewConstValueFunctor(schema)
+	case parser.NamedArgToken:
+		for _, arg := range args {
+			if rightS.Lexeme == arg.Name {
+				right = agnostic.NewConstValueFunctor(arg.Value)
+				break
+			}
+		}
+		if right == nil {
+			return nil, fmt.Errorf("no named argument found for '%s'", rightS.Lexeme)
+		}
 	case parser.ArgToken:
 		var idx int64
 		if rightS.Lexeme == "?" {
@@ -337,7 +372,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	return agnostic.NewComparisonPredicate(left, ptype, right)
 }
 
-func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName string, args []NamedValue) (agnostic.Predicate, error) {
+func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName string, args []NamedValue, aliases map[string]string) (agnostic.Predicate, error) {
 
 	if len(left) == 0 {
 		return nil, fmt.Errorf("no predicate before AND")
@@ -346,12 +381,12 @@ func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName st
 		return nil, fmt.Errorf("no predicate after AND")
 	}
 
-	lp, err := t.getPredicates(left, schema, tableName, args)
+	lp, err := t.getPredicates(left, schema, tableName, args, aliases)
 	if err != nil {
 		return nil, err
 	}
 
-	rp, err := t.getPredicates(right, schema, tableName, args)
+	rp, err := t.getPredicates(right, schema, tableName, args, aliases)
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +394,7 @@ func (t *Tx) and(left []*parser.Decl, right []*parser.Decl, schema, tableName st
 	return agnostic.NewAndPredicate(lp, rp), nil
 }
 
-func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName string, args []NamedValue) (agnostic.Predicate, error) {
+func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName string, args []NamedValue, aliases map[string]string) (agnostic.Predicate, error) {
 
 	if len(left) == 0 {
 		return nil, fmt.Errorf("no predicate before OR")
@@ -368,12 +403,12 @@ func (t *Tx) or(left []*parser.Decl, right []*parser.Decl, schema, tableName str
 		return nil, fmt.Errorf("no predicate after OR")
 	}
 
-	lp, err := t.getPredicates(left, schema, tableName, args)
+	lp, err := t.getPredicates(left, schema, tableName, args, aliases)
 	if err != nil {
 		return nil, err
 	}
 
-	rp, err := t.getPredicates(right, schema, tableName, args)
+	rp, err := t.getPredicates(right, schema, tableName, args, aliases)
 	if err != nil {
 		return nil, err
 	}
@@ -485,4 +520,13 @@ func isExecutor(rname string, aname string, isDecl *parser.Decl) (agnostic.Predi
 	}
 
 	return nil, ParsingError
+}
+
+func getAlias(t string, aliases map[string]string) string {
+	log.Debug("alias %s", aliases)
+	if a, ok := aliases[t]; ok {
+		log.Debug("found alias '%s' to '%s'", t, a)
+		return a
+	}
+	return t
 }
