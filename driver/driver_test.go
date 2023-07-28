@@ -2512,3 +2512,59 @@ func TestNamedArg(t *testing.T) {
 	}
 
 }
+
+func TestScanTimestamp(t *testing.T) {
+	db, err := sql.Open("ramsql", "TestScanTimestamp")
+	if err != nil {
+		t.Fatalf("cannot open db: %s", err)
+	}
+	defer db.Close()
+
+	query := `
+	  CREATE TABLE IF NOT EXISTS properties (
+			id         VARCHAR(36)  PRIMARY KEY,
+			street     VARCHAR(255),
+			city       VARCHAR(32),
+			state      VARCHAR(32),
+			zip        VARCHAR(10),
+			created_at TIMESTAMPTZ
+		)
+	`
+	_, err = db.Exec(query)
+	if err != nil {
+		t.Fatalf("cannot create table: %s", err)
+	}
+
+	id := "OIJOIJ"
+	query = `INSERT INTO properties (id, street, city, state, zip, created_at) VALUES ($1, $2, $3, $4, $5, NOW())`
+	_, err = db.Exec(query, id, "5th", "NY", "NY", "NY")
+	if err != nil {
+		t.Fatalf("cannot insert into table: %s", err)
+	}
+
+	p := struct {
+		ID        string
+		Street    string
+		City      string
+		StateCode string
+		Zip       string
+		CreatedAt time.Time
+	}{}
+
+	query = `
+		SELECT id, street, city, state, zip, created_at
+		FROM properties WHERE id = $1
+	`
+
+	ctx := context.Background()
+	err = db.QueryRowContext(ctx, query, id).Scan(
+		&p.ID, &p.Street, &p.City,
+		&p.StateCode, &p.Zip, &p.CreatedAt,
+	)
+	if err != nil {
+		t.Fatalf("cannot scan in struct: %s", err)
+	}
+	if p.CreatedAt.IsZero() {
+		t.Fatalf("CreatedAt should not be 0")
+	}
+}
