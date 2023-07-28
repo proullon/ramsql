@@ -152,10 +152,13 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 
 	r := &Result{}
 	r.lastInsertedID, r.rowsAffected, r.err = tx.ExecContext(ctx, query, a)
+	if r.err != nil {
+		return r, r.err
+	}
 
 	err = tx.Commit()
 	if err != nil {
-		return nil, err
+		return r, r.err
 	}
 
 	return r, r.err
