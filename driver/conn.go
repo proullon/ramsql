@@ -95,6 +95,9 @@ func (c *Conn) Begin() (driver.Tx, error) {
 	return executor.NewTx(context.Background(), c.e, sql.TxOptions{})
 }
 
+// BeginTx starts and returns a new transaction.
+//
+// Implemented for ConnBeginTx interface
 func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	o := sql.TxOptions{
 		Isolation: sql.IsolationLevel(opts.Isolation),
