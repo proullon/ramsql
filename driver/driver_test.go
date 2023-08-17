@@ -31,6 +31,30 @@ func TestCreateTable(t *testing.T) {
 	}
 }
 
+func TestInsertBool(t *testing.T) {
+
+	db, err := sql.Open("ramsql", "TestInsertBool")
+	if err != nil {
+		t.Fatalf("sql.Open: %s", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE ttable (id BIGINT, hasBool BOOL)`)
+	if err != nil {
+		t.Fatalf("cannot create table: %s", err)
+	}
+
+	_, err = db.Exec(`INSERT INTO ttable (id, hasBool) VALUES (?,?)`, 1, true)
+	if err != nil {
+		t.Fatalf("cannot insert into table: %s", err)
+	}
+
+	err = db.Close()
+	if err != nil {
+		t.Fatalf("sql.Close : Error : %s\n", err)
+	}
+
+}
+
 func TestInsertEmptyString(t *testing.T) {
 
 	db, err := sql.Open("ramsql", "TestInsertEmptyString")
