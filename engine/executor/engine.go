@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/proullon/ramsql/engine/agnostic"
 	"github.com/proullon/ramsql/engine/log"
@@ -360,7 +361,7 @@ func getValues(specifiedAttrs []string, valuesDecl *parser.Decl, args []NamedVal
 				return nil, err
 			}
 		}
-		values[specifiedAttrs[i]] = v
+		values[strings.ToLower(specifiedAttrs[i])] = v
 	}
 
 	return values, nil
