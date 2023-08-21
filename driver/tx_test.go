@@ -70,7 +70,7 @@ func execTestTransactionQuery(t *testing.T, db *sql.DB, wg *sync.WaitGroup) {
 }
 
 func TestTransactionRollback(t *testing.T) {
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.WarningLevel)
 	defer log.SetLevel(log.ErrorLevel)
 
 	db, err := sql.Open("ramsql", "TestTransactionRollback")
