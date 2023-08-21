@@ -574,16 +574,18 @@ func (s *AttributeSelector) Select(cols []string, in []*list.Element) (out []*Tu
 	idx := make([]int, len(s.attributes))
 	for attrIdx, attr := range s.attributes {
 		idx[attrIdx] = -1
+		lattr := strings.ToLower(attr)
 		for i, c := range cols {
-			if c == attr {
+			lc := strings.ToLower(c)
+			if lc == lattr {
 				idx[attrIdx] = i
 				break
 			}
-			if c == s.relation+"."+attr {
+			if lc == s.relation+"."+lattr {
 				idx[attrIdx] = i
 				break
 			}
-			if s.alias+"."+c == attr {
+			if s.alias+"."+lc == lattr {
 				idx[attrIdx] = i
 				break
 			}
