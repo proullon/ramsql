@@ -415,7 +415,7 @@ func TestIndexCreation(t *testing.T) {
 
 func TestQuery(t *testing.T) {
 	e := NewEngine()
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.WarningLevel)
 
 	tx, err := e.Begin()
 	if err != nil {
@@ -597,7 +597,7 @@ func TestQuery(t *testing.T) {
 
 func TestCount(t *testing.T) {
 	e := NewEngine()
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.WarningLevel)
 
 	tx, err := e.Begin()
 	if err != nil {
@@ -951,7 +951,7 @@ func TestIndex(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	e := NewEngine()
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.WarningLevel)
 
 	tx, err := e.Begin()
 	if err != nil {

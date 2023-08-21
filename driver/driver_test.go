@@ -176,6 +176,29 @@ func TestSelectWhereAttribute(t *testing.T) {
 	}
 }
 
+func TestSelectCamelCase(t *testing.T) {
+	db, err := sql.Open("ramsql", "TestSelectCamelCase")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE account (id INT, email_snake TEXT, TestCamelCase TEXT)")
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	_, err = db.Query(`SELECT email_snake FROM account WHERE "account".id = 1`)
+	if err != nil {
+		t.Fatalf("sql.Query snake_case error : %s", err)
+	}
+
+	_, err = db.Query(`SELECT TestCamelCase FROM account WHERE "account".id = 1`)
+	if err != nil {
+		t.Fatalf("sql.Query CamelCase error : %s", err)
+	}
+}
+
 func TestSelectSimplePredicate(t *testing.T) {
 	db, err := sql.Open("ramsql", "TestSelectSimplePredicate")
 	if err != nil {
@@ -299,7 +322,7 @@ func TestBatch(t *testing.T) {
 		`INSERT INTO user_addresses (address_id, user_id) VALUES (4, 5);`,
 	}
 
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.WarningLevel)
 
 	db, err := sql.Open("ramsql", "TestLoadUserAddresses")
 	if err != nil {
@@ -2140,7 +2163,7 @@ func TestOrderByMultipleStrings(t *testing.T) {
 }
 
 func TestSelectNoOp(t *testing.T) {
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.WarningLevel)
 
 	db, err := sql.Open("ramsql", "TestSelectNoOp")
 	if err != nil {
