@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -57,6 +58,7 @@ func NewRelation(schema, name string, attributes []Attribute, pk []string) (*Rel
 }
 
 func (r *Relation) Attribute(name string) (int, Attribute, error) {
+	name = strings.ToLower(name)
 	index, ok := r.attrIndex[name]
 	if !ok {
 		return 0, Attribute{}, errors.New("attribute not defined")
