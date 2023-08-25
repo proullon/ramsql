@@ -197,6 +197,15 @@ func TestSelectCamelCase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sql.Query CamelCase error : %s", err)
 	}
+
+	_, err = db.Query(`SELECT TestCamelCase, nope, email_snake FROM account WHERE 1`)
+	if err == nil {
+		t.Fatalf("expected attribute not found error")
+	}
+	ee := "attribute not defined: account.nope"
+	if err.Error() != ee {
+		t.Fatalf("expected error to be '%s', got '%s'", ee, err.Error())
+	}
 }
 
 func TestSelectSimplePredicate(t *testing.T) {
