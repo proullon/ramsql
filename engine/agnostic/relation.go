@@ -2,7 +2,6 @@ package agnostic
 
 import (
 	"container/list"
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -61,7 +60,7 @@ func (r *Relation) Attribute(name string) (int, Attribute, error) {
 	name = strings.ToLower(name)
 	index, ok := r.attrIndex[name]
 	if !ok {
-		return 0, Attribute{}, errors.New("attribute not defined")
+		return 0, Attribute{}, fmt.Errorf("attribute not defined: %s.%s", r.name, name)
 	}
 	return index, r.attributes[index], nil
 }
