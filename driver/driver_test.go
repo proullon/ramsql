@@ -2624,3 +2624,35 @@ func TestScanTimestamp(t *testing.T) {
 		t.Fatalf("CreatedAt should not be 0")
 	}
 }
+
+func TestPrimaryKeyConstraint(t *testing.T) {
+	log.SetLevel(log.DebugLevel)
+	defer log.SetLevel(log.WarningLevel)
+
+	db, err := sql.Open("ramsql", "TestPrimaryKeyConstraint")
+	if err != nil {
+		t.Fatalf("sql.Open: %s", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec(`CREATE TABLE test (a INT, b TEXT, PRIMARY KEY(a, b))`)
+	if err != nil {
+		t.Fatalf("Create table: %s", err)
+	}
+	_, err = db.Exec(`INSERT INTO test (a,b) VALUES (1, "1")`)
+	if err != nil {
+		t.Fatalf("Insert : %s", err)
+	}
+	_, err = db.Exec(`INSERT INTO test (a,b) VALUES (2, "2")`)
+	if err != nil {
+		t.Fatalf("Insert : %s", err)
+	}
+	_, err = db.Exec(`INSERT INTO test (a,b) VALUES (2, "1")`)
+	if err != nil {
+		t.Fatalf("Insert : %s", err)
+	}
+	_, err = db.Exec(`INSERT INTO test (a,b) VALUES (2, "1")`)
+	if err == nil {
+		t.Fatalf("expected error on primary key violation")
+	}
+}
