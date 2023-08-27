@@ -337,6 +337,72 @@ func TestInsertPartial(t *testing.T) {
 	}
 }
 
+func TestPrimaryKey(t *testing.T) {
+	e := NewEngine()
+
+	tx, err := e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	if len(e.schemas[DefaultSchema].relations) != 0 {
+		t.Fatalf("expected 0 relation in default schema, got %d", len(e.schemas[DefaultSchema].relations))
+	}
+
+	attrs := []Attribute{
+		NewAttribute("foo", "BIGINT"),
+		NewAttribute("bar", "TEXT"),
+		NewAttribute("baz", "TEXT"),
+	}
+
+	schema := DefaultSchema
+	relation := "myrel"
+
+	err = tx.CreateRelation(schema, relation, attrs, []string{"foo", "bar"})
+	if err != nil {
+		t.Fatalf("cannot create relation: %s", err)
+	}
+
+	_, err = tx.Commit()
+	if err != nil {
+		t.Fatalf("cannot commit transaction: %s", err)
+	}
+
+	tx, err = e.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin 2nd tx: %s", err)
+	}
+	defer tx.Rollback()
+
+	values := make(map[string]any)
+	values["foo"] = 1
+	values["bar"] = "testbar"
+	values["baz"] = "testbaz"
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("didn´t expect error on first insert: %s", err)
+	}
+
+	values["foo"] = 2
+	values["bar"] = "testbar2"
+	values["baz"] = "testbaz2"
+	_, err = tx.Insert(schema, relation, values)
+	if err != nil {
+		t.Fatalf("didn´t expect error on second insert: %s", err)
+	}
+
+	_, err = tx.Insert(schema, relation, values)
+	if err == nil {
+		t.Fatalf("expected primary key constraint error")
+	}
+
+	_, err = tx.Commit()
+	if err == nil {
+		t.Fatalf("should not be able to commit tx with error")
+	}
+}
+
 func TestIndexCreation(t *testing.T) {
 	e := NewEngine()
 
