@@ -137,7 +137,7 @@ Find bellow all objectives for `v1.0.0`
 | Table          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | Schema         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | CREATE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| PRIMARY_KEY    | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
+| PRIMARY_KEY    | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | DEFAULT        | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | INSERT         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | UNIQUE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
