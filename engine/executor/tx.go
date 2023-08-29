@@ -57,12 +57,10 @@ func NewTx(ctx context.Context, e *Engine, opts sql.TxOptions) (*Tx, error) {
 		parser.GrantToken:    grantExecutor,
 	}
 
-	log.Info("Begin(%p)", t.tx)
 	return t, nil
 }
 
 func (t *Tx) QueryContext(ctx context.Context, query string, args []NamedValue) ([]string, []*agnostic.Tuple, error) {
-	log.Info("QueryContext(%p, %s)", t.tx, query)
 
 	instructions, err := parser.ParseInstruction(query)
 	if err != nil {
@@ -91,14 +89,12 @@ func (t *Tx) QueryContext(ctx context.Context, query string, args []NamedValue) 
 
 // Commit the transaction on server
 func (t *Tx) Commit() error {
-	log.Info("Commit(%p)", t.tx)
 	_, err := t.tx.Commit()
 	return err
 }
 
 // Rollback all changes
 func (t *Tx) Rollback() error {
-	log.Info("Rollback(%p)", t.tx)
 	t.tx.Rollback()
 	return nil
 }

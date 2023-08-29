@@ -104,6 +104,7 @@ func (c *Conn) Begin() (driver.Tx, error) {
 		return nil, err
 	}
 	c.tx = tx
+	log.Debug("%p BEGIN", c.tx)
 	return c, nil
 }
 
@@ -120,6 +121,7 @@ func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, e
 		return nil, err
 	}
 	c.tx = tx
+	log.Debug("%p BEGIN", c.tx)
 	return c, nil
 }
 
@@ -127,6 +129,7 @@ func (c *Conn) Rollback() error {
 	if c.tx == nil {
 		return nil
 	}
+	log.Debug("%p ROLLBACK", c.tx)
 	err := c.tx.Rollback()
 	c.tx = nil
 	return err
@@ -136,6 +139,7 @@ func (c *Conn) Commit() error {
 	if c.tx == nil {
 		return nil
 	}
+	log.Debug("%p COMMIT", c.tx)
 	err := c.tx.Commit()
 	c.tx = nil
 	return err
@@ -148,7 +152,7 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 	var err error
 	autocommit := false
 
-	log.Info("Conn.QueryContext: %s", query)
+	log.Debug("Conn.QueryContext: %s", query)
 
 	tx := c.tx
 

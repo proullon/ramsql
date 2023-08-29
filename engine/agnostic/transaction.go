@@ -446,8 +446,14 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 		return nil, t.abort(fmt.Errorf("attribute %s does not exist in relation %s", k, relation))
 	}
 
-	// check primary key
-	// TODO
+	// check primary key violation
+	ok, err := r.CheckPrimaryKey(tuple)
+	if err != nil {
+		return nil, t.abort(err)
+	}
+	if !ok {
+		return nil, t.abort(fmt.Errorf("primary key violation"))
+	}
 
 	// insert into row list
 	log.Debug("Inserting %v", tuple.values)
