@@ -20,6 +20,7 @@ type Index interface {
 	Remove(*list.Element)
 	Name() string
 	CanSourceWith(p Predicate) (bool, int64)
+	Get(values []any) (*list.Element, error)
 }
 
 type HashIndex struct {

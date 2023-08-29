@@ -56,6 +56,35 @@ func NewRelation(schema, name string, attributes []Attribute, pk []string) (*Rel
 	return r, nil
 }
 
+func (r *Relation) CheckPrimaryKey(tuple *Tuple) (bool, error) {
+
+	var index Index
+	for i, _ := range r.indexes {
+		if strings.HasPrefix(r.indexes[i].Name(), "pk") {
+			index = r.indexes[i]
+			break
+		}
+	}
+	if index == nil {
+		return false, fmt.Errorf("primary key index not found")
+	}
+
+	var vals []any
+	for _, idx := range r.pk {
+		vals = append(vals, tuple.values[idx])
+	}
+
+	e, err := index.Get(vals)
+	if err != nil {
+		return false, err
+	}
+	if e == nil {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (r *Relation) Attribute(name string) (int, Attribute, error) {
 	name = strings.ToLower(name)
 	index, ok := r.attrIndex[name]
