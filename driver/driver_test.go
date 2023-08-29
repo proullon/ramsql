@@ -2626,8 +2626,6 @@ func TestScanTimestamp(t *testing.T) {
 }
 
 func TestPrimaryKeyConstraint(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
-	defer log.SetLevel(log.WarningLevel)
 
 	db, err := sql.Open("ramsql", "TestPrimaryKeyConstraint")
 	if err != nil {

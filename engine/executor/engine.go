@@ -206,6 +206,9 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl, args []NamedValue) (int6
 	// Fetch attributes
 	i++
 	for i < len(tableDecl.Decl) {
+		if tableDecl.Decl[i].Token != parser.StringToken {
+			break
+		}
 		attr, isPk, err := parseAttribute(tableDecl.Decl[i])
 		if err != nil {
 			return 0, 0, nil, nil, err
@@ -215,6 +218,13 @@ func createTableExecutor(t *Tx, tableDecl *parser.Decl, args []NamedValue) (int6
 		}
 		attributes = append(attributes, attr)
 		i++
+	}
+
+	if i < len(tableDecl.Decl) && tableDecl.Decl[i].Token == parser.PrimaryToken {
+		d := tableDecl.Decl[i].Decl[0]
+		for _, attr := range d.Decl {
+			pk = append(pk, attr.Lexeme)
+		}
 	}
 
 	err := t.tx.CreateRelation(schemaName, relationName, attributes, pk)

@@ -57,6 +57,9 @@ func NewRelation(schema, name string, attributes []Attribute, pk []string) (*Rel
 }
 
 func (r *Relation) CheckPrimaryKey(tuple *Tuple) (bool, error) {
+	if len(r.pk) == 0 {
+		return true, nil
+	}
 
 	var index Index
 	for i, _ := range r.indexes {
