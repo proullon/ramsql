@@ -223,10 +223,11 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 
 		switch p.cur().Token {
 		case PrimaryToken:
-			_, err := p.parsePrimaryKey()
+			pkDecl, err := p.parsePrimaryKey()
 			if err != nil {
 				return nil, err
 			}
+			tableDecl.Add(pkDecl)
 			continue
 		default:
 		}
@@ -385,11 +386,13 @@ func (p *parser) parsePrimaryKey() (*Decl, error) {
 		if err != nil {
 			return nil, err
 		}
+		keyDecl.Add(d)
 
 		d, err = p.consumeToken(CommaToken, BracketClosingToken)
 		if err != nil {
 			return nil, err
 		}
+
 		if d.Token == BracketClosingToken {
 			break
 		}
