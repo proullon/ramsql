@@ -1171,7 +1171,6 @@ func TestInsertByteArrayODBC(t *testing.T) {
 }
 
 func TestInsertBoolTrueODBC(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestInsertBoolODBC")
 	if err != nil {
@@ -1201,7 +1200,6 @@ func TestInsertBoolTrueODBC(t *testing.T) {
 }
 
 func TestInsertBoolFalseODBC(t *testing.T) {
-	log.UseTestLogger(t)
 
 	db, err := sql.Open("ramsql", "TestInsertBoolODBC")
 	if err != nil {
