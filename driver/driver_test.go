@@ -1170,6 +1170,64 @@ func TestInsertByteArrayODBC(t *testing.T) {
 	}
 }
 
+func TestInsertBoolTrueODBC(t *testing.T) {
+
+	db, err := sql.Open("ramsql", "TestInsertBoolODBC")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE test_bool (sequence_number BIGSERIAL PRIMARY KEY, is_ready boolean, created_at TIMESTAMP)`)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	want := true
+	_, err = db.Exec("INSERT INTO test_bool (is_ready) values (?)", want)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	var got bool
+	err = db.QueryRow("SELECT is_ready FROM test_bool limit 1").Scan(&got)
+	if err != nil {
+		t.Fatalf("sql.Select: Error: %s\n", err)
+	}
+
+	if !reflect.DeepEqual(want, got) {
+		t.Fatalf("Expected JSON to be '%v', got '%v'", want, got)
+	}
+}
+
+func TestInsertBoolFalseODBC(t *testing.T) {
+
+	db, err := sql.Open("ramsql", "TestInsertBoolODBC")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE test_bool (sequence_number BIGSERIAL PRIMARY KEY, is_ready boolean, created_at TIMESTAMP)`)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	want := false
+	_, err = db.Exec("INSERT INTO test_bool (is_ready) values (?)", want)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	var got bool
+	err = db.QueryRow("SELECT is_ready FROM test_bool limit 1").Scan(&got)
+	if err != nil {
+		t.Fatalf("sql.Select: Error: %s\n", err)
+	}
+
+	if !reflect.DeepEqual(want, got) {
+		t.Fatalf("Expected JSON to be '%v', got '%v'", want, got)
+	}
+}
+
 func TestSchema(t *testing.T) {
 
 	db, err := sql.Open("ramsql", "TestSchema")

@@ -196,7 +196,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("for", ForToken))
 	matchers = append(matchers, l.genericStringMatcher("default", DefaultToken))
 	matchers = append(matchers, l.genericStringMatcher("localtimestamp", LocalTimestampToken))
-	matchers = append(matchers, l.genericStringMatcher("false", LocalTimestampToken))
+	matchers = append(matchers, l.isCreateStatement(l.genericStringMatcher("false", FalseToken)))
 	matchers = append(matchers, l.genericStringMatcher("unique", UniqueToken))
 	matchers = append(matchers, l.genericStringMatcher("now()", NowToken))
 	matchers = append(matchers, l.genericStringMatcher("offset", OffsetToken))
@@ -212,6 +212,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchDateToken)
 	matchers = append(matchers, l.MatchNumberToken)
 	matchers = append(matchers, l.MatchStringToken)
+	matchers = append(matchers, l.MatchBooleanToken)
 
 	var r bool
 	for l.pos < l.instructionLen {
@@ -235,6 +236,23 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	}
 
 	return l.tokens, nil
+}
+
+func (l *lexer) isCreateStatement(matcher Matcher) Matcher {
+	return func() bool {
+		isCreateStmt := false
+		for _, token := range l.tokens {
+			if token.Token == CreateToken {
+				isCreateStmt = true
+			}
+		}
+
+		if !isCreateStmt {
+			return false
+		}
+
+		return matcher()
+	}
 }
 
 func (l *lexer) MatchArgTokenODBC() bool {
@@ -420,6 +438,44 @@ func (l *lexer) MatchNumberToken() bool {
 	if i != l.pos {
 		t := Token{
 			Token:  NumberToken,
+			Lexeme: string(l.instruction[l.pos:i]),
+		}
+		l.tokens = append(l.tokens, t)
+		l.pos = i
+		return true
+	}
+
+	return false
+}
+
+func (l *lexer) MatchBooleanToken() bool {
+
+	// check if it is an update or insert statment; make sure it is not a create statement
+	canContinue := false
+	for _, token := range l.tokens {
+		if token.Token == CreateToken {
+			return false
+		}
+		if token.Token == UpdateToken || token.Token == InsertToken {
+			canContinue = true
+		}
+	}
+
+	if !canContinue {
+		return false
+	}
+
+	i := l.pos
+	for i < l.instructionLen &&
+		(unicode.IsLetter(rune(l.instruction[i])) ||
+			l.instruction[i] == '_' ||
+			l.instruction[i] == '@') {
+		i++
+	}
+
+	if i != l.pos {
+		t := Token{
+			Token:  StringToken,
 			Lexeme: string(l.instruction[l.pos:i]),
 		}
 		l.tokens = append(l.tokens, t)
