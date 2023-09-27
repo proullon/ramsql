@@ -196,8 +196,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("for", ForToken))
 	matchers = append(matchers, l.genericStringMatcher("default", DefaultToken))
 	matchers = append(matchers, l.genericStringMatcher("localtimestamp", LocalTimestampToken))
-	matchers = append(matchers, l.MatchBooleanToken)
-	matchers = append(matchers, l.genericStringMatcher("false", FalseToken))
+	matchers = append(matchers, l.isCreateStatement(l.genericStringMatcher("false", FalseToken)))
 	matchers = append(matchers, l.genericStringMatcher("unique", UniqueToken))
 	matchers = append(matchers, l.genericStringMatcher("now()", NowToken))
 	matchers = append(matchers, l.genericStringMatcher("offset", OffsetToken))
@@ -213,6 +212,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.MatchDateToken)
 	matchers = append(matchers, l.MatchNumberToken)
 	matchers = append(matchers, l.MatchStringToken)
+	matchers = append(matchers, l.MatchBooleanToken)
 
 	var r bool
 	for l.pos < l.instructionLen {
@@ -236,6 +236,23 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	}
 
 	return l.tokens, nil
+}
+
+func (l *lexer) isCreateStatement(matcher Matcher) Matcher {
+	return func() bool {
+		isCreateStmt := false
+		for _, token := range l.tokens {
+			if token.Token == CreateToken {
+				isCreateStmt = true
+			}
+		}
+
+		if !isCreateStmt {
+			return false
+		}
+
+		return matcher()
+	}
 }
 
 func (l *lexer) MatchArgTokenODBC() bool {
