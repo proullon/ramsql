@@ -218,13 +218,12 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	for l.pos < l.instructionLen {
 		r = false
 		for _, m := range matchers {
-			// fmt.Println("here!", string(l.instruction[l.pos:]))
 			if r = m(); r {
 				securityPos = l.pos
 				break
 			}
 		}
-		fmt.Println("l.tokens", l.tokens)
+
 		if r {
 			continue
 		}
@@ -452,9 +451,8 @@ func (l *lexer) MatchBooleanToken() bool {
 	i := l.pos
 	for i < l.instructionLen &&
 		(unicode.IsLetter(rune(l.instruction[i])) ||
-			unicode.IsDigit(rune(l.instruction[i])) ||
 			l.instruction[i] == '_' ||
-			l.instruction[i] == '@' /* || l.instruction[i] == '.'*/) {
+			l.instruction[i] == '@') {
 		i++
 	}
 
