@@ -1473,12 +1473,13 @@ func TestInsertSingle(t *testing.T) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("CREATE TABLE cat (id INT AUTOINCREMENT, breed TEXT, name TEXT)")
+	_, err = db.Exec("CREATE TABLE cat (id INT AUTOINCREMENT, breed TEXT, name TEXT, funny BOOLEAN)")
 	if err != nil {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
 
-	result, err := db.Exec("INSERT INTO cat (breed, name) VALUES ('indeterminate', 'Uhura')")
+	log.SetLevel(log.DebugLevel)
+	result, err := db.Exec("INSERT INTO cat (breed, name, funny) VALUES ('indeterminate', 'Uhura', false)")
 	if err != nil {
 		t.Fatalf("Cannot insert into table account: %s", err)
 	}
