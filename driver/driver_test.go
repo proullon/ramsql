@@ -1478,7 +1478,6 @@ func TestInsertSingle(t *testing.T) {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
 
-	log.SetLevel(log.DebugLevel)
 	result, err := db.Exec("INSERT INTO cat (breed, name, funny) VALUES ('indeterminate', 'Uhura', false)")
 	if err != nil {
 		t.Fatalf("Cannot insert into table account: %s", err)
@@ -1497,14 +1496,17 @@ func TestInsertSingle(t *testing.T) {
 		t.Fatalf("Cannot check last inserted ID: %s", err)
 	}
 
-	row := db.QueryRow("SELECT breed, name FROM cat WHERE id = ?", insertedId)
+	row := db.QueryRow("SELECT breed, name, funny FROM cat WHERE id = ?", insertedId)
 	if row == nil {
 		t.Fatalf("sql.Query failed")
 	}
 
 	var breed string
 	var name string
-	err = row.Scan(&breed, &name)
+	var funny bool
+	funny = true
+
+	err = row.Scan(&breed, &name, &funny)
 	if err != nil {
 		t.Fatalf("row.Scan: %s", err)
 	}
@@ -1512,6 +1514,25 @@ func TestInsertSingle(t *testing.T) {
 	if breed != "indeterminate" || name != "Uhura" {
 		t.Fatalf("Expected breed 'indeterminate' and name 'Uhura', got breed '%v' and name '%v'", breed, name)
 	}
+
+	if funny != false {
+		t.Fatalf("Expected funny=false, got true")
+	}
+
+	result, err = db.Exec("INSERT INTO cat (breed, name, funny) VALUES ('indeterminate', 'Kuhura', true)")
+	if err != nil {
+		t.Fatalf("Cannot insert into table account: %s", err)
+	}
+
+	err = db.QueryRow("SELECT breed, name, funny FROM cat WHERE name = ?", "Kuhura").Scan(&breed, &name, &funny)
+	if err != nil {
+		t.Fatalf("row.Scan: %s", err)
+	}
+
+	if funny != true {
+		t.Fatalf("Expected funny=true, got false")
+	}
+
 }
 
 func TestInsertSingleReturning(t *testing.T) {

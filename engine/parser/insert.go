@@ -122,3 +122,35 @@ func (p *parser) parseInsert() (*Instruction, error) {
 
 	return i, nil
 }
+
+func (p *parser) parseListElement() (*Decl, error) {
+	quoted := false
+
+	// In case of INSERT, can be DEFAULT here
+	if p.is(DefaultToken) {
+		v, err := p.consumeToken(DefaultToken)
+		if err != nil {
+			return nil, err
+		}
+		return v, nil
+	}
+
+	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
+		quoted = true
+		p.next()
+	}
+
+	var valueDecl *Decl
+	valueDecl, err := p.consumeToken(FloatToken, StringToken, NumberToken, NullToken, DateToken, NowToken, ArgToken, NamedArgToken, FalseToken)
+	if err != nil {
+		return nil, err
+	}
+
+	if quoted {
+		if _, err := p.consumeToken(SimpleQuoteToken, DoubleQuoteToken); err != nil {
+			return nil, err
+		}
+	}
+
+	return valueDecl, nil
+}
