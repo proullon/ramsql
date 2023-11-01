@@ -2676,3 +2676,23 @@ func TestPrimaryKeyConstraint(t *testing.T) {
 		t.Fatalf("expected error on primary key violation")
 	}
 }
+
+func TestLimitEmptyTable(t *testing.T) {
+
+	db, err := sql.Open("ramsql", "TestLimitEmptyTable")
+	if err != nil {
+		t.Fatalf("cannot open db: %s", err)
+	}
+
+	q := `CREATE TABLE event_db_entries (test_id BIGINT, result TEXT)`
+	_, err = db.Exec(q)
+	if err != nil {
+		t.Fatalf("cannot create table: %s", err)
+	}
+
+	q = `SELECT * FROM "event_db_entries" WHERE 1 LIMIT 1`
+	_, err = db.Query(q)
+	if err != nil {
+		t.Fatalf("cannot select: %s", err)
+	}
+}
