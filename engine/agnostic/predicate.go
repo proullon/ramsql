@@ -428,7 +428,9 @@ func (d *LimitSorter) Exec() ([]string, []*list.Element, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	res = res[:d.limit]
+	if len(res) > int(d.limit) {
+		res = res[:d.limit]
+	}
 
 	return cols, res, nil
 }
