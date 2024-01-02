@@ -155,6 +155,11 @@ func TestInsertNumberWithBacktickQuote(t *testing.T) {
 	parse(query, 1, t)
 }
 
+func TestSelectNegativeNumber(t *testing.T) {
+	query := `select to_id, date from edges where from_id = -1 and edge_type = 3 order by id desc`
+	parse(query, 1, t)
+}
+
 func TestCreateTableWithKeywordName(t *testing.T) {
 	query := `CREATE TABLE test ("id" bigserial not null primary key, "name" text, "key" text)`
 	parse(query, 1, t)

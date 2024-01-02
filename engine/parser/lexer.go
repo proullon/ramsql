@@ -413,7 +413,7 @@ func (l *lexer) MatchFloatToken() bool {
 func (l *lexer) MatchNumberToken() bool {
 
 	i := l.pos
-	for i < l.instructionLen && unicode.IsDigit(rune(l.instruction[i])) {
+	for i < l.instructionLen && (unicode.IsDigit(rune(l.instruction[i])) || l.instruction[i] == '-') {
 		i++
 	}
 
