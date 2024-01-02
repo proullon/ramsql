@@ -1244,6 +1244,8 @@ func TestFloat(t *testing.T) {
 		`INSERT INTO user (name, surname, age) VALUES (Homer, Simpson, 40);`,
 		`INSERT INTO user (name, surname, age) VALUES (Marge, Simpson, 40);`,
 		`INSERT INTO user (name, surname, age) VALUES (Bruce, Wayne, 3333);`,
+		`INSERT INTO user (name, surname, age) VALUES (Bruce, Future, -3333);`,
+		`INSERT INTO user (name, surname, age) VALUES (Bruce, Demo, -1.0);`,
 	}
 
 	db, err := sql.Open("ramsql", "TestFloat")
@@ -1294,6 +1296,14 @@ func TestFloat(t *testing.T) {
 	_, err = db.Exec(query, "Bruce", "Wayne", age)
 	if err != nil {
 		t.Fatalf("Cannot run UPDATE query with AND: %s\n", err)
+	}
+
+	db.QueryRow(`SELECT age FROM user WHERE surname = 'Demo'`).Scan(&age)
+	if err != nil {
+		t.Fatalf("Cannot load negative age: %s", err)
+	}
+	if age != -1.0 {
+		t.Fatalf("Expected age to be -1.0, got %f", age)
 	}
 }
 
