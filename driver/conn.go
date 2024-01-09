@@ -86,7 +86,7 @@ func (c *Conn) Prepare(query string) (driver.Stmt, error) {
 // Implemented for Conn interface
 func (c *Conn) Close() error {
 	if c.tx != nil {
-		c.tx.Rollback()
+		_ = c.tx.Rollback()
 		c.tx = nil
 	}
 

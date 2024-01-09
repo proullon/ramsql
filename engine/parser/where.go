@@ -52,13 +52,28 @@ func (p *parser) parseCondition() (*Decl, error) {
 	// We may have the WHERE 1 condition
 	if t := p.cur(); t.Token == NumberToken && t.Lexeme == "1" {
 		attributeDecl := NewDecl(t)
-		p.next()
-		// in case of 1 = 1
+
+		// WHERE 1
+		if !p.hasNext() {
+			return attributeDecl, nil
+		}
+		err := p.next()
+		if err != nil {
+			return nil, err
+		}
+
+		// WHERE 1 = 1
 		if p.cur().Token == EqualityToken {
 			t, err := p.isNext(NumberToken)
 			if err == nil && t.Lexeme == "1" {
-				p.consumeToken(EqualityToken)
-				p.consumeToken(NumberToken)
+				_, err = p.consumeToken(EqualityToken)
+				if err != nil {
+					return nil, err
+				}
+				_, err = p.consumeToken(NumberToken)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 		return attributeDecl, nil
@@ -67,7 +82,10 @@ func (p *parser) parseCondition() (*Decl, error) {
 	// do we have brackets ?
 	hasBracket := false
 	if p.is(BracketOpeningToken) {
-		p.consumeToken(BracketOpeningToken)
+		_, err := p.consumeToken(BracketOpeningToken)
+		if err != nil {
+			return nil, err
+		}
 		hasBracket = true
 	}
 
@@ -84,7 +102,6 @@ func (p *parser) parseCondition() (*Decl, error) {
 			return nil, err
 		}
 		attributeDecl.Add(decl)
-		break
 	case InToken:
 		inDecl, err := p.parseIn()
 		if err != nil {

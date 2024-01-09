@@ -7,15 +7,6 @@ type Result struct {
 	rowsAffected   int64
 }
 
-func newResult(lastInsertedID int64, rowsAffected int64) *Result {
-	r := &Result{
-		lastInsertedID: lastInsertedID,
-		rowsAffected:   rowsAffected,
-	}
-
-	return r
-}
-
 // LastInsertId returns the database's auto-generated ID
 // after, for example, an INSERT into a table with primary
 // key.

@@ -116,12 +116,12 @@ func TestInsertTable(t *testing.T) {
 		t.Fatalf("sql.Exec: Error: %s\n", err)
 	}
 
-	res, err := db.Exec("INSERT INTO account ('id', 'email') VALUES (1, 'foo@bar.com')")
+	_, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (1, 'foo@bar.com')")
 	if err != nil {
 		t.Fatalf("Cannot insert into table account: %s", err)
 	}
 
-	res, err = db.Exec("INSERT INTO account ('id', 'email') VALUES (2, 'roger@gmail.com')")
+	res, err := db.Exec("INSERT INTO account ('id', 'email') VALUES (2, 'roger@gmail.com')")
 	if err != nil {
 		t.Fatalf("Cannot insert into table account: %s", err)
 	}
@@ -1298,7 +1298,7 @@ func TestFloat(t *testing.T) {
 		t.Fatalf("Cannot run UPDATE query with AND: %s\n", err)
 	}
 
-	db.QueryRow(`SELECT age FROM user WHERE surname = 'Demo'`).Scan(&age)
+	err = db.QueryRow(`SELECT age FROM user WHERE surname = 'Demo'`).Scan(&age)
 	if err != nil {
 		t.Fatalf("Cannot load negative age: %s", err)
 	}
@@ -1513,8 +1513,7 @@ func TestInsertSingle(t *testing.T) {
 
 	var breed string
 	var name string
-	var funny bool
-	funny = true
+	var funny bool = true
 
 	err = row.Scan(&breed, &name, &funny)
 	if err != nil {
@@ -1529,7 +1528,7 @@ func TestInsertSingle(t *testing.T) {
 		t.Fatalf("Expected funny=false, got true")
 	}
 
-	result, err = db.Exec("INSERT INTO cat (breed, name, funny) VALUES ('indeterminate', 'Kuhura', true)")
+	_, err = db.Exec("INSERT INTO cat (breed, name, funny) VALUES ('indeterminate', 'Kuhura', true)")
 	if err != nil {
 		t.Fatalf("Cannot insert into table account: %s", err)
 	}

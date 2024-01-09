@@ -173,8 +173,6 @@ func ToInstance(value, typeName string) (any, error) {
 		}
 		return value, nil
 	}
-
-	return nil, fmt.Errorf("cannot convert %v to instance of type %s", value, typeName)
 }
 
 func parseDate(data string) (time.Time, error) {
@@ -208,7 +206,6 @@ func parseDate(data string) (time.Time, error) {
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func NewRandString(n int) Defaulter {
-	rand.Seed(time.Now().UnixNano())
 
 	f := func() any {
 		sb := strings.Builder{}

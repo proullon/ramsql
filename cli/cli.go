@@ -69,7 +69,7 @@ func prettyPrintHeader(row []string) {
 	fmt.Println()
 	for i, r := range row {
 		if i != 0 {
-			line += fmt.Sprintf("  |  ")
+			line += "  |  "
 		}
 		line += fmt.Sprintf("%-6s", r)
 	}

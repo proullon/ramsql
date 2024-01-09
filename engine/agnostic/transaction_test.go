@@ -51,11 +51,11 @@ func TestCreateRelation(t *testing.T) {
 	}
 
 	attrs := []Attribute{
-		Attribute{
+		{
 			name:     "foo",
 			typeName: "BIGINT",
 		},
-		Attribute{
+		{
 			name:     "bar",
 			typeName: "TEXT",
 		},
@@ -95,11 +95,11 @@ func TestDropRelation(t *testing.T) {
 	}
 
 	attrs := []Attribute{
-		Attribute{
+		{
 			name:     "foo",
 			typeName: "BIGINT",
 		},
-		Attribute{
+		{
 			name:     "bar",
 			typeName: "TEXT",
 		},
@@ -167,12 +167,12 @@ func TestInsertTotal(t *testing.T) {
 
 	values := make(map[string]any)
 	values["bar"] = "test"
-	tuple, err := tx.Insert(schema, relation, values)
+	_, err = tx.Insert(schema, relation, values)
 	if err == nil {
 		t.Fatalf("expected error with foo attribute not specified")
 	}
 
-	tuple, err = tx.Insert(schema, relation, values)
+	_, err = tx.Insert(schema, relation, values)
 	if err == nil {
 		t.Fatalf("expected transaction aborted due to previous error")
 	}
@@ -184,7 +184,7 @@ func TestInsertTotal(t *testing.T) {
 	defer tx.Rollback()
 
 	values["foo"] = 1
-	tuple, err = tx.Insert(schema, relation, values)
+	tuple, err := tx.Insert(schema, relation, values)
 	if err != nil {
 		t.Fatalf("cannot insert values: %s", err)
 	}
@@ -1177,7 +1177,7 @@ func TestDelete(t *testing.T) {
 		t.Fatalf("expected count to be 4, got %d", l)
 	}
 
-	cols, res, err = tx.Delete(
+	_, _, err = tx.Delete(
 		schema, relation,
 		nil,
 		NewAndPredicate(

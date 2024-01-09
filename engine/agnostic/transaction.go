@@ -65,11 +65,9 @@ func (t *Transaction) Rollback() {
 		case ValueChange:
 			c := b.Value.(ValueChange)
 			t.rollbackValueChange(c)
-			break
 		case RelationChange:
 			c := b.Value.(RelationChange)
 			t.rollbackRelationChange(c)
-			break
 		}
 		t.changes.Remove(b)
 	}
@@ -130,11 +128,7 @@ func (t *Transaction) CheckRelation(schemaName, relName string) bool {
 	}
 
 	_, err = s.Relation(relName)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 func (t *Transaction) CreateRelation(schemaName, relName string, attributes []Attribute, pk []string) error {
@@ -185,11 +179,7 @@ func (t *Transaction) CheckSchema(schemaName string) bool {
 	}
 
 	_, err := t.e.schema(schemaName)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 func (t *Transaction) CreateSchema(schemaName string) error {
@@ -442,7 +432,7 @@ func (t *Transaction) Insert(schema, relation string, values map[string]any) (*T
 	}
 
 	// if values map is not empty, then an non existing attribute was specified
-	for k, _ := range values {
+	for k := range values {
 		return nil, t.abort(fmt.Errorf("attribute %s does not exist in relation %s", k, relation))
 	}
 
@@ -641,7 +631,7 @@ func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joi
 
 	// append sorters
 	// GroupBy must contains both selector node and last join to compute arithmetic on all groups
-	if sorters != nil && len(sorters) > 0 {
+	if len(sorters) > 0 {
 		sort.Sort(Sorters(sorters))
 		var src Node
 		for i, s := range sorters {
@@ -651,11 +641,10 @@ func (t *Transaction) Plan(schema string, selectors []Selector, p Predicate, joi
 				src = sorters[i-1]
 			}
 
-			switch s.(type) {
+			switch s := s.(type) {
 			case *GroupBySorter:
-				gb, _ := s.(*GroupBySorter)
-				gb.SetNode(src)
-				gb.SetSelector(n)
+				s.SetNode(src)
+				s.SetSelector(n)
 			default:
 				s.SetNode(src)
 			}
@@ -757,7 +746,6 @@ func PrintQueryPlan(n Node, depth int, printer func(fmt string, varargs ...any))
 
 	if printer == nil {
 		printer = log.Debug
-		return
 	}
 
 	indent := ""

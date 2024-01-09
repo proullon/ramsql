@@ -164,15 +164,15 @@ func TestCheckAttributes(t *testing.T) {
 	}
 
 	query = `SELECT * FROM account WHERE nonexisting_attribute = 2`
-	rows, err := db.Query(query)
+	_, err = db.Query(query)
 	if err == nil {
 		t.Errorf("expected an error trying to make a comparison with a non existing attribute")
 	}
 
 	query = `SELECT id, nonexisting_attribute FROM account WHERE id = 2`
-	rows, err = db.Query(query)
+	rows, err := db.Query(query)
 	if err == nil {
-		t.Errorf("expected an error trying to select a non existin attribute")
+		t.Errorf("expected an error trying to select a non existing attribute")
 	}
 	_ = rows
 }

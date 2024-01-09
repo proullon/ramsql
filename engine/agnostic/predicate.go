@@ -272,15 +272,6 @@ func (s *GroupBySorter) Exec() ([]string, []*list.Element, error) {
 		return nil, nil, err
 	}
 
-	var idxs []int
-	for _, a := range s.attrs {
-		for i, c := range cols {
-			if c == a || c == s.rel+"."+a {
-				idxs = append(idxs, i)
-			}
-		}
-	}
-
 	return cols, res, nil
 }
 
@@ -705,7 +696,7 @@ func (s *StarSelector) Select(cols []string, in []*list.Element) (out []*Tuple, 
 
 	// if only 1 relation, can return directly
 	for i, c := range cols {
-		if strings.Contains(c, ".") == false {
+		if !strings.Contains(c, ".") {
 			out = make([]*Tuple, len(in))
 			for i, e := range in {
 				t, ok := e.Value.(*Tuple)
@@ -1203,9 +1194,9 @@ func (sn *SelectorNode) Exec() ([]string, []*list.Element, error) {
 		t := &Tuple{values: make([]any, l)}
 		var tidx int
 		// for each selector returned Tuple
-		for x, _ := range outs {
+		for x := range outs {
 			// concatenate values to unified tuple
-			for y, _ := range outs[x][i].values {
+			for y := range outs[x][i].values {
 				t.values[tidx] = outs[x][i].values[y]
 				tidx++
 			}
@@ -2040,7 +2031,7 @@ func NewUpdaterNode(relation *Relation, changes *list.List, values map[string]an
 		indexes:    relation.indexes,
 	}
 
-	for k, _ := range values {
+	for k := range values {
 		u.attrs = append(u.attrs, strings.ToLower(k))
 	}
 	return u

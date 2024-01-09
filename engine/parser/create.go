@@ -28,21 +28,18 @@ func (p *parser) parseCreate(tokens []Token) (*Instruction, error) {
 			return nil, err
 		}
 		createDecl.Add(d)
-		break
 	case IndexToken:
 		d, err := p.parseIndex(tokens)
 		if err != nil {
 			return nil, err
 		}
 		createDecl.Add(d)
-		break
 	case SchemaToken:
 		d, err := p.parseSchema(tokens)
 		if err != nil {
 			return nil, err
 		}
 		createDecl.Add(d)
-		break
 	case UniqueToken:
 		u, err := p.consumeToken(UniqueToken)
 		if err != nil {
@@ -58,7 +55,6 @@ func (p *parser) parseCreate(tokens []Token) (*Instruction, error) {
 		}
 		d.Add(u)
 		createDecl.Add(d)
-		break
 
 	default:
 		return nil, fmt.Errorf("Parsing error near <%s>", tokens[p.index].Lexeme)
@@ -136,7 +132,10 @@ func (p *parser) parseIndex(tokens []Token) (*Decl, error) {
 
 		// Closing bracket ?
 		if tokens[p.index].Token == BracketClosingToken {
-			p.consumeToken(BracketClosingToken)
+			_, err = p.consumeToken(BracketClosingToken)
+			if err != nil {
+				return nil, err
+			}
 			break
 		}
 
@@ -234,7 +233,10 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 
 		// Closing bracket ?
 		if tokens[p.index].Token == BracketClosingToken {
-			p.consumeToken(BracketClosingToken)
+			_, err = p.consumeToken(BracketClosingToken)
+			if err != nil {
+				return nil, err
+			}
 			break
 		}
 
@@ -256,7 +258,10 @@ func (p *parser) parseTable(tokens []Token) (*Decl, error) {
 		for p.isNot(BracketClosingToken, CommaToken) {
 			switch p.cur().Token {
 			case UnsignedToken:
-				p.consumeToken(UnsignedToken)
+				_, err = p.consumeToken(UnsignedToken)
+				if err != nil {
+					return nil, err
+				}
 			case UniqueToken: // UNIQUE
 				uniqueDecl, err := p.consumeToken(UniqueToken)
 				if err != nil {

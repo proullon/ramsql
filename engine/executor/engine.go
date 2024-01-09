@@ -593,8 +593,6 @@ func updateExecutor(t *Tx, updateDecl *parser.Decl, args []NamedValue) (int64, i
 	var schema string
 	var selectors []agnostic.Selector
 	var predicate agnostic.Predicate
-	var returningAttrs []string
-	var returningIdx []int
 	var err error
 
 	if len(updateDecl.Decl) < 3 {
@@ -615,12 +613,10 @@ func updateExecutor(t *Tx, updateDecl *parser.Decl, args []NamedValue) (int64, i
 		for i := range updateDecl.Decl {
 			if updateDecl.Decl[i].Token == parser.ReturningToken {
 				returningDecl := updateDecl.Decl[i]
-				returningAttrs = append(returningAttrs, returningDecl.Decl[0].Lexeme)
-				idx, _, err := t.tx.RelationAttribute(schema, relation, returningDecl.Decl[0].Lexeme)
+				_, _, err := t.tx.RelationAttribute(schema, relation, returningDecl.Decl[0].Lexeme)
 				if err != nil {
 					return 0, 0, nil, nil, fmt.Errorf("cannot return %s, doesn't exist in relation %s", returningDecl.Decl[0].Lexeme, relation)
 				}
-				returningIdx = append(returningIdx, idx)
 			}
 		}
 	}
@@ -661,8 +657,6 @@ func deleteExecutor(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, 
 	var schema string
 	var selectors []agnostic.Selector
 	var predicate agnostic.Predicate
-	var returningAttrs []string
-	var returningIdx []int
 	var err error
 
 	if len(decl.Decl) < 2 {
@@ -683,12 +677,10 @@ func deleteExecutor(t *Tx, decl *parser.Decl, args []NamedValue) (int64, int64, 
 		for i := range decl.Decl {
 			if decl.Decl[i].Token == parser.ReturningToken {
 				returningDecl := decl.Decl[i]
-				returningAttrs = append(returningAttrs, returningDecl.Decl[0].Lexeme)
-				idx, _, err := t.tx.RelationAttribute(schema, relation, returningDecl.Decl[0].Lexeme)
+				_, _, err := t.tx.RelationAttribute(schema, relation, returningDecl.Decl[0].Lexeme)
 				if err != nil {
 					return 0, 0, nil, nil, fmt.Errorf("cannot return %s, doesn't exist in relation %s", returningDecl.Decl[0].Lexeme, relation)
 				}
-				returningIdx = append(returningIdx, idx)
 			}
 		}
 	}

@@ -17,19 +17,16 @@ func (p *parser) parseDrop(tokens []Token) (*Instruction, error) {
 		if err != nil {
 			return nil, err
 		}
-		break
 	case IndexToken:
 		d, err = p.consumeToken(SchemaToken)
 		if err != nil {
 			return nil, err
 		}
-		break
 	case SchemaToken:
 		d, err = p.consumeToken(SchemaToken)
 		if err != nil {
 			return nil, err
 		}
-		break
 	}
 	trDecl.Add(d)
 

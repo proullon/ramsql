@@ -234,7 +234,6 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	default:
 		fromTableName = cond.Decl[0].Lexeme
 		cond.Decl = cond.Decl[1:]
-		break
 	}
 
 	pLeftValue := strings.ToLower(cond.Lexeme)

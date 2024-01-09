@@ -110,49 +110,42 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 				return nil, err
 			}
 			p.i = append(p.i, *i)
-			break
 		case SelectToken:
 			i, err := p.parseSelect(tokens)
 			if err != nil {
 				return nil, err
 			}
 			p.i = append(p.i, *i)
-			break
 		case InsertToken:
 			i, err := p.parseInsert()
 			if err != nil {
 				return nil, err
 			}
 			p.i = append(p.i, *i)
-			break
 		case UpdateToken:
 			i, err := p.parseUpdate()
 			if err != nil {
 				return nil, err
 			}
 			p.i = append(p.i, *i)
-			break
 		case DeleteToken:
 			i, err := p.parseDelete()
 			if err != nil {
 				return nil, err
 			}
 			p.i = append(p.i, *i)
-			break
 		case TruncateToken:
 			i, err := p.parseTruncate()
 			if err != nil {
 				return nil, err
 			}
 			p.i = append(p.i, *i)
-			break
 		case DropToken:
 			i, err := p.parseDrop(tokens)
 			if err != nil {
 				return nil, err
 			}
 			p.i = append(p.i, *i)
-			break
 		case ExplainToken:
 			break
 		case GrantToken:
@@ -508,7 +501,10 @@ func (p *parser) parseQuotedToken() (*Decl, error) {
 		}
 	}
 
-	p.next()
+	err := p.next()
+	if err != nil {
+		return nil, err
+	}
 	return decl, nil
 }
 
@@ -570,10 +566,13 @@ func (p *parser) parseIn() (*Decl, error) {
 		gotList = true
 
 		if p.is(BracketClosingToken) {
-			if gotList == false {
+			if !gotList {
 				return nil, fmt.Errorf("IN clause: empty list of value")
 			}
-			p.consumeToken(BracketClosingToken)
+			_, err = p.consumeToken(BracketClosingToken)
+			if err != nil {
+				return nil, err
+			}
 			break
 		}
 
@@ -649,7 +648,10 @@ func (p *parser) parseJoin() (*Decl, error) {
 
 	// AS SOMETHING ?
 	if p.is(AsToken) {
-		p.consumeToken(AsToken)
+		_, err = p.consumeToken(AsToken)
+		if err != nil {
+			return nil, err
+		}
 		aliasDecl, err := p.consumeToken(StringToken)
 		if err != nil {
 			return nil, err
@@ -698,10 +700,7 @@ func (p *parser) next() error {
 }
 
 func (p *parser) hasNext() bool {
-	if p.index+1 < len(p.tokens) {
-		return true
-	}
-	return false
+	return p.index+1 < len(p.tokens)
 }
 
 func (p *parser) is(tokenTypes ...int) bool {
