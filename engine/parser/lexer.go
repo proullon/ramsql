@@ -504,7 +504,7 @@ func (l *lexer) MatchEscapedStringToken() bool {
 	escaped := l.instruction[l.pos+2 : i-1]
 
 	for _, r := range escaped {
-		if unicode.IsDigit(rune(r)) == false {
+		if !unicode.IsDigit(rune(r)) {
 			tok = StringToken
 		}
 	}

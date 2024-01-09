@@ -62,7 +62,7 @@ func (r *Relation) CheckPrimaryKey(tuple *Tuple) (bool, error) {
 	}
 
 	var index Index
-	for i, _ := range r.indexes {
+	for i := range r.indexes {
 		if strings.HasPrefix(r.indexes[i].Name(), "pk") {
 			index = r.indexes[i]
 			break
@@ -135,7 +135,7 @@ func (r *Relation) Truncate() int64 {
 	return int64(l)
 }
 
-func (r Relation) String() string {
+func (r *Relation) String() string {
 	if r.schema != "" {
 		return r.schema + "." + r.name
 	}

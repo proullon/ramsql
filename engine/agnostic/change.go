@@ -39,7 +39,7 @@ func (t *Transaction) rollbackValueChange(c ValueChange) {
 	if c.current != nil && c.old != nil {
 		cur := c.current.Value.(*Tuple)
 		old := c.old.Value.(*Tuple)
-		for i, _ := range cur.values {
+		for i := range cur.values {
 			cur.values[i] = old.values[i]
 		}
 	}
