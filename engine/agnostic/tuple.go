@@ -9,9 +9,7 @@ type Tuple struct {
 func NewTuple(values ...any) *Tuple {
 	t := &Tuple{}
 
-	for _, v := range values {
-		t.values = append(t.values, v)
-	}
+	t.values = append(t.values, values...)
 	return t
 }
 

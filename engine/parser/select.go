@@ -132,7 +132,7 @@ func (p *parser) parseSelect(tokens []Token) (*Instruction, error) {
 			}
 			hazWhereClause = true
 		case OrderToken:
-			if hazWhereClause == false {
+			if !hazWhereClause {
 				// WHERE clause is implicit
 				addImplicitWhereAll(selectDecl)
 			}
