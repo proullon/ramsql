@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Defaulter func() any
@@ -74,6 +76,13 @@ func (a Attribute) WithDefault(defaultValue Defaulter) Attribute {
 func (a Attribute) WithDefaultNow() Attribute {
 	a.defaultValue = func() any {
 		return time.Now()
+	}
+	return a
+}
+
+func (a Attribute) WithDefaultRandomUUID() Attribute {
+	a.defaultValue = func() any {
+		return uuid.New().String()
 	}
 	return a
 }
