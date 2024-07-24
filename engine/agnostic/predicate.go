@@ -568,13 +568,14 @@ func (s *AttributeSelector) Select(cols []string, in []*list.Element) (out []*Tu
 	for attrIdx, attr := range s.attributes {
 		idx[attrIdx] = -1
 		lattr := strings.ToLower(attr)
+		lrelation := strings.ToLower(s.relation)
 		for i, c := range cols {
 			lc := strings.ToLower(c)
 			if lc == lattr {
 				idx[attrIdx] = i
 				break
 			}
-			if lc == s.relation+"."+lattr {
+			if lc == lrelation+"."+lattr {
 				idx[attrIdx] = i
 				break
 			}
