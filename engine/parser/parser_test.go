@@ -294,7 +294,8 @@ func TestIndex(t *testing.T) {
 		`CREATE INDEX index_name ON table_name (col1, col2)`,
 		`CREATE UNIQUE INDEX index_name ON table_name (col1, col2)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS index_name ON table_name (col1, col2)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS index_name ON table_name (col1, col2 COLLATE NOCASE)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS index_name ON public.table_name (col1, col2 COLLATE NOCASE)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS index_name ON "foo"."table_name" (col1, col2 COLLATE NOCASE)`,
 		`CREATE INDEX IF NOT EXISTS "idx_products_deleted_at" ON "products" ("deleted_at")`,
 	}
 

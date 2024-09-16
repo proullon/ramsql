@@ -574,6 +574,10 @@ func createIndexExecutor(t *Tx, indexDecl *parser.Decl, args []NamedValue) (int6
 		i++
 	}
 
+	if d, ok := indexDecl.Has(parser.SchemaToken); ok {
+		schema = d.Lexeme
+	}
+
 	var attrs []string
 	for i < len(indexDecl.Decl) {
 		attrs = append(attrs, indexDecl.Decl[i].Lexeme)
