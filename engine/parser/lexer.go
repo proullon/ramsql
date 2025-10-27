@@ -22,6 +22,11 @@ const (
 	GreaterOrEqualToken
 	BacktickToken
 
+	// Constraint tokens
+	ConstraintToken
+	ForeignToken
+	ReferencesToken
+
 	// QuoteToken
 
 	DoubleQuoteToken
@@ -128,6 +133,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	securityPos := 0
 
 	var matchers []Matcher
+	matchers = append(matchers, l.MatchNumberToken) // Match numbers first
 	matchers = append(matchers, l.MatchArgTokenODBC)
 	matchers = append(matchers, l.MatchNamedArgToken)
 	matchers = append(matchers, l.MatchArgToken)
@@ -191,9 +197,10 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("or", OrToken))
 	matchers = append(matchers, l.genericStringMatcher("asc", AscToken))
 	matchers = append(matchers, l.genericStringMatcher("desc", DescToken))
-	matchers = append(matchers, l.genericStringMatcher("limit", LimitToken))
-	matchers = append(matchers, l.genericStringMatcher("is", IsToken))
-	matchers = append(matchers, l.genericStringMatcher("for", ForToken))
+		matchers = append(matchers, l.genericStringMatcher("limit", LimitToken))
+		matchers = append(matchers, l.genericStringMatcher("is", IsToken))
+		matchers = append(matchers, l.genericStringMatcher("for", ForToken))
+		matchers = append(matchers, l.MatchNumberToken) // Ensure numbers are properly matched
 	matchers = append(matchers, l.genericStringMatcher("default", DefaultToken))
 	matchers = append(matchers, l.genericStringMatcher("localtimestamp", LocalTimestampToken))
 	matchers = append(matchers, l.genericStringMatcher("false", FalseToken))
@@ -204,6 +211,10 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("on", OnToken))
 	matchers = append(matchers, l.genericStringMatcher("collate", CollateToken))
 	matchers = append(matchers, l.genericStringMatcher("nocase", NocaseToken))
+	// Constraint matchers
+	matchers = append(matchers, l.genericStringMatcher("constraint", ConstraintToken))
+	matchers = append(matchers, l.genericStringMatcher("foreign", ForeignToken))
+	matchers = append(matchers, l.genericStringMatcher("references", ReferencesToken))
 	// Type Matcher
 	matchers = append(matchers, l.genericStringMatcher("decimal", DecimalToken))
 	matchers = append(matchers, l.genericStringMatcher("primary", PrimaryToken))

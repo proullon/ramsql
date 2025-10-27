@@ -150,6 +150,27 @@ func (t *Transaction) CreateRelation(schemaName, relName string, attributes []At
 	log.Debug("CreateRelation(%s,%s,%s,%s)", schemaName, relName, attributes, pk)
 
 	t.lock(r)
+
+	// maintain information_schema.tables so external tools (eg. GORM) can query table existence
+	// insert a row into information_schema.tables: table_schema, table_name, table_type
+	// Use default schema if empty
+	sch := schemaName
+	if sch == "" {
+		sch = DefaultSchema
+	}
+	// best-effort: if information_schema exists, insert a metadata row via Transaction.Insert
+	if t.CheckSchema("information_schema") {
+		vals := map[string]any{
+			"table_schema": sch,
+			"table_name":   relName,
+			"table_type":   "BASE TABLE",
+		}
+		_, err := t.Insert("information_schema", "tables", vals)
+		if err != nil {
+			// do not fail relation creation because of metadata insertion; just log
+			log.Warn("could not update information_schema.tables: %s", err)
+		}
+	}
 	return nil
 }
 
@@ -169,6 +190,23 @@ func (t *Transaction) DropRelation(schemaName, relName string) error {
 		old:     r,
 	}
 	t.changes.PushBack(c)
+
+	// remove metadata from information_schema.tables if present
+	sch := schemaName
+	if sch == "" {
+		sch = DefaultSchema
+	}
+	if t.CheckSchema("information_schema") {
+		// build predicate: table_schema = sch AND table_name = relName
+		left := NewEqPredicate(NewAttributeValueFunctor("tables", "table_schema"), NewConstValueFunctor(sch))
+		right := NewEqPredicate(NewAttributeValueFunctor("tables", "table_name"), NewConstValueFunctor(relName))
+		p := NewAndPredicate(left, right)
+		// selectors can be nil for Delete
+		_, _, err := t.Delete("information_schema", "tables", nil, p)
+		if err != nil {
+			log.Warn("could not remove information_schema.tables entry for %s.%s: %s", sch, relName, err)
+		}
+	}
 
 	return nil
 }

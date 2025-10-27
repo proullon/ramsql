@@ -1093,10 +1093,21 @@ func (p *EqPredicate) Right() (Predicate, bool) {
 }
 
 func (p *EqPredicate) Relation() string {
-	if p.left.Relation() != "" {
+	// Handle nil cases first
+	if p.left == nil && p.right == nil {
+		return ""
+	}
+	if p.left == nil {
+		return p.right.Relation()
+	}
+	if p.right == nil {
 		return p.left.Relation()
 	}
 
+	// Check left first, then fall back to right (if empty)
+	if p.left.Relation() != "" {
+		return p.left.Relation()
+	}
 	return p.right.Relation()
 }
 

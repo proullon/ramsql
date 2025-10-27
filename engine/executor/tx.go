@@ -284,7 +284,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 
 	switch leftS.Token {
 	case parser.CurrentSchemaToken:
-		left = agnostic.NewConstValueFunctor(schema)
+		right = agnostic.NewConstValueFunctor(schema)
 	case parser.NamedArgToken:
 		for _, arg := range args {
 			if leftS.Lexeme == arg.Name {
