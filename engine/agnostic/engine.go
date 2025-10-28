@@ -22,6 +22,20 @@ func NewEngine() *Engine {
 	e.schemas = make(map[string]*Schema)
 	e.schemas[DefaultSchema] = NewSchema(DefaultSchema)
 
+	// create information_schema with a 'tables' relation used by clients (e.g. GORM)
+	info := NewSchema("information_schema")
+	// minimal columns used by GORM queries: table_schema, table_name, table_type
+	attrs := []Attribute{
+		NewAttribute("table_schema", "varchar"),
+		NewAttribute("table_name", "varchar"),
+		NewAttribute("table_type", "varchar"),
+	}
+	// create relation (no primary key)
+	if r, err := NewRelation("information_schema", "tables", attrs, nil); err == nil {
+		info.Add("tables", r)
+	}
+	e.schemas["information_schema"] = info
+
 	return e
 }
 

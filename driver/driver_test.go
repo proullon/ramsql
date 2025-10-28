@@ -2705,3 +2705,67 @@ func TestLimitEmptyTable(t *testing.T) {
 		t.Fatalf("cannot select: %s", err)
 	}
 }
+
+func TestInformationSchema(t *testing.T) {
+
+	db, err := sql.Open("ramsql", "TestInformationSchema")
+	if err != nil {
+		t.Fatalf("sql.Open: %s", err)
+	}
+	defer db.Close()
+
+	// Create a couple of tables
+	_, err = db.Exec("CREATE TABLE users (id INT, name TEXT)")
+	if err != nil {
+		t.Fatalf("cannot create users table: %s", err)
+	}
+
+	_, err = db.Exec("CREATE TABLE posts (id INT, title TEXT, user_id INT)")
+	if err != nil {
+		t.Fatalf("cannot create posts table: %s", err)
+	}
+
+	// Query information_schema.tables to verify the tables are registered
+	rows, err := db.Query(`SELECT table_schema, table_name, table_type FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`)
+	if err != nil {
+		t.Fatalf("cannot query information_schema.tables: %s", err)
+	}
+	defer rows.Close()
+
+	// Expected tables: posts, users (alphabetically ordered)
+	expected := []struct {
+		schema    string
+		name      string
+		tableType string
+	}{
+		{"public", "posts", "BASE TABLE"},
+		{"public", "users", "BASE TABLE"},
+	}
+
+	i := 0
+	for rows.Next() {
+		var schema, name, tableType string
+		if err := rows.Scan(&schema, &name, &tableType); err != nil {
+			t.Fatalf("cannot scan row: %s", err)
+		}
+
+		if i >= len(expected) {
+			t.Fatalf("unexpected extra row: %s.%s", schema, name)
+		}
+
+		if schema != expected[i].schema || name != expected[i].name || tableType != expected[i].tableType {
+			t.Errorf("row %d: got (%s, %s, %s), want (%s, %s, %s)",
+				i, schema, name, tableType,
+				expected[i].schema, expected[i].name, expected[i].tableType)
+		}
+		i++
+	}
+
+	if i != len(expected) {
+		t.Errorf("expected %d rows, got %d", len(expected), i)
+	}
+
+	if err := rows.Err(); err != nil {
+		t.Fatalf("rows error: %s", err)
+	}
+}
