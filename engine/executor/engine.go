@@ -412,7 +412,7 @@ func getSet(specifiedAttrs []string, values map[string]any, valuesDecl *parser.D
 		var idx int64
 		if valueDecl.Lexeme == "?" {
 			idx = odbcIdx
-			odbcIdx++
+			odbcIdx++ //nolint:ineffassign // odbcIdx tracks position for multiple ? placeholders
 		} else {
 			idx, err = strconv.ParseInt(valueDecl.Lexeme, 10, 64)
 			if err != nil {

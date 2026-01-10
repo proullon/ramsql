@@ -371,7 +371,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 		var idx int64
 		if rightS.Lexeme == "?" {
 			idx = odbcIdx
-			odbcIdx++
+			odbcIdx++ //nolint:ineffassign // odbcIdx tracks position for multiple ? placeholders
 		} else {
 			idx, err = strconv.ParseInt(rightS.Lexeme, 10, 64)
 			if err != nil {

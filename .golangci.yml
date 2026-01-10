@@ -5,10 +5,6 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-  disable:
-    - deadcode
-    - structcheck
-    - varcheck
 
 linters-settings:
   errcheck:
@@ -36,6 +32,10 @@ issues:
     - path: _test\.go
       linters:
         - unused
+    # Ignore ineffassign in test files
+    - path: _test\.go
+      linters:
+        - ineffassign
 
   # Maximum issues count per one linter
   max-issues-per-linter: 50
