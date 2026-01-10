@@ -147,7 +147,7 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 			}
 			p.i = append(p.i, *i)
 		case ExplainToken:
-			break
+			// EXPLAIN is recognized but not yet implemented
 		case GrantToken:
 			i := &Instruction{}
 			i.Decls = append(i.Decls, NewDecl(Token{Token: GrantToken}))
@@ -198,7 +198,7 @@ func (p *parser) parseUpdate() (*Instruction, error) {
 			return nil, err
 		}
 		setDecl.Add(attributeDecl)
-		p.consumeToken(CommaToken)
+		_, _ = p.consumeToken(CommaToken)
 
 		// Got at least one clause
 		gotClause = true
@@ -852,7 +852,7 @@ func (p *parser) consumeToken(tokenTypes ...int) (*Decl, error) {
 	}
 
 	decl := NewDecl(p.tokens[p.index])
-	p.next()
+	_ = p.next()
 	return decl, nil
 }
 

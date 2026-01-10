@@ -162,7 +162,7 @@ func (c *Conn) QueryContext(ctx context.Context, query string, args []driver.Nam
 		if err != nil {
 			return nil, err
 		}
-		defer tx.Rollback()
+		defer func() { _ = tx.Rollback() }()
 	}
 
 	a := make([]executor.NamedValue, len(args))
@@ -203,7 +203,7 @@ func (c *Conn) ExecContext(ctx context.Context, query string, args []driver.Name
 		if err != nil {
 			return nil, err
 		}
-		defer tx.Rollback()
+		defer func() { _ = tx.Rollback() }()
 	}
 
 	a := make([]executor.NamedValue, len(args))

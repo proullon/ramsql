@@ -259,7 +259,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 
 	switch cond.Decl[declOffset].Token {
 	case parser.IsToken, parser.InToken, parser.EqualityToken, parser.DistinctnessToken, parser.LeftDipleToken, parser.RightDipleToken, parser.LessOrEqualToken, parser.GreaterOrEqualToken, parser.LikeToken, parser.IlikeToken:
-		break
+		// These tokens are valid operators, continue processing below
 	default:
 		fromTableName = cond.Decl[declOffset].Lexeme
 		cond.Decl = cond.Decl[declOffset+1:]
@@ -371,7 +371,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 		var idx int64
 		if rightS.Lexeme == "?" {
 			idx = odbcIdx
-			odbcIdx++
+			odbcIdx++ //nolint:ineffassign // odbcIdx tracks position for multiple ? placeholders
 		} else {
 			idx, err = strconv.ParseInt(rightS.Lexeme, 10, 64)
 			if err != nil {

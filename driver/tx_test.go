@@ -45,28 +45,31 @@ func TestTransaction(t *testing.T) {
 }
 
 func execTestTransactionQuery(t *testing.T, db *sql.DB, wg *sync.WaitGroup) {
+	defer wg.Done()
 
 	tx, err := db.Begin()
 	if err != nil {
-		t.Fatalf("Cannot create tx: %s", err)
+		t.Errorf("Cannot create tx: %s", err)
+		return
 	}
 
 	// Select count
 	var count int
 	err = tx.QueryRow("SELECT COUNT(user_id) FROM champion WHERE user_id = 1").Scan(&count)
 	if err != nil {
-		t.Fatalf("cannot query row in tx: %s\n", err)
+		t.Errorf("cannot query row in tx: %s\n", err)
+		return
 	}
 	if count != 3 {
-		t.Fatalf("expected COUNT(user_id)=3 row, got %d", count)
+		t.Errorf("expected COUNT(user_id)=3 row, got %d", count)
+		return
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		t.Fatalf("cannot commit tx: %s", err)
+		t.Errorf("cannot commit tx: %s", err)
+		return
 	}
-
-	wg.Done()
 }
 
 func TestTransactionRollback(t *testing.T) {
