@@ -252,6 +252,11 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 		declOffset = 1
 	}
 
+	// Ensure we have enough elements after the offset
+	if len(cond.Decl) <= declOffset {
+		return nil, fmt.Errorf("malformed predicate: missing operator after %s", cond.Lexeme)
+	}
+
 	switch cond.Decl[declOffset].Token {
 	case parser.IsToken, parser.InToken, parser.EqualityToken, parser.DistinctnessToken, parser.LeftDipleToken, parser.RightDipleToken, parser.LessOrEqualToken, parser.GreaterOrEqualToken, parser.LikeToken, parser.IlikeToken:
 		break
@@ -262,6 +267,10 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 		// Check for CastToken again after shifting
 		if len(cond.Decl) > 0 && cond.Decl[0].Token == parser.CastToken {
 			declOffset = 1
+		}
+		// Ensure we have enough elements after the shift
+		if len(cond.Decl) <= declOffset {
+			return nil, fmt.Errorf("malformed predicate: missing operator after %s.%s", fromTableName, cond.Lexeme)
 		}
 	}
 
