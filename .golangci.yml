@@ -1,3 +1,5 @@
+version: "2"
+
 linters:
   enable:
     - errcheck
@@ -8,36 +10,30 @@ linters:
 
 linters-settings:
   errcheck:
-    # Don't check for unchecked errors in defer statements
     check-blank: false
-    # Ignore these functions for errcheck
     exclude-functions:
       - (*database/sql.Rows).Close
       - (*database/sql.DB).Close
       - (*database/sql.Tx).Rollback
       - (io.Closer).Close
+  staticcheck:
+    checks:
+      - "all"
+      - "-SA9003"  # Disable empty branch check
 
 issues:
-  # Don't fail on existing issues in test files for certain linters
   exclude-rules:
-    # Ignore errcheck in test files for common patterns
     - path: _test\.go
       linters:
         - errcheck
-    # Ignore errcheck in bench files
+        - ineffassign
     - path: bench_test\.go
       linters:
         - errcheck
-    # Ignore unused in test files
     - path: _test\.go
       linters:
         - unused
-    # Ignore ineffassign in test files
-    - path: _test\.go
-      linters:
-        - ineffassign
 
-  # Maximum issues count per one linter
   max-issues-per-linter: 50
   max-same-issues: 10
 

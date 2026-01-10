@@ -147,7 +147,7 @@ func (p *parser) parse(tokens []Token) ([]Instruction, error) {
 			}
 			p.i = append(p.i, *i)
 		case ExplainToken:
-			break
+			// EXPLAIN is recognized but not yet implemented
 		case GrantToken:
 			i := &Instruction{}
 			i.Decls = append(i.Decls, NewDecl(Token{Token: GrantToken}))
