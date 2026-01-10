@@ -359,7 +359,7 @@ func (p *parser) parseDefaultClause() (*Decl, error) {
 	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
 		vDecl, err = p.parseStringLiteral()
 	} else {
-		vDecl, err = p.consumeToken(NullToken, FloatToken, FalseToken, NumberToken, LocalTimestampToken, NowToken, ArgToken, NamedArgToken)
+		vDecl, err = p.consumeToken(NullToken, FloatToken, FalseToken, TrueToken, NumberToken, LocalTimestampToken, NowToken, ArgToken, NamedArgToken)
 	}
 
 	if err != nil {
