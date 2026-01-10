@@ -71,6 +71,64 @@ func TestLexerWithInsertScientificNotation(t *testing.T) {
 	}
 }
 
+func TestStripComments(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "sqlc-style comment at beginning",
+			input:    "-- name: GetTokenByID :one\nSELECT id, tenant_id FROM tokens",
+			expected: "SELECT id, tenant_id FROM tokens",
+		},
+		{
+			name:     "multiple comment lines",
+			input:    "-- comment 1\n-- comment 2\nSELECT * FROM foo",
+			expected: "SELECT * FROM foo",
+		},
+		{
+			name:     "no comments",
+			input:    "SELECT * FROM foo",
+			expected: "SELECT * FROM foo",
+		},
+		{
+			name:     "comment with leading whitespace",
+			input:    "  -- indented comment\nSELECT * FROM foo",
+			expected: "SELECT * FROM foo",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := stripComments(tt.input)
+			if result != tt.expected {
+				t.Errorf("stripComments() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestParseInstructionWithSqlcComments(t *testing.T) {
+	// Test that ParseInstruction handles sqlc-generated queries with -- name: comments
+	query := `-- name: GetTokenByID :one
+SELECT id FROM tokens WHERE id = $1`
+
+	instructions, err := ParseInstruction(query)
+	if err != nil {
+		t.Fatalf("ParseInstruction failed with sqlc comment: %v", err)
+	}
+
+	if len(instructions) != 1 {
+		t.Fatalf("Expected 1 instruction, got %d", len(instructions))
+	}
+}
+
 func Test_lexer_MatchNumberToken(t *testing.T) {
 	tests := []struct {
 		name string
