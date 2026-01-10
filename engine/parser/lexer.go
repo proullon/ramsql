@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"unicode"
 
-	"github.com/proullon/ramsql/engine/log"
+	"github.com/leonardaustin/ramsql/engine/log"
 )
 
 // SQL Tokens

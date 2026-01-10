@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/proullon/ramsql/engine/agnostic"
-	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/parser"
+	"github.com/leonardaustin/ramsql/engine/agnostic"
+	"github.com/leonardaustin/ramsql/engine/log"
+	"github.com/leonardaustin/ramsql/engine/parser"
 )
 
 type executorFunc func(*Tx, *parser.Decl, []NamedValue) (int64, int64, []string, []*agnostic.Tuple, error)

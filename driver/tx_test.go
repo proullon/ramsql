@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/proullon/ramsql/engine/log"
+	"github.com/leonardaustin/ramsql/engine/log"
 )
 
 func TestTransaction(t *testing.T) {

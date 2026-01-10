@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"github.com/proullon/ramsql/engine/log"
+	"github.com/leonardaustin/ramsql/engine/log"
 )
 
 func (p *parser) parseDelete() (*Instruction, error) {
