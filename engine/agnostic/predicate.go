@@ -8,6 +8,7 @@ import (
 	"hash/maphash"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +27,7 @@ const (
 	Ge
 	Neq
 	Like
+	ILike
 	In
 	Not
 	True
@@ -618,12 +620,23 @@ type CountSelector struct {
 	attribute string
 	alias     string
 	cols      []string
+	filter    Predicate // optional filter for FILTER (WHERE ...) clause
 }
 
 func NewCountSelector(rname string, attr string) *CountSelector {
 	s := &CountSelector{
 		relation:  rname,
 		attribute: attr,
+	}
+	return s
+}
+
+// NewCountSelectorWithFilter creates a CountSelector with a filter predicate for filtered aggregates
+func NewCountSelectorWithFilter(rname string, attr string, filter Predicate) *CountSelector {
+	s := &CountSelector{
+		relation:  rname,
+		attribute: attr,
+		filter:    filter,
 	}
 	return s
 }
@@ -661,8 +674,25 @@ func (s *CountSelector) Select(cols []string, in []*list.Element) (out []*Tuple,
 		return nil, fmt.Errorf("%s.%s: columns not found in left node", s.relation, s.attribute)
 	}
 
+	// If there's a filter, apply it to count only matching rows
+	count := int64(0)
+	if s.filter != nil {
+		for _, e := range in {
+			tuple := e.Value.(*Tuple)
+			match, err := s.filter.Eval(cols, tuple)
+			if err != nil {
+				return nil, err
+			}
+			if match {
+				count++
+			}
+		}
+	} else {
+		count = int64(len(in))
+	}
+
 	s.cols = []string{"COUNT(" + s.attribute + ")"}
-	t := NewTuple(int64(len(in)))
+	t := NewTuple(count)
 	out = append(out, t)
 	return
 }
@@ -1450,6 +1480,89 @@ func (f NowValueFunctor) String() string {
 	return "now()"
 }
 
+// CastValueFunctor wraps a value and casts it to a target type
+type CastValueFunctor struct {
+	src        ValueFunctor
+	targetType string
+}
+
+// NewCastValueFunctor creates a ValueFunctor that casts the source value to the target type
+func NewCastValueFunctor(src ValueFunctor, targetType string) ValueFunctor {
+	f := &CastValueFunctor{
+		src:        src,
+		targetType: strings.ToLower(targetType),
+	}
+	return f
+}
+
+func (f *CastValueFunctor) Value(cols []string, t *Tuple) any {
+	v := f.src.Value(cols, t)
+	if v == nil {
+		return nil
+	}
+
+	// Perform the cast based on target type
+	switch f.targetType {
+	case "text", "varchar", "char", "character varying":
+		return fmt.Sprintf("%v", v)
+	case "int", "integer", "bigint", "smallint":
+		switch val := v.(type) {
+		case string:
+			if i, err := strconv.ParseInt(val, 10, 64); err == nil {
+				return i
+			}
+		case float64:
+			return int64(val)
+		case float32:
+			return int64(val)
+		case int:
+			return int64(val)
+		case int64:
+			return val
+		}
+	case "float", "double precision", "real", "numeric", "decimal":
+		switch val := v.(type) {
+		case string:
+			if f, err := strconv.ParseFloat(val, 64); err == nil {
+				return f
+			}
+		case int:
+			return float64(val)
+		case int64:
+			return float64(val)
+		case float64:
+			return val
+		case float32:
+			return float64(val)
+		}
+	case "bool", "boolean":
+		switch val := v.(type) {
+		case string:
+			lower := strings.ToLower(val)
+			return lower == "true" || lower == "t" || lower == "1" || lower == "yes"
+		case int, int64:
+			return val != 0
+		case bool:
+			return val
+		}
+	}
+
+	// Default: return as-is
+	return v
+}
+
+func (f *CastValueFunctor) Relation() string {
+	return f.src.Relation()
+}
+
+func (f *CastValueFunctor) Attribute() []string {
+	return f.src.Attribute()
+}
+
+func (f CastValueFunctor) String() string {
+	return fmt.Sprintf("%s::%s", f.src, f.targetType)
+}
+
 type GeqPredicate struct {
 	left  ValueFunctor
 	right ValueFunctor
@@ -1912,6 +2025,166 @@ func (p *NeqPredicate) Relation() string {
 
 func (p *NeqPredicate) Attribute() []string {
 	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+// LikePredicate implements the SQL LIKE operator with pattern matching
+type LikePredicate struct {
+	left  ValueFunctor
+	right ValueFunctor
+}
+
+func NewLikePredicate(left, right ValueFunctor) *LikePredicate {
+	p := &LikePredicate{
+		left:  left,
+		right: right,
+	}
+	return p
+}
+
+func (p *LikePredicate) Type() PredicateType {
+	return Like
+}
+
+func (p LikePredicate) String() string {
+	return fmt.Sprintf("%s LIKE %s", p.left, p.right)
+}
+
+func (p *LikePredicate) Eval(cols []string, t *Tuple) (bool, error) {
+	vl := p.left.Value(cols, t)
+	vr := p.right.Value(cols, t)
+
+	if vl == nil || vr == nil {
+		return false, nil
+	}
+
+	lstr := fmt.Sprintf("%v", vl)
+	pattern := fmt.Sprintf("%v", vr)
+
+	return matchLikePattern(lstr, pattern, false)
+}
+
+func (p *LikePredicate) Left() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *LikePredicate) Right() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *LikePredicate) Relation() string {
+	if p.left.Relation() != "" {
+		return p.left.Relation()
+	}
+	return p.right.Relation()
+}
+
+func (p *LikePredicate) Attribute() []string {
+	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+// ILikePredicate implements the PostgreSQL ILIKE operator (case-insensitive LIKE)
+type ILikePredicate struct {
+	left  ValueFunctor
+	right ValueFunctor
+}
+
+func NewILikePredicate(left, right ValueFunctor) *ILikePredicate {
+	p := &ILikePredicate{
+		left:  left,
+		right: right,
+	}
+	return p
+}
+
+func (p *ILikePredicate) Type() PredicateType {
+	return ILike
+}
+
+func (p ILikePredicate) String() string {
+	return fmt.Sprintf("%s ILIKE %s", p.left, p.right)
+}
+
+func (p *ILikePredicate) Eval(cols []string, t *Tuple) (bool, error) {
+	vl := p.left.Value(cols, t)
+	vr := p.right.Value(cols, t)
+
+	if vl == nil || vr == nil {
+		return false, nil
+	}
+
+	lstr := fmt.Sprintf("%v", vl)
+	pattern := fmt.Sprintf("%v", vr)
+
+	return matchLikePattern(lstr, pattern, true)
+}
+
+func (p *ILikePredicate) Left() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *ILikePredicate) Right() (Predicate, bool) {
+	return nil, false
+}
+
+func (p *ILikePredicate) Relation() string {
+	if p.left.Relation() != "" {
+		return p.left.Relation()
+	}
+	return p.right.Relation()
+}
+
+func (p *ILikePredicate) Attribute() []string {
+	return append(p.left.Attribute(), p.right.Attribute()...)
+}
+
+// matchLikePattern matches a string against a SQL LIKE pattern
+// % matches any sequence of zero or more characters
+// _ matches any single character
+// If caseInsensitive is true, the comparison is case-insensitive (ILIKE)
+func matchLikePattern(s, pattern string, caseInsensitive bool) (bool, error) {
+	if caseInsensitive {
+		s = strings.ToLower(s)
+		pattern = strings.ToLower(pattern)
+	}
+
+	// Convert SQL LIKE pattern to a simple state machine approach
+	// This handles % (any sequence) and _ (single char)
+	return matchLike(s, pattern), nil
+}
+
+// matchLike implements LIKE pattern matching
+func matchLike(s, pattern string) bool {
+	si := 0
+	pi := 0
+	starIdx := -1
+	matchIdx := 0
+
+	for si < len(s) {
+		if pi < len(pattern) && (pattern[pi] == '_' || pattern[pi] == s[si]) {
+			// Character match or single-char wildcard
+			si++
+			pi++
+		} else if pi < len(pattern) && pattern[pi] == '%' {
+			// Multi-char wildcard - remember position for backtracking
+			starIdx = pi
+			matchIdx = si
+			pi++
+		} else if starIdx != -1 {
+			// Backtrack: try matching more characters with the last %
+			pi = starIdx + 1
+			matchIdx++
+			si = matchIdx
+		} else {
+			return false
+		}
+	}
+
+	// Consume remaining % in pattern
+	for pi < len(pattern) && pattern[pi] == '%' {
+		pi++
+	}
+
+	return pi == len(pattern)
 }
 
 func equal(vl, vr any) (bool, error) {

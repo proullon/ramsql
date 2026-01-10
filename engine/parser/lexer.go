@@ -87,6 +87,10 @@ const (
 	IndexToken
 	CollateToken
 	NocaseToken
+	LikeToken
+	IlikeToken
+	FilterToken
+	CastToken
 
 	// Type Token
 
@@ -129,6 +133,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 
 	var matchers []Matcher
 	matchers = append(matchers, l.MatchArgTokenODBC)
+	matchers = append(matchers, l.MatchCastToken) // Must be before MatchNamedArgToken (:: vs :)
 	matchers = append(matchers, l.MatchNamedArgToken)
 	matchers = append(matchers, l.MatchArgToken)
 	matchers = append(matchers, l.MatchFloatToken)
@@ -204,6 +209,9 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("on", OnToken))
 	matchers = append(matchers, l.genericStringMatcher("collate", CollateToken))
 	matchers = append(matchers, l.genericStringMatcher("nocase", NocaseToken))
+	matchers = append(matchers, l.genericStringMatcher("ilike", IlikeToken))
+	matchers = append(matchers, l.genericStringMatcher("like", LikeToken))
+	matchers = append(matchers, l.genericStringMatcher("filter", FilterToken))
 	// Type Matcher
 	matchers = append(matchers, l.genericStringMatcher("decimal", DecimalToken))
 	matchers = append(matchers, l.genericStringMatcher("primary", PrimaryToken))
@@ -632,6 +640,25 @@ func (l *lexer) Match(str []byte, token int) bool {
 
 	l.tokens = append(l.tokens, t)
 	l.pos += len(t.Lexeme)
+	return true
+}
+
+// MatchCastToken matches the :: cast operator
+func (l *lexer) MatchCastToken() bool {
+	if l.pos+1 >= l.instructionLen {
+		return false
+	}
+
+	if l.instruction[l.pos] != ':' || l.instruction[l.pos+1] != ':' {
+		return false
+	}
+
+	t := Token{
+		Token:  CastToken,
+		Lexeme: "::",
+	}
+	l.tokens = append(l.tokens, t)
+	l.pos += 2
 	return true
 }
 

@@ -534,7 +534,7 @@ func selectExecutor(t *Tx, selectDecl *parser.Decl, args []NamedValue) (int64, i
 			continue
 		}
 		// get attribute to select
-		selector, err := t.getSelector(selectDecl.Decl[i], schema, tables, aliases)
+		selector, err := t.getSelector(selectDecl.Decl[i], schema, tables, aliases, args)
 		if err != nil {
 			return 0, 0, nil, nil, err
 		}
