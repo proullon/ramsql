@@ -2,6 +2,8 @@
 
 [![Go](https://github.com/leonardaustin/ramsql/actions/workflows/go.yml/badge.svg)](https://github.com/leonardaustin/ramsql/actions/workflows/go.yml)
 
+> **Note:** This is a fork of [proullon/ramsql](https://github.com/proullon/ramsql). All credit for the original implementation goes to the creators and contributors of that project. We aim to contribute our improvements back to the upstream repository when possible.
+
 ## Disposable SQL Engine for Testing
 
 RamSQL is a lightweight, in-memory SQL engine written in Go, specifically designed for unit testing. It eliminates the need for a running PostgreSQL or MySQL instance during tests, providing full isolation and zero setup overhead.
