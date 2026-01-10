@@ -278,7 +278,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 
 	fromTableName = getAlias(fromTableName, aliases)
 
-	_, _, err = t.tx.RelationAttribute(schema, fromTableName, pLeftValue)
+	_, leftAttr, err := t.tx.RelationAttribute(schema, fromTableName, pLeftValue)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +383,18 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 		}
 		right = agnostic.NewConstValueFunctor(args[idx-1].Value)
 	default:
-		v, err := agnostic.ToInstance(rightS.Lexeme, parser.TypeNameFromToken(rightS.Token))
+		// Determine the type for conversion
+		// If the left side is a date/timestamp column and the right side is a string,
+		// use the left column's type to properly parse the date string
+		rightTypeName := parser.TypeNameFromToken(rightS.Token)
+		leftTypeName := strings.ToLower(leftAttr.TypeName())
+		if rightS.Token == parser.StringToken {
+			switch leftTypeName {
+			case "date", "timestamp", "timestamptz":
+				rightTypeName = leftTypeName
+			}
+		}
+		v, err := agnostic.ToInstance(rightS.Lexeme, rightTypeName)
 		if err != nil {
 			return nil, err
 		}
