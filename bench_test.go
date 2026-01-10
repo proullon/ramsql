@@ -1,3 +1,6 @@
+//go:build benchmark
+// +build benchmark
+
 package main_test
 
 import (

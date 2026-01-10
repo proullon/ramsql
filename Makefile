@@ -12,8 +12,8 @@ install: ## install binaries
 test: ## test
 	go test -timeout 10s ./...
 
-bench:
-	go test -bench=. -count 6 | tee newbench.txt
+bench: ## run benchmarks (requires sqlite dependency)
+	go test -tags=benchmark -bench=. -count 6 | tee newbench.txt
 	benchstat bench.txt newbench.txt | tee benchstat.txt
 
 report:
