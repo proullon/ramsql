@@ -259,7 +259,7 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 
 	switch cond.Decl[declOffset].Token {
 	case parser.IsToken, parser.InToken, parser.EqualityToken, parser.DistinctnessToken, parser.LeftDipleToken, parser.RightDipleToken, parser.LessOrEqualToken, parser.GreaterOrEqualToken, parser.LikeToken, parser.IlikeToken:
-		break
+		// These tokens are valid operators, continue processing below
 	default:
 		fromTableName = cond.Decl[declOffset].Lexeme
 		cond.Decl = cond.Decl[declOffset+1:]

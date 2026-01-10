@@ -12,9 +12,9 @@ import (
 type Defaulter func() any
 
 type ForeignKey struct {
-	schema    string
-	relation  string
-	attribute string
+	schema    string //nolint:unused // Reserved for foreign key support
+	relation  string //nolint:unused // Reserved for foreign key support
+	attribute string //nolint:unused // Reserved for foreign key support
 }
 
 // Domain is the set of allowable values for an Attribute.
@@ -29,7 +29,7 @@ type Attribute struct {
 	typeName      string
 	typeInstance  reflect.Type
 	defaultValue  Defaulter
-	domain        Domain
+	domain        Domain //nolint:unused // Reserved for domain constraint support
 	autoIncrement bool
 	nextValue     uint64
 	unique        bool

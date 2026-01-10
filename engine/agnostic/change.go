@@ -48,7 +48,7 @@ func (t *Transaction) rollbackValueChange(c ValueChange) {
 func (t *Transaction) rollbackRelationChange(c RelationChange) {
 	// revert relation creation
 	if c.current != nil && c.old == nil {
-		c.schema.Remove(c.current.name)
+		_, _ = c.schema.Remove(c.current.name)
 	}
 
 	// revert relation drop
@@ -58,11 +58,12 @@ func (t *Transaction) rollbackRelationChange(c RelationChange) {
 
 	// revert alter
 	if c.current != nil && c.old != nil {
-		c.schema.Remove(c.current.name)
+		_, _ = c.schema.Remove(c.current.name)
 		c.schema.Add(c.old.name, c.old)
 	}
 }
 
+//nolint:unused // Reserved for future schema transaction support
 func (t *Transaction) rollbackSchemaChange(c SchemaChange) {
 	// revert schema creation
 	if c.current != nil && c.old == nil {

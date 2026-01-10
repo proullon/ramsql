@@ -90,7 +90,7 @@ func (p *parser) parseInsert() (*Instruction, error) {
 			openingBracketDecl.Add(decl)
 
 			if p.is(BracketClosingToken) {
-				p.consumeToken(BracketClosingToken)
+				_, _ = p.consumeToken(BracketClosingToken)
 				break
 			}
 
@@ -101,7 +101,7 @@ func (p *parser) parseInsert() (*Instruction, error) {
 		}
 
 		if p.is(CommaToken) {
-			p.consumeToken(CommaToken)
+			_, _ = p.consumeToken(CommaToken)
 			continue
 		}
 
@@ -137,7 +137,7 @@ func (p *parser) parseListElement() (*Decl, error) {
 
 	if p.is(SimpleQuoteToken) || p.is(DoubleQuoteToken) {
 		quoted = true
-		p.next()
+		_ = p.next()
 	}
 
 	var valueDecl *Decl

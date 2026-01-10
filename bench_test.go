@@ -11,7 +11,7 @@ import (
 )
 
 func setupInsertN(b *testing.B, db *sql.DB, n int) {
-	db.Exec(`DROP TABLE account`)
+	_, _ = db.Exec(`DROP TABLE account`)
 	_, err := db.Exec(`CREATE TABLE account (id BIGSERIAL PRIMARY KEY, email TEXT)`)
 	if err != nil {
 		b.Fatalf("sql.Exec: %s", err)
@@ -38,7 +38,7 @@ func setupInsertN(b *testing.B, db *sql.DB, n int) {
 
 func benchmarkInsert(b *testing.B, db *sql.DB, nbRows int) {
 
-	db.Exec(`DROP TABLE account`)
+	_, _ = db.Exec(`DROP TABLE account`)
 	_, err := db.Exec(`CREATE TABLE account (id BIGSERIAL PRIMARY KEY, email TEXT)`)
 	if err != nil {
 		b.Fatalf("sql.Exec: %s", err)

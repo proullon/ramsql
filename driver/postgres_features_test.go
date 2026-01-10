@@ -332,7 +332,9 @@ func TestLikePatterns(t *testing.T) {
 		count := 0
 		for rows.Next() {
 			var id int
-			rows.Scan(&id)
+			if err := rows.Scan(&id); err != nil {
+				t.Errorf("pattern '%s': scan error: %s", p.pattern, err)
+			}
 			count++
 		}
 		rows.Close()
