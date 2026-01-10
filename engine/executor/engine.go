@@ -334,6 +334,8 @@ func getValues(specifiedAttrs []string, valuesDecl *parser.Decl, args []NamedVal
 			typeName = "text"
 		case parser.FloatToken:
 			typeName = "float"
+		case parser.FalseToken, parser.TrueToken:
+			typeName = "bool"
 		default:
 			typeName = "text"
 			if _, err := agnostic.ToInstance(d.Lexeme, "timestamp"); err == nil {
@@ -394,6 +396,8 @@ func getSet(specifiedAttrs []string, values map[string]any, valuesDecl *parser.D
 		typeName = "timestamp"
 	case parser.TextToken:
 		typeName = "text"
+	case parser.FalseToken, parser.TrueToken:
+		typeName = "bool"
 	default:
 		typeName = "text"
 		if _, err := agnostic.ToInstance(valueDecl.Lexeme, "timestamp"); err == nil {

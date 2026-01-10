@@ -81,6 +81,7 @@ const (
 	DefaultToken
 	LocalTimestampToken
 	FalseToken
+	TrueToken
 	UniqueToken
 	NowToken
 	OffsetToken
@@ -202,6 +203,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("default", DefaultToken))
 	matchers = append(matchers, l.genericStringMatcher("localtimestamp", LocalTimestampToken))
 	matchers = append(matchers, l.genericStringMatcher("false", FalseToken))
+	matchers = append(matchers, l.genericStringMatcher("true", TrueToken))
 	matchers = append(matchers, l.genericStringMatcher("unique", UniqueToken))
 	matchers = append(matchers, l.genericStringMatcher("now()", NowToken))
 	matchers = append(matchers, l.genericStringMatcher("offset", OffsetToken))

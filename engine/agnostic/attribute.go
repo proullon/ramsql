@@ -87,6 +87,10 @@ func (a Attribute) Name() string {
 	return a.name
 }
 
+func (a Attribute) TypeName() string {
+	return a.typeName
+}
+
 func (a Attribute) String() string {
 	s := a.name + " (" + a.typeName
 	if a.autoIncrement {
