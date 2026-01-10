@@ -102,6 +102,12 @@ func (p *parser) parseCondition() (*Decl, error) {
 			return nil, err
 		}
 		attributeDecl.Add(decl)
+	case LikeToken, IlikeToken:
+		decl, err := p.consumeToken(p.cur().Token)
+		if err != nil {
+			return nil, err
+		}
+		attributeDecl.Add(decl)
 	case InToken:
 		inDecl, err := p.parseIn()
 		if err != nil {

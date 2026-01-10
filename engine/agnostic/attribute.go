@@ -159,7 +159,7 @@ func ToInstance(value, typeName string) (any, error) {
 			return nil, err
 		}
 		return v, nil
-	case "json", "jsonb", "varchar":
+	case "json", "jsonb", "varchar", "text", "char":
 		return value, nil
 	default: // try everyting
 		if v, err := strconv.ParseUint(value, 10, 64); err == nil {

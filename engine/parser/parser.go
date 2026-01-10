@@ -279,6 +279,7 @@ func (p *parser) parseOrderBy(selectDecl *Decl) error {
 }
 
 // parseBuiltinFunc looks for COUNT,MAX,MIN
+// Also handles FILTER (WHERE ...) clause for filtered aggregates
 func (p *parser) parseBuiltinFunc() (*Decl, error) {
 	var d *Decl
 	var err error
@@ -305,9 +306,54 @@ func (p *parser) parseBuiltinFunc() (*Decl, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// Check for FILTER (WHERE ...) clause
+		if p.is(FilterToken) {
+			filterDecl, err := p.parseFilterClause()
+			if err != nil {
+				return nil, err
+			}
+			d.Add(filterDecl)
+		}
 	}
 
 	return d, nil
+}
+
+// parseFilterClause parses FILTER (WHERE condition)
+func (p *parser) parseFilterClause() (*Decl, error) {
+	filterDecl, err := p.consumeToken(FilterToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Opening bracket
+	_, err = p.consumeToken(BracketOpeningToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// WHERE keyword
+	whereDecl, err := p.consumeToken(WhereToken)
+	if err != nil {
+		return nil, err
+	}
+	filterDecl.Add(whereDecl)
+
+	// Parse the condition
+	conditionDecl, err := p.parseCondition()
+	if err != nil {
+		return nil, err
+	}
+	whereDecl.Add(conditionDecl)
+
+	// Closing bracket
+	_, err = p.consumeToken(BracketClosingToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return filterDecl, nil
 }
 
 // parseTableName parse a table of the form
@@ -465,7 +511,36 @@ func (p *parser) parseAttribute() (*Decl, error) {
 				return nil, fmt.Errorf("expected closing quote: %s", err)
 			}
 		}
+
+		// Check for :: cast operator
+		if p.is(CastToken) {
+			castDecl, err := p.consumeToken(CastToken)
+			if err != nil {
+				return nil, err
+			}
+			typeDecl, err := p.consumeToken(StringToken)
+			if err != nil {
+				return nil, err
+			}
+			castDecl.Add(typeDecl)
+			attributeDecl.Add(castDecl)
+		}
+
 		return attributeDecl, nil
+	}
+
+	// Check for :: cast operator on simple attribute
+	if p.is(CastToken) {
+		castDecl, err := p.consumeToken(CastToken)
+		if err != nil {
+			return nil, err
+		}
+		typeDecl, err := p.consumeToken(StringToken)
+		if err != nil {
+			return nil, err
+		}
+		castDecl.Add(typeDecl)
+		decl.Add(castDecl)
 	}
 
 	// Then the first string token was the naked attribute name
@@ -606,6 +681,21 @@ func (p *parser) parseValue() (*Decl, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Check for :: cast operator
+	if p.is(CastToken) {
+		castDecl, err := p.consumeToken(CastToken)
+		if err != nil {
+			return nil, err
+		}
+		// Get the target type
+		typeDecl, err := p.consumeToken(StringToken)
+		if err != nil {
+			return nil, err
+		}
+		castDecl.Add(typeDecl)
+		valueDecl.Add(castDecl)
 	}
 
 	return valueDecl, nil

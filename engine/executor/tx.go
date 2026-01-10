@@ -133,7 +133,7 @@ func (t *Tx) executeQuery(i parser.Instruction, args []NamedValue) (int64, int64
 	return l, r, nil
 }
 
-func (t *Tx) getSelector(attr *parser.Decl, schema string, tables []string, aliases map[string]string) (agnostic.Selector, error) {
+func (t *Tx) getSelector(attr *parser.Decl, schema string, tables []string, aliases map[string]string, args []NamedValue) (agnostic.Selector, error) {
 	var err error
 
 	switch attr.Token {
@@ -141,13 +141,31 @@ func (t *Tx) getSelector(attr *parser.Decl, schema string, tables []string, alia
 		return agnostic.NewStarSelector(tables[0]), nil
 	case parser.CountToken:
 		for _, table := range tables {
-			if attr.Decl[0].Lexeme == "*" {
-				return agnostic.NewCountSelector(table, "*"), nil
+			attrName := attr.Decl[0].Lexeme
+			if attrName != "*" {
+				_, _, err = t.tx.RelationAttribute(schema, getAlias(table, aliases), attrName)
+				if err != nil {
+					continue
+				}
 			}
-			_, _, err = t.tx.RelationAttribute(schema, getAlias(table, aliases), attr.Decl[0].Lexeme)
-			if err == nil {
-				return agnostic.NewCountSelector(table, attr.Decl[0].Lexeme), nil
+
+			// Check for FILTER clause
+			var filterPred agnostic.Predicate
+			for _, d := range attr.Decl {
+				if d.Token == parser.FilterToken {
+					// Parse the filter condition
+					filterPred, err = t.parseFilterCondition(d, schema, table, args, aliases)
+					if err != nil {
+						return nil, err
+					}
+					break
+				}
 			}
+
+			if filterPred != nil {
+				return agnostic.NewCountSelectorWithFilter(table, attrName, filterPred), nil
+			}
+			return agnostic.NewCountSelector(table, attrName), nil
 		}
 		return nil, err
 	case parser.StringToken:
@@ -228,12 +246,23 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 		return agnostic.NewTruePredicate(), nil
 	}
 
-	switch cond.Decl[0].Token {
-	case parser.IsToken, parser.InToken, parser.EqualityToken, parser.DistinctnessToken, parser.LeftDipleToken, parser.RightDipleToken, parser.LessOrEqualToken, parser.GreaterOrEqualToken:
+	// Skip CastToken if present (it's part of the attribute, not the operator)
+	declOffset := 0
+	if len(cond.Decl) > 0 && cond.Decl[0].Token == parser.CastToken {
+		declOffset = 1
+	}
+
+	switch cond.Decl[declOffset].Token {
+	case parser.IsToken, parser.InToken, parser.EqualityToken, parser.DistinctnessToken, parser.LeftDipleToken, parser.RightDipleToken, parser.LessOrEqualToken, parser.GreaterOrEqualToken, parser.LikeToken, parser.IlikeToken:
 		break
 	default:
-		fromTableName = cond.Decl[0].Lexeme
-		cond.Decl = cond.Decl[1:]
+		fromTableName = cond.Decl[declOffset].Lexeme
+		cond.Decl = cond.Decl[declOffset+1:]
+		declOffset = 0
+		// Check for CastToken again after shifting
+		if len(cond.Decl) > 0 && cond.Decl[0].Token == parser.CastToken {
+			declOffset = 1
+		}
 	}
 
 	pLeftValue := strings.ToLower(cond.Lexeme)
@@ -246,8 +275,8 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	}
 
 	// Handle IN keyword
-	if cond.Decl[0].Token == parser.InToken {
-		p, err := inExecutor(fromTableName, pLeftValue, cond.Decl[0])
+	if cond.Decl[declOffset].Token == parser.InToken {
+		p, err := inExecutor(fromTableName, pLeftValue, cond.Decl[declOffset])
 		if err != nil {
 			return nil, err
 		}
@@ -255,8 +284,8 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	}
 
 	// Handle NOT IN keywords
-	if cond.Decl[0].Token == parser.NotToken && cond.Decl[0].Decl[0].Token == parser.InToken {
-		p, err := notInExecutor(fromTableName, pLeftValue, cond.Decl[0])
+	if cond.Decl[declOffset].Token == parser.NotToken && len(cond.Decl[declOffset].Decl) > 0 && cond.Decl[declOffset].Decl[0].Token == parser.InToken {
+		p, err := notInExecutor(fromTableName, pLeftValue, cond.Decl[declOffset])
 		if err != nil {
 			return nil, err
 		}
@@ -264,21 +293,21 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	}
 
 	// Handle IS NULL and IS NOT NULL
-	if cond.Decl[0].Token == parser.IsToken {
-		p, err := isExecutor(fromTableName, pLeftValue, cond.Decl[0])
+	if cond.Decl[declOffset].Token == parser.IsToken {
+		p, err := isExecutor(fromTableName, pLeftValue, cond.Decl[declOffset])
 		if err != nil {
 			return nil, err
 		}
 		return p, nil
 	}
 
-	if len(cond.Decl) < 2 {
+	if len(cond.Decl) < declOffset+2 {
 		return nil, fmt.Errorf("Malformed predicate \"%s\"", cond.Lexeme)
 	}
 
 	leftS := cond
-	op := cond.Decl[0]
-	rightS := cond.Decl[1]
+	op := cond.Decl[declOffset]
+	rightS := cond.Decl[declOffset+1]
 
 	var left, right agnostic.ValueFunctor
 
@@ -313,10 +342,12 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 	default:
 		left = agnostic.NewAttributeValueFunctor(fromTableName, pLeftValue)
 	}
+	// Apply cast if present
+	left = wrapWithCast(left, leftS)
 
 	switch rightS.Token {
 	case parser.CurrentSchemaToken:
-		left = agnostic.NewConstValueFunctor(schema)
+		right = agnostic.NewConstValueFunctor(schema)
 	case parser.NamedArgToken:
 		for _, arg := range args {
 			if rightS.Lexeme == arg.Name {
@@ -348,6 +379,15 @@ func (t *Tx) getPredicates(decl []*parser.Decl, schema, fromTableName string, ar
 			return nil, err
 		}
 		right = agnostic.NewConstValueFunctor(v)
+	}
+	// Apply cast if present
+	right = wrapWithCast(right, rightS)
+
+	switch op.Token {
+	case parser.LikeToken:
+		return agnostic.NewLikePredicate(left, right), nil
+	case parser.IlikeToken:
+		return agnostic.NewILikePredicate(left, right), nil
 	}
 
 	var ptype agnostic.PredicateType
@@ -524,4 +564,34 @@ func getAlias(t string, aliases map[string]string) string {
 		return a
 	}
 	return t
+}
+
+// parseFilterCondition parses the condition from a FILTER clause
+func (t *Tx) parseFilterCondition(filterDecl *parser.Decl, schema, tableName string, args []NamedValue, aliases map[string]string) (agnostic.Predicate, error) {
+	// filterDecl has a WHERE child, which has the condition
+	for _, d := range filterDecl.Decl {
+		if d.Token == parser.WhereToken {
+			return t.getPredicates(d.Decl, schema, tableName, args, aliases)
+		}
+	}
+	return nil, fmt.Errorf("FILTER clause missing WHERE condition")
+}
+
+// getCastType returns the cast type if a CastToken child exists, empty string otherwise
+func getCastType(decl *parser.Decl) string {
+	for _, d := range decl.Decl {
+		if d.Token == parser.CastToken && len(d.Decl) > 0 {
+			return d.Decl[0].Lexeme
+		}
+	}
+	return ""
+}
+
+// wrapWithCast wraps a value functor with a cast if needed
+func wrapWithCast(functor agnostic.ValueFunctor, decl *parser.Decl) agnostic.ValueFunctor {
+	castType := getCastType(decl)
+	if castType != "" {
+		return agnostic.NewCastValueFunctor(functor, castType)
+	}
+	return functor
 }
