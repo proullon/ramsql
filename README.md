@@ -1,33 +1,36 @@
 # RamSQL
 
-[![Build Status](https://travis-ci.org/proullon/ramsql.svg)](https://travis-ci.org/proullon/ramsql)
+[![Go](https://github.com/leonardaustin/ramsql/actions/workflows/go.yml/badge.svg)](https://github.com/leonardaustin/ramsql/actions/workflows/go.yml)
 
-## Disposable SQL engine
+## Disposable SQL Engine for Testing
 
-RamSQL has been written to be used in your project's test suite.
+RamSQL is a lightweight, in-memory SQL engine written in Go, specifically designed for unit testing. It eliminates the need for a running PostgreSQL or MySQL instance during tests, providing full isolation and zero setup overhead.
 
-Unit testing in Go is simple, create a foo_test.go import testing and run `go test ./...`.
-But then there is SQL queries, constraints, CRUD...and suddenly you need a PostgresSQL, setup scripts and nothing is easy anymore.
+### Why RamSQL?
 
-The idea is to avoid setup, DBMS installation and credentials management as long as possible.
-A unique engine is tied to a single sql.DB with as much sql.Conn as needed providing a unique DataSourceName.
-Bottom line : One DataSourceName per test and you have full test isolation in no time.
+Unit testing in Go is simple: create a `foo_test.go`, import `testing`, and run `go test ./...`. But when SQL queries enter the picture, you suddenly need database setup scripts, credentials management, and infrastructure complexity.
+
+RamSQL solves this by providing:
+- **Full test isolation** - One DataSourceName per test means completely independent test runs
+- **Zero setup** - No database installation or configuration required
+- **Standard interface** - Implements Go's `database/sql/driver` interface
+- **Fast execution** - Pure in-memory operations
 
 ## Installation
 
-```
-  go get github.com/proullon/ramsql
+```bash
+go get github.com/leonardaustin/ramsql
 ```
 
-## Usage
+## Quick Start
 
-Let's say you want to test the function LoadUserAddresses :
+Here's how to test a function that queries user addresses:
 
 ```go
 func LoadUserAddresses(db *sql.DB, userID int64) ([]string, error) {
-	query := `SELECT address.street_number, address.street FROM address 
-							JOIN user_addresses ON address.id=user_addresses.address_id 
-							WHERE user_addresses.user_id = $1;`
+	query := `SELECT address.street_number, address.street FROM address
+			  JOIN user_addresses ON address.id=user_addresses.address_id
+			  WHERE user_addresses.user_id = $1;`
 
 	rows, err := db.Query(query, userID)
 	if err != nil {
@@ -46,22 +49,19 @@ func LoadUserAddresses(db *sql.DB, userID int64) ([]string, error) {
 
 	return addresses, nil
 }
-
 ```
 
-Use RamSQL to test it in a disposable isolated in-memory SQL engine :
+Test it with RamSQL:
 
 ```go
-package myproject 
+package myproject
 
 import (
 	"database/sql"
-	"fmt"
 	"testing"
 
-	_ "github.com/proullon/ramsql/driver"
+	_ "github.com/leonardaustin/ramsql/driver"
 )
-
 
 func TestLoadUserAddresses(t *testing.T) {
 	batch := []string{
@@ -70,7 +70,7 @@ func TestLoadUserAddresses(t *testing.T) {
 		`INSERT INTO address (street, street_number) VALUES ('rue Victor Hugo', 32);`,
 		`INSERT INTO address (street, street_number) VALUES ('boulevard de la République', 23);`,
 		`INSERT INTO address (street, street_number) VALUES ('rue Charles Martel', 5);`,
-		`INSERT INTO address (street, street_number) VALUES ('chemin du bout du monde ', 323);`,
+		`INSERT INTO address (street, street_number) VALUES ('chemin du bout du monde', 323);`,
 		`INSERT INTO address (street, street_number) VALUES ('boulevard de la liberté', 2);`,
 		`INSERT INTO address (street, street_number) VALUES ('avenue des champs', 12);`,
 		`INSERT INTO user_addresses (address_id, user_id) VALUES (2, 1);`,
@@ -83,7 +83,7 @@ func TestLoadUserAddresses(t *testing.T) {
 
 	db, err := sql.Open("ramsql", "TestLoadUserAddresses")
 	if err != nil {
-		t.Fatalf("sql.Open : Error : %s\n", err)
+		t.Fatalf("sql.Open: Error: %s\n", err)
 	}
 	defer db.Close()
 
@@ -96,31 +96,28 @@ func TestLoadUserAddresses(t *testing.T) {
 
 	addresses, err := LoadUserAddresses(db, 1)
 	if err != nil {
-		t.Fatalf("Too bad! unexpected error: %s", err)
+		t.Fatalf("Unexpected error: %s", err)
 	}
 
 	if len(addresses) != 2 {
 		t.Fatalf("Expected 2 addresses, got %d", len(addresses))
 	}
-
 }
 ```
 
-Done. No need for a running PostgreSQL or a setup. Your tests are isolated, and compliant with go tools.
+No running PostgreSQL. No setup scripts. Full test isolation compliant with Go tools.
 
-## RamSQL binary
+## CLI Tool
 
-Let's say you have a SQL describing your application structure:
+RamSQL includes a command-line interface for validating SQL schemas:
 
-```sql
-CREATE TABLE IF NOT EXISTS address (id BIGSERIAL PRIMARY KEY, street TEXT, street_number INT);
-CREATE TABLE IF NOT EXISTS user_addresses (address_id INT, user_id INT);
+```bash
+go install github.com/leonardaustin/ramsql@latest
 ```
 
-You may want to test its validity:
+Test your schema files:
 
 ```console
-$ go install github.com/proullon/ramsql
 $ ramsql < schema.sql
 ramsql> Query OK. 1 rows affected
 ramsql> Query OK. 1 rows affected
@@ -130,156 +127,145 @@ $ echo $?
 
 ## Features
 
-Find bellow all objectives for `v1.0.0`
+| Feature | Parsing | Implementation | Notes |
+|---------|---------|----------------|-------|
+| **DDL** |
+| CREATE TABLE | :heavy_check_mark: | :heavy_check_mark: | IF NOT EXISTS supported |
+| CREATE INDEX | :heavy_check_mark: | :heavy_check_mark: | |
+| CREATE SCHEMA | :heavy_check_mark: | :heavy_check_mark: | |
+| DROP TABLE | :heavy_check_mark: | :heavy_check_mark: | |
+| TRUNCATE | :heavy_check_mark: | :heavy_check_mark: | |
+| **DML** |
+| SELECT | :heavy_check_mark: | :heavy_check_mark: | |
+| INSERT | :heavy_check_mark: | :heavy_check_mark: | Single and multi-row |
+| UPDATE | :heavy_check_mark: | :heavy_check_mark: | |
+| DELETE | :heavy_check_mark: | :heavy_check_mark: | |
+| **Constraints** |
+| PRIMARY KEY | :heavy_check_mark: | :heavy_check_mark: | |
+| UNIQUE | :heavy_check_mark: | :heavy_check_mark: | |
+| DEFAULT | :heavy_check_mark: | :heavy_check_mark: | |
+| FOREIGN KEY | :heavy_multiplication_x: | :heavy_multiplication_x: | Not implemented |
+| **Joins** |
+| INNER JOIN | :heavy_check_mark: | :heavy_check_mark: | |
+| OUTER JOIN | :heavy_check_mark: | :heavy_multiplication_x: | Parsed only |
+| **Clauses** |
+| WHERE | :heavy_check_mark: | :heavy_check_mark: | AND, OR, brackets |
+| ORDER BY | :heavy_check_mark: | :heavy_check_mark: | ASC, DESC |
+| LIMIT | :heavy_check_mark: | :heavy_check_mark: | |
+| OFFSET | :heavy_check_mark: | :heavy_check_mark: | |
+| DISTINCT | :heavy_check_mark: | :heavy_check_mark: | |
+| GROUP BY | :heavy_check_mark: | :heavy_check_mark: | |
+| **Operators** |
+| Comparison (=, !=, <, >, <=, >=) | :heavy_check_mark: | :heavy_check_mark: | |
+| IN / NOT IN | :heavy_check_mark: | :heavy_check_mark: | |
+| LIKE | :heavy_check_mark: | :heavy_check_mark: | % and _ wildcards |
+| ILIKE | :heavy_check_mark: | :heavy_check_mark: | Case-insensitive LIKE |
+| IS NULL / IS NOT NULL | :heavy_check_mark: | :heavy_check_mark: | |
+| **Aggregates** |
+| COUNT | :heavy_check_mark: | :heavy_check_mark: | With filter support |
+| MAX | :heavy_check_mark: | :heavy_check_mark: | |
+| **Transactions** |
+| BEGIN/COMMIT/ROLLBACK | :heavy_check_mark: | :heavy_check_mark: | Table-level locking |
+| **Indexes** |
+| Hash Index | :heavy_check_mark: | :heavy_check_mark: | O(1) lookups |
+| B-Tree Index | :heavy_check_mark: | :heavy_multiplication_x: | Parsed only |
+| **Types** |
+| INT/BIGINT | :heavy_check_mark: | :heavy_check_mark: | |
+| TEXT/VARCHAR | :heavy_check_mark: | :heavy_check_mark: | |
+| BOOLEAN | :heavy_check_mark: | :heavy_check_mark: | |
+| TIMESTAMP/DATE | :heavy_check_mark: | :heavy_check_mark: | |
+| BIGSERIAL | :heavy_check_mark: | :heavy_check_mark: | Auto-increment |
+| FLOAT/REAL | :heavy_check_mark: | :heavy_check_mark: | |
+| BYTEA | :heavy_check_mark: | :heavy_check_mark: | |
+| JSON | :heavy_multiplication_x: | :heavy_multiplication_x: | Not implemented |
+| **Other** |
+| Backticks/Quotes | :heavy_check_mark: | :heavy_check_mark: | Multiple quoting styles |
+| now() | :heavy_check_mark: | :heavy_check_mark: | |
+| RETURNING | :heavy_check_mark: | :heavy_check_mark: | For INSERT |
+| Type casting | :heavy_check_mark: | :heavy_check_mark: | |
+| AS (aliases) | :heavy_multiplication_x: | :heavy_multiplication_x: | Not implemented |
 
-| Name           | Category      | Parsing                  | Implementation           |
-| -------------- | ------------- | ------------------------ | ------------------------ |
-| Table          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| Schema         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| CREATE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| PRIMARY_KEY    | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| DEFAULT        | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| INSERT         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| UNIQUE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| FOREIGN KEY    | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| SELECT         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| backtick       | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| quote          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| double quote   | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| COUNT          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| MAX            | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| ORDER BY       | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| UPDATE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| DELETE         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| DROP           | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| INNER JOIN     | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| OUTER JOIN     | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
-| timestamp      | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| now()          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| OFFSET         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| Transactions   | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| BEGIN          | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| COMMIT         | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| Index          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| Hash index     | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
-| B-Tree index   | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
-| JSON           | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| AS             | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| CLI            | Testing       | :heavy_check_mark:       | :heavy_check_mark:       |
-| Breakpoint     | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| Query history  | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| Size limit     | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| Autogeneration | Testing       | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| TTL            | Caching       | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| LFRU           | Caching       | :heavy_multiplication_x: | :heavy_multiplication_x: |
-| Gorm           | Compatibility | :heavy_check_mark:       | :heavy_check_mark:       |
+## GORM Compatibility
 
-### Unit testing
-
-- Full isolation between tests
-- No setup (either file or databases)
-- Good performance
-
-### SQL parsing
-
-- Database schema validation
-- ALTER file validation
-
-### Stress testing
-
-- File system full error with configurable maximum database size
-- Random configurable slow queries
-- Random connection error
-
-## Compatibility
-
-### GORM
-
-If you intend to use ramsql with the GORM ORM, you should use the GORM Postgres driver. A working example would be:
+RamSQL works with GORM using the PostgreSQL driver:
 
 ```go
 import (
 	"database/sql"
 	"testing"
 
+	_ "github.com/leonardaustin/ramsql/driver"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type Product struct {
 	gorm.Model
-	Code       string
-	Price      uint
-	TestBigint uint64 `gorm:"test_bigint;type:BIGINT UNSIGNED AUTO_INCREMENT"`
+	Code  string
+	Price uint
 }
 
-// From https://gorm.io/docs/connecting_to_the_database.html
-// and  https://gorm.io/docs/
-func main() {
-	ramdb, err := sql.Open("ramsql", "TestGormQuickStart")
+func TestWithGORM(t *testing.T) {
+	ramdb, err := sql.Open("ramsql", "TestGORM")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: ramdb,
-	}),
-		&gorm.Config{})
+	}), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// Migrate the schema
-	err = db.AutoMigrate(&Product{})
+	// AutoMigrate, Create, Read, Update, Delete all work
+	db.AutoMigrate(&Product{})
+	db.Create(&Product{Code: "D42", Price: 100})
 
-	// Create
-	err = db.Create(&Product{Code: "D42", Price: 100}).Error
-
-	// Read
 	var product Product
-	err = db.First(&product, 1).Error // find product with integer primary key
-	err = db.First(&product, "code = ?", "D42").Error // find product with code D42
-	err = db.First(&product, "Code = ?", "D42").Error // find product with code D42
-
-	// Update - update product's price to 200
-	err = db.Model(&product).Update("Price", 200).Error
-	// Update - update multiple fields
-	err = db.Model(&product).Updates(Product{Price: 200, Code: "F42"}).Error // non-zero fields
-	err = db.Model(&product).Updates(map[string]interface{}{"Price": 200, "Code": "F42"}).Error
-
-	// Delete - delete product
-	err = db.Delete(&product, 1).Error
-
-    _ = err
+	db.First(&product, "code = ?", "D42")
 }
 ```
 
 ## Architecture
 
-### Rows storage and garbage collector
+### Storage Design
 
-What options do we have to store objects:
+RamSQL uses a linked list (`container/list`) to store rows, which minimizes garbage collector pause times. Using `map[any]*Something` would cause GC to lock and check all pointers, but linked lists avoid this overhead.
 
-- unsafe memory paging
-- map
-- slice
-- linked list
+### Indexing
 
-The issue with having a lot of objects (rows here) in memory is Garbage Collector pause. The processus will lock objects to determine if there is any pointers to it. This becomes an issue with `map[any]*Something` since GC will lock the map to check all pointers.
-
-Unsafe memory paging is a bit tricky to keep portable.
-
-Slices are nice, and could grow non linearly capped with available RAM.
-
-The simplest option regarding GC pause and rows storage is linked list. Easy to update and remove rows without overhead, while keeping GC functioning properly.
-
-### Indexes
-
-We want Hash index to fetch rows in `O(1)` time with `=` operator. This means we need to use a map, without using pointers. That's where `uintptr` comes to play. Hash index uses `map[string]uintptr` or `map[int64]uintptr` to keep track of pointer to linked list elements, while discarding GC checks.
-
-We also want Binary Tree index to fetch rows in `O(log(n))` time with `<, <=, >, >=` operators.
+- **Hash indexes** use `map[string]uintptr` or `map[int64]uintptr` for O(1) lookups with the `=` operator
+- **B-Tree indexes** are planned for O(log n) range queries with `<, <=, >, >=` operators
 
 ### Transactions
 
-`RamSQL` only uses table level lock transactions. In case of error or call to `Rollback()`, changes will be reverted back into modified relation.
+RamSQL uses table-level locking for transactions. Changes are tracked and can be reverted on `Rollback()`. `Commit()` releases locks and clears the change history.
 
-`Commit()` releases the locks.
+## Development
 
-## TODO
+```bash
+# Run tests
+make test
 
-- `agnostic` -> `memstore`
-- `executor` -> `sql`
+# Run tests with coverage report
+make report
+
+# Run benchmarks
+make bench
+
+# Build and install
+make install
+```
+
+## Known Limitations
+
+- OUTER JOIN is parsed but not implemented
+- B-Tree index optimization is parsed but not fully implemented
+- FOREIGN KEY constraints are not supported
+- JSON type is not supported
+- Query aliases (AS) are not supported
+
+## License
+
+MIT
