@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/proullon/ramsql/engine/agnostic"
-	"github.com/proullon/ramsql/engine/parser"
+	"github.com/leonardaustin/ramsql/engine/agnostic"
+	"github.com/leonardaustin/ramsql/engine/parser"
 )
 
 func parseAttribute(decl *parser.Decl) (attr agnostic.Attribute, isPk bool, err error) {

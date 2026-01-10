@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/proullon/ramsql/engine/agnostic"
-	"github.com/proullon/ramsql/engine/log"
-	"github.com/proullon/ramsql/engine/parser"
+	"github.com/leonardaustin/ramsql/engine/agnostic"
+	"github.com/leonardaustin/ramsql/engine/log"
+	"github.com/leonardaustin/ramsql/engine/parser"
 )
 
 // Engine is the root struct of RamSQL server

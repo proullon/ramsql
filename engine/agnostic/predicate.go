@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/proullon/ramsql/engine/log"
+	"github.com/leonardaustin/ramsql/engine/log"
 )
 
 type PredicateType int

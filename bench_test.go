@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	_ "github.com/glebarez/go-sqlite"
-	_ "github.com/proullon/ramsql/driver"
+	_ "github.com/leonardaustin/ramsql/driver"
 )
 
 func setupInsertN(b *testing.B, db *sql.DB, n int) {

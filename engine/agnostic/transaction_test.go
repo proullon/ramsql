@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/proullon/ramsql/engine/log"
+	"github.com/leonardaustin/ramsql/engine/log"
 )
 
 func TestTransactionEmptyCommit(t *testing.T) {
