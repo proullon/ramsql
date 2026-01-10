@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"fmt"
 	"hash/maphash"
-	"unsafe"
 )
 
 type IndexType int
@@ -29,7 +28,7 @@ type HashIndex struct {
 	relAttrs  []string
 	attrs     []int
 	attrsName []string
-	m         map[uint64]uintptr
+	m         map[uint64]*list.Element
 
 	maphash.Hash
 }
@@ -40,7 +39,7 @@ func NewHashIndex(name string, relName string, relAttrs []Attribute, attrsName [
 		relName:   relName,
 		attrs:     attrs,
 		attrsName: attrsName,
-		m:         make(map[uint64]uintptr),
+		m:         make(map[uint64]*list.Element),
 	}
 	h.SetSeed(maphash.MakeSeed())
 	for _, a := range relAttrs {
@@ -64,7 +63,7 @@ func (h *HashIndex) Add(e *list.Element) {
 	}
 	sum := h.Sum64()
 	h.Reset()
-	h.m[sum] = uintptr(unsafe.Pointer(e))
+	h.m[sum] = e
 }
 
 func (h *HashIndex) Remove(e *list.Element) {
@@ -92,19 +91,16 @@ func (h *HashIndex) Get(values []any) (*list.Element, error) {
 	sum := h.Sum64()
 	h.Reset()
 
-	var t *list.Element
-	ptr, ok := h.m[sum]
+	t, ok := h.m[sum]
 	if !ok {
 		return nil, nil
-		//		return nil, fmt.Errorf("could not find sum '%d' (%v) in index %s", sum, values, h)
 	}
 
-	t = (*list.Element)(unsafe.Pointer(ptr))
 	return t, nil
 }
 
 func (h *HashIndex) Truncate() {
-	h.m = make(map[uint64]uintptr)
+	h.m = make(map[uint64]*list.Element)
 }
 
 func (h *HashIndex) String() string {
