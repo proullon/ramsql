@@ -1,4 +1,4 @@
-module github.com/proullon/ramsql
+module github.com/leonardaustin/ramsql
 
 go 1.20
 
