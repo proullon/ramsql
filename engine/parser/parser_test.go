@@ -402,3 +402,15 @@ func parse(query string, instructionNumber int, t *testing.T) []Instruction {
 
 	return instructions
 }
+
+func TestGenRandomUUID(t *testing.T) {
+	queries := []string{
+		`CREATE TABLE IF NOT EXISTS "account" (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT)`,
+		`INSERT INTO account (id, email) VALUES (GEN_RANDOM_UUID(), 'foo@bar.com')`,
+		`UPDATE account SET id = gen_random_uuid() WHERE email = 'foo@bar.com'`,
+	}
+
+	for _, q := range queries {
+		parse(q, 1, t)
+	}
+}

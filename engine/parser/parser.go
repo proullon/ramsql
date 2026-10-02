@@ -596,7 +596,7 @@ func (p *parser) parseValue() (*Decl, error) {
 		}
 	}
 
-	valueDecl, err := p.consumeToken(FloatToken, StringToken, NumberToken, DateToken, NowToken, CurrentSchemaToken, ArgToken, NamedArgToken)
+	valueDecl, err := p.consumeToken(FloatToken, StringToken, NumberToken, DateToken, NowToken, GenRandomUUIDToken, CurrentSchemaToken, ArgToken, NamedArgToken)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"reflect"
 	"testing"
 	"time"
@@ -2703,5 +2704,81 @@ func TestLimitEmptyTable(t *testing.T) {
 	_, err = db.Query(q)
 	if err != nil {
 		t.Fatalf("cannot select: %s", err)
+	}
+}
+
+func TestGenRandomUUID(t *testing.T) {
+	db, err := sql.Open("ramsql", "TestGenRandomUUID")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec(`CREATE TABLE account (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT)`)
+	if err != nil {
+		t.Fatalf("sql.Exec: Error: %s\n", err)
+	}
+
+	// DEFAULT gen_random_uuid() on two rows must yield two distinct, well-formed UUIDs
+	for _, email := range []string{"foo@bar.com", "bar@foo.com"} {
+		_, err = db.Exec(`INSERT INTO account (email) VALUES ($1)`, email)
+		if err != nil {
+			t.Fatalf("cannot insert row relying on default uuid: %s\n", err)
+		}
+	}
+
+	rows, err := db.Query(`SELECT id FROM account`)
+	if err != nil {
+		t.Fatalf("cannot select ids: %s\n", err)
+	}
+	defer rows.Close()
+
+	seen := make(map[string]bool)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			t.Fatalf("cannot scan id: %s\n", err)
+		}
+		if _, err := uuid.Parse(id); err != nil {
+			t.Fatalf("expected a uuid, got %q: %s\n", id, err)
+		}
+		if seen[id] {
+			t.Fatalf("uuid %s generated twice", id)
+		}
+		seen[id] = true
+	}
+	if len(seen) != 2 {
+		t.Fatalf("expected 2 rows, got %d", len(seen))
+	}
+
+	// gen_random_uuid() as an explicit INSERT value
+	_, err = db.Exec(`INSERT INTO account (id, email) VALUES (gen_random_uuid(), 'baz@bar.com')`)
+	if err != nil {
+		t.Fatalf("cannot insert row using gen_random_uuid(): %s\n", err)
+	}
+	var id string
+	err = db.QueryRow(`SELECT id FROM account WHERE email = 'baz@bar.com'`).Scan(&id)
+	if err != nil {
+		t.Fatalf("cannot load new row: %s\n", err)
+	}
+	if _, err := uuid.Parse(id); err != nil {
+		t.Fatalf("expected a uuid, got %q: %s\n", id, err)
+	}
+
+	// gen_random_uuid() in UPDATE SET
+	_, err = db.Exec(`UPDATE account SET id = gen_random_uuid() WHERE email = 'baz@bar.com'`)
+	if err != nil {
+		t.Fatalf("cannot update id using gen_random_uuid(): %s\n", err)
+	}
+	var id2 string
+	err = db.QueryRow(`SELECT id FROM account WHERE email = 'baz@bar.com'`).Scan(&id2)
+	if err != nil {
+		t.Fatalf("cannot load updated row: %s\n", err)
+	}
+	if _, err := uuid.Parse(id2); err != nil {
+		t.Fatalf("expected a uuid after update, got %q: %s\n", id2, err)
+	}
+	if id2 == id {
+		t.Fatalf("expected a different uuid after update, got %s twice", id)
 	}
 }

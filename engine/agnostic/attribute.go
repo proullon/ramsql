@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Defaulter func() any
@@ -122,6 +124,9 @@ func typeInstanceFromName(name string) reflect.Type {
 func ToInstance(value, typeName string) (any, error) {
 	if value == "now()" || value == "current_timestamp" {
 		return time.Now(), nil
+	}
+	if value == "gen_random_uuid()" {
+		return uuid.NewString(), nil
 	}
 	if value == "null" {
 		return nil, nil

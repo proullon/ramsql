@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/proullon/ramsql/engine/agnostic"
 	"github.com/proullon/ramsql/engine/parser"
 )
@@ -48,6 +49,8 @@ func parseAttribute(decl *parser.Decl) (attr agnostic.Attribute, isPk bool, err 
 			switch typeDecl[i].Decl[0].Token {
 			case parser.LocalTimestampToken, parser.NowToken:
 				attr = attr.WithDefault(func() any { return time.Now() })
+			case parser.GenRandomUUIDToken:
+				attr = attr.WithDefault(func() any { return uuid.NewString() })
 			default:
 				v, err := agnostic.ToInstance(typeDecl[i].Decl[0].Lexeme, typeName)
 				if err != nil {

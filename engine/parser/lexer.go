@@ -87,6 +87,7 @@ const (
 	IndexToken
 	CollateToken
 	NocaseToken
+	GenRandomUUIDToken
 
 	// Type Token
 
@@ -199,6 +200,7 @@ func (l *lexer) lex(instruction []byte) ([]Token, error) {
 	matchers = append(matchers, l.genericStringMatcher("false", FalseToken))
 	matchers = append(matchers, l.genericStringMatcher("unique", UniqueToken))
 	matchers = append(matchers, l.genericStringMatcher("now()", NowToken))
+	matchers = append(matchers, l.genericStringMatcher("gen_random_uuid()", GenRandomUUIDToken))
 	matchers = append(matchers, l.genericStringMatcher("offset", OffsetToken))
 	matchers = append(matchers, l.genericStringMatcher("index", IndexToken))
 	matchers = append(matchers, l.genericStringMatcher("on", OnToken))

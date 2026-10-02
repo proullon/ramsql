@@ -141,7 +141,7 @@ func (p *parser) parseListElement() (*Decl, error) {
 	}
 
 	var valueDecl *Decl
-	valueDecl, err := p.consumeToken(FloatToken, StringToken, NumberToken, NullToken, DateToken, NowToken, ArgToken, NamedArgToken, FalseToken)
+	valueDecl, err := p.consumeToken(FloatToken, StringToken, NumberToken, NullToken, DateToken, NowToken, GenRandomUUIDToken, ArgToken, NamedArgToken, FalseToken)
 	if err != nil {
 		return nil, err
 	}

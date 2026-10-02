@@ -156,6 +156,7 @@ Find bellow all objectives for `v1.0.0`
 | OUTER JOIN     | SQL           | :heavy_check_mark:       | :heavy_multiplication_x: |
 | timestamp      | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | now()          | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
+| gen_random_uuid() | SQL        | :heavy_check_mark:       | :heavy_check_mark:       |
 | OFFSET         | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | Transactions   | SQL           | :heavy_check_mark:       | :heavy_check_mark:       |
 | BEGIN          | SQL           | :heavy_multiplication_x: | :heavy_multiplication_x: |
